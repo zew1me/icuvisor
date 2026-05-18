@@ -1,0 +1,34 @@
+{{ $tools := hugo.Data.tools }}
+{{ if not $tools }}{{ errorf "web/data/tools.json is missing or empty; run make docs-tools" }}{{ end }}
+{{ $groups := slice "activities" "workout-library" "events" "fitness" "wellness" "custom-items" "settings" "coach" "meta" }}
+{{ $labels := dict
+  "activities" "Activities"
+  "workout-library" "Workout library"
+  "events" "Events &amp; calendar"
+  "fitness" "Fitness metrics"
+  "wellness" "Wellness"
+  "custom-items" "Custom items"
+  "settings" "Sport settings"
+  "coach" "Coach mode"
+  "meta" "Server"
+}}
+<div class="tool-list">
+  {{ range $group := $groups }}
+    {{ $rows := where $tools "group" $group }}
+    {{ with $rows }}
+    <section class="tool-list-group">
+      <h3>{{ index $labels $group | safeHTML }}</h3>
+      <dl>
+      {{ range . }}
+        {{ $parts := split .name "_" }}
+        {{ $verb := index $parts 0 }}
+        {{ $rest := "" }}
+        {{ if gt (len $parts) 1 }}{{ $rest = delimit (after 1 $parts) "_" }}{{ end }}
+        <dt><a href="{{ printf "/reference/tools/#%s" .anchor | relURL }}" class="tool-link tool-verb--{{ $verb }}"><code><span class="tool-verb">{{ $verb }}</span>{{ with $rest }}<span class="tool-rest">_{{ . }}</span>{{ end }}</code></a></dt>
+        <dd>{{ .summary }}</dd>
+      {{ end }}
+      </dl>
+    </section>
+    {{ end }}
+  {{ end }}
+</div>

@@ -1,0 +1,16 @@
+{
+  "method": "PUT",
+  "path": "/athlete/{athlete_id}/wellness/{date}",
+  "body": {
+    "fatigue": 2,
+    "locked": true,
+    "mood": 4,
+    "motivation": 4,
+    "sleepQuality": 3,
+    "soreness": 2,
+    "stress": 2
+  },
+  "omitted_fields": {
+    "feel": "upstream wellness write rejects this field with 422: Unrecognized wellness field [feel]"
+  }
+}

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  WiX v4 source for the icuvisor Windows installer.
+
+  Per-user install (no admin elevation): files land in
+  %LOCALAPPDATA%\Programs\icuvisor and the user's PATH gets that directory
+  prepended so `icuvisor` is callable from any new shell.
+
+  Variables are passed by the CI build at `wix build` time:
+    -d Version=<x.y.z>         (no leading "v"; max N.N.N.N MSI version)
+    -d BinarySource=<path>     path to icuvisor.exe
+    -d LicenseSource=<path>    path to LICENSE
+    -d IconSource=<path>       path to icuvisor.ico
+
+  The output MSI is signed with Authenticode after `wix build` completes.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+      Name="icuvisor"
+      Manufacturer="Ricardo Niederberger Cabral"
+      Version="$(var.Version)"
+      UpgradeCode="8F557483-04AB-41DF-B138-3F979AF6496F"
+      Scope="perUser"
+      Compressed="yes">
+
+    <SummaryInformation Description="icuvisor MCP server installer" />
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of icuvisor is already installed." />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="icuvisor.ico" SourceFile="$(var.IconSource)" />
+    <Property Id="ARPPRODUCTICON" Value="icuvisor.ico" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/ricardocabral/icuvisor" />
+    <Property Id="ARPURLINFOABOUT" Value="https://icuvisor.dev" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="icuvisor" />
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="Main" Title="icuvisor" Level="1">
+      <Component Id="IcuvisorExe" Directory="INSTALLFOLDER" Guid="*">
+        <File Id="icuvisor.exe" Source="$(var.BinarySource)" KeyPath="yes" />
+        <Environment
+            Id="UpdatePath"
+            Name="PATH"
+            Action="set"
+            Part="first"
+            System="no"
+            Value="[INSTALLFOLDER]" />
+      </Component>
+
+      <Component Id="LicenseFile" Directory="INSTALLFOLDER" Guid="*">
+        <File Id="LICENSE.txt" Source="$(var.LicenseSource)" KeyPath="yes" />
+      </Component>
+    </Feature>
+  </Package>
+</Wix>

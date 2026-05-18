@@ -1,0 +1,73 @@
+# Binaries
+/bin/
+/dist/
+/icuvisor
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test / coverage
+*.test
+*.out
+coverage.txt
+coverage.html
+
+# Go workspace
+go.work
+go.work.sum
+
+# Editor / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Local config / secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Build artifacts
+/build/*
+!/build/macos/
+!/build/windows/
+/tmp/
+
+# Hugo
+/web/public/
+/web/resources/
+/web/.hugo_build.lock
+
+# Local AI tooling
+.pi-lens/
+
+# Taskplane runtime artifacts (machine-specific, do not commit)
+.pi/batch-state.json
+.pi/batch-state.json.bak-*
+.pi/batch-state.json.restore-*
+.pi/batch-history.json
+.pi/batch-history.json.bak-*
+.pi/lane-state-*
+.pi/merge-result-*
+.pi/merge-request-*
+.pi/worker-conversation-*
+.pi/orch-logs/
+.pi/orch-abort-signal
+.pi/settings.json
+.pi/dashboard-preferences.json
+.pi/mailbox/
+.pi/runtime/
+.pi/supervisor/
+.pi/telemetry/
+.pi/verification/
+.pi/diagnostics/
+.pi/agents/task-*.md
+.worktrees/
+.taskplane-tasks/
+taskplane-tasks/
+
+# Pi project-local packages (if using pi install -l)
+.pi/npm/
+.env-dev

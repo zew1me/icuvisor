@@ -1,0 +1,23 @@
+{
+  "athlete_id": "i-test-athlete",
+  "id": "w-test-created",
+  "name": "tp-077-fixture-create",
+  "description": "- 10m Z2",
+  "type": "Ride",
+  "folder_id": "f-test-folder",
+  "workout_doc": {
+    "steps": [
+      {
+        "power": {
+          "units": "power_zone",
+          "value": 2
+        },
+        "duration": 600
+      }
+    ],
+    "duration": 600
+  },
+  "targets": [
+    "POWER"
+  ]
+}

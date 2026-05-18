@@ -1,0 +1,141 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Verify go.mod is tidy
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+      - name: Build
+        run: go build -trimpath ./...
+      - name: Test with coverage
+        if: matrix.os == 'ubuntu-latest'
+        run: go test -race -count=1 -coverprofile=coverage.txt -covermode=atomic ./...
+      - name: Test
+        if: matrix.os != 'ubuntu-latest'
+        run: go test -race -count=1 ./...
+      - name: Upload coverage
+        if: matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v6
+        with:
+          files: ./coverage.txt
+          fail_ci_if_error: false
+
+  tool-catalog-guards:
+    name: Tool catalog guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Prepare baseline schema snapshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+          fi
+          if ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+            BASE_SHA="HEAD^"
+          fi
+          mkdir -p /tmp/icuvisor-schema-baseline
+          if git ls-tree -r --name-only "$BASE_SHA" internal/tools/schema_snapshot | grep -q '\.json$'; then
+            git archive "$BASE_SHA" internal/tools/schema_snapshot | tar -x -C /tmp/icuvisor-schema-baseline
+          else
+            mkdir -p /tmp/icuvisor-schema-baseline/internal/tools
+            cp -R internal/tools/schema_snapshot /tmp/icuvisor-schema-baseline/internal/tools/schema_snapshot
+          fi
+      - name: Check schema stability
+        run: go run ./scripts/check_schema_stability.go -baseline-dir /tmp/icuvisor-schema-baseline/internal/tools/schema_snapshot -require-baseline
+      - name: Check confusable tool names
+        run: go run ./scripts/check_confusable_names.go
+      - name: Check generated website tool catalog
+        shell: bash
+        run: |
+          set -euo pipefail
+          make docs-tools
+          if ! git diff --exit-code -- web/data/tools.json; then
+            echo "web/data/tools.json is stale. Run 'make docs-tools' and commit the result."
+            exit 1
+          fi
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: latest
+          args: --timeout=5m
+
+  govulncheck:
+    name: govulncheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Run govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install gitleaks
+        run: |
+          set -euo pipefail
+          VERSION=8.30.1
+          curl -fsSL -o /tmp/gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz"
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          sudo install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+      - name: Run gitleaks
+        run: gitleaks detect --source . --no-banner --redact --verbose

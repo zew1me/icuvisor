@@ -1,0 +1,7 @@
+{{- $icon := resources.Get "brand/app-icon.png" -}}
+{{- with $icon -}}
+  {{- $small := .Resize "64x64 webp q90" -}}
+  <span class="brand-mark" aria-hidden="true"><img src="{{ $small.RelPermalink }}" alt="" width="32" height="32" loading="eager" decoding="async" /></span>
+{{- else -}}
+  <span class="brand-mark" aria-hidden="true">i</span>
+{{- end -}}

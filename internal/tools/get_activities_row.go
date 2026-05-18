@@ -1,0 +1,141 @@
+package tools
+
+import (
+	"fmt"
+	"math"
+	"strings"
+
+	"github.com/ricardocabral/icuvisor/internal/intervals"
+	"github.com/ricardocabral/icuvisor/internal/response"
+	"github.com/ricardocabral/icuvisor/internal/units"
+)
+
+func shapeGetActivitiesResponse(activities []intervals.Activity, args GetActivitiesRequest, nextToken string, version string, timezoneFallback string, debugMetadata bool, unitSystem response.UnitSystem, shaping ...responseShaping) (any, error) {
+	rows := make([]getActivitiesRow, 0, len(activities))
+	for _, activity := range activities {
+		rows = append(rows, activityRow(activity, args.IncludeFull, timezoneFallback, unitSystem))
+	}
+	payload := getActivitiesResponse{Activities: rows, Meta: getActivitiesMeta{PageSize: args.PageSize, NextPageToken: nextToken, MoreAvailable: nextToken != "", IncludeFull: args.IncludeFull}}
+	shapeCfg := responseShapingOrDefault(shaping)
+	return response.Shape(payload, shapeCfg.options(args.IncludeFull, []string{"activities"}, version, debugMetadata, getActivitiesName, unitSystem))
+}
+
+func activityRow(activity intervals.Activity, includeFull bool, timezoneFallback string, unitSystem response.UnitSystem) getActivitiesRow {
+	row := getActivitiesRow{ActivityID: activity.ID, Name: strings.TrimSpace(stringValue(activity.Name)), Sport: stringValue(activity.Type), SubType: stringValue(activity.SubType), StartDateLocal: stringValue(activity.StartDateLocal), StartDateUTC: stringValue(activity.StartDate), Timezone: firstNonEmpty(stringValue(activity.Timezone), timezoneFallback)}
+	if isStravaBlocked(activity) {
+		row.StravaImported = true
+		row.Unavailable = &unavailableReason{Reason: "strava_tos", Workaround: stravaWorkaround}
+		if includeFull {
+			row.Full = activity.Raw
+		}
+		return row
+	}
+	row.MovingTimeSeconds = intValue(activity.MovingTime)
+	row.ElapsedTimeSeconds = intValue(activity.ElapsedTime)
+	row.TrainingLoad = intValue(activity.TrainingLoad)
+	row.AverageHeartRateBPM = intValue(activity.AverageHeartRate)
+	row.MaxHeartRateBPM = intValue(activity.MaxHeartRate)
+	row.AverageCadenceRPM = activity.AverageCadence
+	row.CaloriesBurned = intValue(activity.Calories)
+	row.DeviceName = stringValue(activity.DeviceName)
+	row.HasStreams = len(activity.StreamTypes) > 0
+	if activity.TotalElevationGain != nil {
+		value := *activity.TotalElevationGain
+		row.ElevationGainM = &value
+	}
+	if activity.TotalElevationLoss != nil {
+		value := *activity.TotalElevationLoss
+		row.ElevationLossM = &value
+	}
+	applyActivityDistanceAndPace(&row, activity, unitSystem)
+	applyActivitySpeed(&row, activity.AverageSpeed, true, unitSystem)
+	applyActivitySpeed(&row, activity.MaxSpeed, false, unitSystem)
+	if includeFull {
+		row.Full = activity.Raw
+	}
+	return row
+}
+
+func applyActivityDistanceAndPace(row *getActivitiesRow, activity intervals.Activity, unitSystem response.UnitSystem) {
+	distanceMeters := firstFloat(activity.ICUDistance, activity.Distance)
+	if distanceMeters == nil || *distanceMeters <= 0 {
+		return
+	}
+	converted := response.ToPreferred(*distanceMeters, units.UnitM, unitSystem)
+	value := round(converted.Value, 3)
+	if converted.Unit == units.UnitMI {
+		row.DistanceMI = &value
+	} else {
+		row.DistanceKM = &value
+	}
+	if row.MovingTimeSeconds > 0 && isRunLikeActivity(activity) {
+		pace := float64(row.MovingTimeSeconds) / converted.Value
+		pace = round(pace, 1)
+		if converted.Unit == units.UnitMI {
+			row.PaceSecondsPerMile = &pace
+		} else {
+			row.PaceSecondsPerKM = &pace
+		}
+	}
+}
+
+func applyActivitySpeed(row *getActivitiesRow, speed *float64, average bool, unitSystem response.UnitSystem) {
+	if speed == nil || *speed <= 0 {
+		return
+	}
+	converted := response.ToPreferred(*speed, units.UnitMS, unitSystem)
+	value := round(converted.Value, 3)
+	if average {
+		if converted.Unit == units.UnitMPH {
+			row.AverageSpeedMPH = &value
+		} else {
+			row.AverageSpeedKMH = &value
+		}
+		return
+	}
+	if converted.Unit == units.UnitMPH {
+		row.MaxSpeedMPH = &value
+	} else {
+		row.MaxSpeedKMH = &value
+	}
+}
+
+func isRunLikeActivity(activity intervals.Activity) bool {
+	sport := strings.ToLower(strings.TrimSpace(stringValue(activity.Type) + " " + stringValue(activity.SubType)))
+	return strings.Contains(sport, "run") || strings.Contains(sport, "jog")
+}
+
+func firstFloat(values ...*float64) *float64 {
+	for _, value := range values {
+		if value != nil {
+			return value
+		}
+	}
+	return nil
+}
+
+func intValue(value *int) int {
+	if value == nil {
+		return 0
+	}
+	return *value
+}
+
+func stringValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
+}
+
+func anyString(value any) string {
+	if value == nil {
+		return ""
+	}
+	return strings.TrimSpace(fmt.Sprint(value))
+}
+
+func round(value float64, places int) float64 {
+	factor := math.Pow(10, float64(places))
+	return math.Round(value*factor) / factor
+}

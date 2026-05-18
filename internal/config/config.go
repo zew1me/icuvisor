@@ -1,0 +1,102 @@
+package config
+
+import (
+	"context"
+	"time"
+
+	"github.com/ricardocabral/icuvisor/internal/coach"
+	"github.com/ricardocabral/icuvisor/internal/credstore"
+	"github.com/ricardocabral/icuvisor/internal/safety"
+)
+
+const (
+	EnvAPIKey        = "INTERVALS_ICU_API_KEY" // #nosec G101 -- environment variable name, not a credential.
+	EnvAthleteID     = "INTERVALS_ICU_ATHLETE_ID"
+	EnvConfigPath    = "ICUVISOR_CONFIG"
+	EnvTimezone      = "ICUVISOR_TIMEZONE"
+	EnvAPIBaseURL    = "ICUVISOR_API_BASE_URL"
+	EnvHTTPTimeout   = "ICUVISOR_HTTP_TIMEOUT"
+	EnvTransport     = "ICUVISOR_TRANSPORT"
+	EnvHTTPBind      = "ICUVISOR_HTTP_BIND"
+	EnvDotEnvPath    = "ICUVISOR_ENV_FILE"
+	EnvDebugMetadata = "ICUVISOR_DEBUG_METADATA"
+	EnvCoachMode     = "ICUVISOR_COACH_MODE"
+
+	DefaultAPIBaseURL      = "https://intervals.icu/api/v1"
+	DefaultTimezone        = "UTC"
+	DefaultHTTPTimeout     = 30 * time.Second
+	DefaultHTTPBindAddress = "127.0.0.1:8765"
+)
+
+// Transport identifies the selected MCP transport.
+type Transport string
+
+const (
+	TransportStdio Transport = "stdio"
+	TransportHTTP  Transport = "http"
+)
+
+// String returns the configured transport name.
+func (t Transport) String() string {
+	if t == "" {
+		return string(TransportStdio)
+	}
+	return string(t)
+}
+
+// Config contains the v0.1 runtime configuration consumed by lower layers.
+type Config struct {
+	APIKey          string         `json:"api_key"`
+	APIKeySource    APIKeySource   `json:"-"`
+	AthleteID       string         `json:"athlete_id"`
+	Timezone        string         `json:"timezone"`
+	APIBaseURL      string         `json:"api_base_url"`
+	HTTPTimeout     time.Duration  `json:"-"`
+	Transport       Transport      `json:"-"`
+	HTTPBindAddress string         `json:"-"`
+	DeleteMode      safety.Mode    `json:"-"`
+	Toolset         safety.Toolset `json:"-"`
+	DebugMetadata   bool           `json:"-"`
+	CoachMode       coach.Mode     `json:"-"`
+	Coach           coach.Config   `json:"coach,omitempty"`
+}
+
+// APIKeySource identifies where the loaded API key came from.
+type APIKeySource string
+
+const (
+	APIKeySourceEnv      APIKeySource = "env"
+	APIKeySourceKeychain APIKeySource = "keychain"
+	APIKeySourceFile     APIKeySource = "file"
+)
+
+// Options controls config loading inputs.
+type Options struct {
+	Path            string
+	DotEnvPath      string
+	DotEnvExplicit  bool
+	Env             map[string]string
+	CredentialStore credstore.Store
+	Transport       string
+	HTTPBindAddress string
+}
+
+// WriteOptions controls config file writes.
+type WriteOptions struct {
+	AllowOverwrite bool
+}
+
+// Load reads v0.1 config from JSON, .env, and process environment.
+func Load(ctx context.Context, opts Options) (Config, error) {
+	return load(ctx, opts)
+}
+
+// EffectiveCoachMode resolves auto against the parsed coach roster.
+func (c Config) EffectiveCoachMode() coach.Mode {
+	return coach.EffectiveMode(c.CoachMode, c.Coach)
+}
+
+// CoachModeEnabled reports whether coach mode is effectively on.
+func (c Config) CoachModeEnabled() bool {
+	return c.EffectiveCoachMode() == coach.ModeOn
+}

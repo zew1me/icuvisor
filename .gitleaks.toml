@@ -1,0 +1,21 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Pagination cursor test constants (base64-encoded public cursor format, not a secret)"
+regexTarget = "line"
+regexes = [
+  '''(exactFullWindowToken|identicalTimestampStallToken)\s*=\s*`eyJ[A-Za-z0-9+/=]+`''',
+]
+
+[[allowlists]]
+description = "Review docs: prose phrases that trip the generic-api-key regex"
+regexTarget = "line"
+paths = [
+  '''TP-041-v05-dogfood-validation/\.reviews/R003-code-step1\.md''',
+  '''TP-036-os-keychain-credential-storage/\.reviews/R004-plan-step2\.md''',
+]
+regexes = [
+  '''API key, raw/normalized''',
+  '''Secret Service provider, missing/default''',
+]

@@ -1,0 +1,10 @@
+{
+  "id": "{date}",
+  "fatigue": 2,
+  "locked": true,
+  "mood": 4,
+  "motivation": 4,
+  "sleepQuality": 3,
+  "soreness": 2,
+  "stress": 2
+}

@@ -1,0 +1,561 @@
+package app
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"log/slog"
+	"os"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/ricardocabral/icuvisor/internal/config"
+	"github.com/ricardocabral/icuvisor/internal/safety"
+)
+
+type safeAppLogBuffer struct {
+	mu sync.Mutex
+	bytes.Buffer
+}
+
+func (b *safeAppLogBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.Buffer.Write(p)
+}
+
+func (b *safeAppLogBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.Buffer.String()
+}
+
+func TestRunTopLevelHelpMatchesGolden(t *testing.T) {
+	t.Parallel()
+
+	golden, err := os.ReadFile("testdata/help.golden")
+	if err != nil {
+		t.Fatalf("read golden help: %v", err)
+	}
+	var stdout bytes.Buffer
+	err = Run(context.Background(), Options{
+		Args:   []string{"--help"},
+		Stdout: &stdout,
+		LoadConfig: func(context.Context, config.Options) (config.Config, error) {
+			t.Fatal("help must not load config")
+			return config.Config{}, nil
+		},
+	})
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	if got, want := stdout.String(), string(golden); got != want {
+		t.Fatalf("help output mismatch\n--- got ---\n%s--- want ---\n%s", got, want)
+	}
+}
+
+func TestRunHelpFlagsAndUsagePaths(t *testing.T) {
+	t.Parallel()
+
+	golden, err := os.ReadFile("testdata/help.golden")
+	if err != nil {
+		t.Fatalf("read golden help: %v", err)
+	}
+	tests := []struct {
+		name        string
+		args        []string
+		wantOut     string
+		wantErr     []string
+		wantCode    int
+		wantConfig  config.Options
+		checkConfig bool
+	}{
+		{name: "long help", args: []string{"--help"}, wantOut: string(golden)},
+		{name: "short help", args: []string{"-h"}, wantOut: string(golden)},
+		{name: "help command", args: []string{"help"}, wantOut: string(golden)},
+		{name: "help after flag", args: []string{"--transport", "http", "help"}, wantOut: string(golden)},
+		{name: "version help", args: []string{"version", "--help"}, wantOut: "Print the icuvisor version and exit.\n\nUsage:\n  icuvisor version [--help]\n\nExit codes:\n  0  Success, including help and version output.\n"},
+		{name: "setup help", args: []string{"setup", "--help"}, wantOut: "Set up intervals.icu credentials and non-secret icuvisor config.\n\nUsage:\n  icuvisor setup [flags]\n\nFlags:\n  --config <path>   Config file path to write. Can also be set with ICUVISOR_CONFIG.\n  --offline         Skip intervals.icu verification and write settings after explicit prompts.\n  --force           Overwrite an existing config file without prompting. Existing keychain credentials still require confirmation.\n  -h, --help        Print this help and exit.\n\nNotes:\n  The API key is always requested interactively with masked terminal input; there is no --api-key flag.\n  Setup does not start the MCP server and does not require an existing config file.\n\nExit codes:\n  0  Success, including help output and user-canceled setup.\n  2  Usage error, such as an unknown setup flag or missing flag value.\n  1  Runtime error while checking credentials, config, or intervals.icu.\n"},
+		{name: "unknown flag", args: []string{"--bogus"}, wantErr: []string{"unknown command or flag", "--bogus", "Run 'icuvisor --help' for usage."}, wantCode: 2},
+		{name: "missing flag value", args: []string{"--config"}, wantErr: []string{"missing value", "--config", "Run 'icuvisor --help' for usage."}, wantCode: 2},
+		{name: "valid flags parse", args: []string{"--config", "/tmp/icuvisor.json", "--transport=http", "--http-bind", "127.0.0.1:9999"}, wantErr: []string{"stop"}, wantCode: 1, wantConfig: config.Options{Path: "/tmp/icuvisor.json", Transport: "http", HTTPBindAddress: "127.0.0.1:9999"}, checkConfig: true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			var stdout, stderr bytes.Buffer
+			var gotConfig config.Options
+			code := RunCLI(context.Background(), Options{
+				Args:    tc.args,
+				Stdout:  &stdout,
+				Stderr:  &stderr,
+				Version: "vtest",
+				LoadConfig: func(_ context.Context, opts config.Options) (config.Config, error) {
+					gotConfig = opts
+					return config.Config{}, errors.New("stop")
+				},
+			})
+			if got, want := code, tc.wantCode; got != want {
+				t.Fatalf("exit code = %d, want %d", got, want)
+			}
+			if got := stdout.String(); got != tc.wantOut {
+				t.Fatalf("stdout = %q, want %q", got, tc.wantOut)
+			}
+			for _, want := range tc.wantErr {
+				if !strings.Contains(stderr.String(), want) {
+					t.Fatalf("stderr %q missing %q", stderr.String(), want)
+				}
+			}
+			if tc.wantErr == nil && stderr.Len() != 0 {
+				t.Fatalf("stderr = %q, want empty", stderr.String())
+			}
+			if tc.checkConfig && (gotConfig.Path != tc.wantConfig.Path || gotConfig.Transport != tc.wantConfig.Transport || gotConfig.HTTPBindAddress != tc.wantConfig.HTTPBindAddress) {
+				t.Fatalf("config options = %#v, want %#v", gotConfig, tc.wantConfig)
+			}
+		})
+	}
+}
+
+func TestTopLevelHelpDocumentsRuntimeEnvVars(t *testing.T) {
+	t.Parallel()
+
+	golden, err := os.ReadFile("testdata/help.golden")
+	if err != nil {
+		t.Fatalf("read golden help: %v", err)
+	}
+	help := string(golden)
+	for _, name := range []string{
+		config.EnvAPIKey,
+		config.EnvAthleteID,
+		config.EnvConfigPath,
+		config.EnvTimezone,
+		config.EnvAPIBaseURL,
+		config.EnvHTTPTimeout,
+		config.EnvTransport,
+		config.EnvHTTPBind,
+		config.EnvDotEnvPath,
+		safety.EnvDeleteMode,
+		safety.EnvToolset,
+		config.EnvDebugMetadata,
+		config.EnvCoachMode,
+	} {
+		if !strings.Contains(help, name) {
+			t.Fatalf("help fixture missing env var %s", name)
+		}
+	}
+}
+
+func TestRunVersionWritesInjectedVersion(t *testing.T) {
+	t.Parallel()
+
+	var stdout bytes.Buffer
+	err := Run(context.Background(), Options{
+		Version: "v1.2.3-test",
+		Args:    []string{"version"},
+		Stdout:  &stdout,
+		LoadConfig: func(context.Context, config.Options) (config.Config, error) {
+			t.Fatal("version command must not load config")
+			return config.Config{}, nil
+		},
+	})
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	if got, want := stdout.String(), "v1.2.3-test\n"; got != want {
+		t.Fatalf("stdout = %q, want %q", got, want)
+	}
+}
+
+func TestRunSetupDispatchPassesFlagsAndBypassesServer(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		args []string
+		want SetupOptions
+	}{
+		{
+			name: "separate config",
+			args: []string{"setup", "--config", "/tmp/icuvisor.json"},
+			want: SetupOptions{ConfigPath: "/tmp/icuvisor.json"},
+		},
+		{
+			name: "inline config offline force",
+			args: []string{"setup", "--config=/tmp/icuvisor.json", "--offline", "--force"},
+			want: SetupOptions{ConfigPath: "/tmp/icuvisor.json", Offline: true, Force: true},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			called := false
+			err := Run(context.Background(), Options{
+				Args: tc.args,
+				LoadConfig: func(context.Context, config.Options) (config.Config, error) {
+					t.Fatal("setup must not load runtime config")
+					return config.Config{}, nil
+				},
+				StartServer: func(context.Context, ServerInfo) error {
+					t.Fatal("setup must not start the MCP server")
+					return nil
+				},
+				SetupRunner: func(_ context.Context, opts SetupOptions) error {
+					called = true
+					if opts.ConfigPath != tc.want.ConfigPath || opts.Offline != tc.want.Offline || opts.Force != tc.want.Force {
+						t.Fatalf("setup options = %#v, want %#v", opts, tc.want)
+					}
+					return nil
+				},
+			})
+			if err != nil {
+				t.Fatalf("Run() error = %v", err)
+			}
+			if !called {
+				t.Fatal("setup runner was not called")
+			}
+		})
+	}
+}
+
+func TestRunSetupUsesConfigEnvironmentFallback(t *testing.T) {
+	t.Setenv(config.EnvConfigPath, "/tmp/from-env.json")
+
+	var got SetupOptions
+	err := Run(context.Background(), Options{
+		Args: []string{"setup"},
+		SetupRunner: func(_ context.Context, opts SetupOptions) error {
+			got = opts
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	if got.ConfigPath != "/tmp/from-env.json" {
+		t.Fatalf("ConfigPath = %q, want env path", got.ConfigPath)
+	}
+}
+
+func TestRunSetupFlagErrorsAreActionable(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		args []string
+		want []string
+	}{
+		{name: "unknown setup flag", args: []string{"setup", "--bogus"}, want: []string{"unknown setup flag", "--bogus", "icuvisor setup --help"}},
+		{name: "missing setup config", args: []string{"setup", "--config"}, want: []string{"missing value", "--config", "icuvisor setup --help"}},
+		{name: "pre-command config unsupported", args: []string{"--config", "/tmp/icuvisor.json", "setup"}, want: []string{"unknown command", "setup", "icuvisor version"}},
+		{name: "no api key flag", args: []string{"setup", "--api-key=secret"}, want: []string{"unknown setup flag", "--api-key", "icuvisor setup --help"}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := Run(context.Background(), Options{Args: tc.args})
+			if err == nil {
+				t.Fatal("Run() error = nil, want usage error")
+			}
+			msg := err.Error()
+			for _, want := range tc.want {
+				if !strings.Contains(msg, want) {
+					t.Fatalf("error %q does not contain %q", msg, want)
+				}
+			}
+			if got := ExitCode(err); got != 2 {
+				t.Fatalf("ExitCode() = %d, want 2", got)
+			}
+		})
+	}
+}
+
+func TestRunSetupRejectsAPIKeyFlagWithoutEchoingValue(t *testing.T) {
+	t.Parallel()
+
+	var stdout, stderr bytes.Buffer
+	code := RunCLI(context.Background(), Options{
+		Args:   []string{"setup", "--api-key=supersecret"},
+		Stdout: &stdout,
+		Stderr: &stderr,
+	})
+	if code != 2 {
+		t.Fatalf("exit code = %d, want 2", code)
+	}
+	if strings.Contains(stderr.String(), "supersecret") {
+		t.Fatalf("stderr leaked command-line secret value: %q", stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "unknown setup flag \"--api-key\"") {
+		t.Fatalf("stderr = %q, want redacted api-key flag", stderr.String())
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("stdout = %q, want empty", stdout.String())
+	}
+}
+
+func TestRunDefaultDelegatesToStarterWithVersionAndConfig(t *testing.T) {
+	t.Parallel()
+
+	wantErr := errors.New("starter failed")
+	wantConfig := config.Config{
+		APIKey:      "secret",
+		AthleteID:   "i12345",
+		Timezone:    "UTC",
+		APIBaseURL:  config.DefaultAPIBaseURL,
+		HTTPTimeout: 30 * time.Second,
+		Toolset:     safety.ToolsetFull,
+	}
+	var gotInfo ServerInfo
+	err := Run(context.Background(), Options{
+		Version: "v9.8.7",
+		LoadConfig: func(_ context.Context, opts config.Options) (config.Config, error) {
+			if opts.Path != "" {
+				t.Fatalf("config path = %q, want empty", opts.Path)
+			}
+			return wantConfig, nil
+		},
+		StartServer: func(_ context.Context, info ServerInfo) error {
+			gotInfo = info
+			return wantErr
+		},
+	})
+	if !errors.Is(err, wantErr) {
+		t.Fatalf("Run() error = %v, want %v", err, wantErr)
+	}
+	if gotInfo.Version != "v9.8.7" {
+		t.Fatalf("server version = %q, want %q", gotInfo.Version, "v9.8.7")
+	}
+	if gotInfo.Config.AthleteID != wantConfig.AthleteID {
+		t.Fatalf("server athlete ID = %q, want %q", gotInfo.Config.AthleteID, wantConfig.AthleteID)
+	}
+	if gotInfo.Toolset != safety.ToolsetFull {
+		t.Fatalf("server toolset = %q, want full", gotInfo.Toolset)
+	}
+}
+
+func TestDefaultStartServerLogsStartupVersion(t *testing.T) {
+	var logs bytes.Buffer
+	previous := slog.Default()
+	t.Cleanup(func() { slog.SetDefault(previous) })
+	slog.SetDefault(slog.New(slog.NewTextHandler(&logs, &slog.HandlerOptions{Level: slog.LevelInfo})))
+
+	err := defaultStartServer(context.Background(), ServerInfo{Version: "v7.8.9", Toolset: safety.ToolsetFull})
+	if err == nil {
+		t.Fatal("defaultStartServer() error = nil, want config/client error")
+	}
+	out := logs.String()
+	for _, want := range []string{"server starting", "version=v7.8.9", "resolved toolset", "toolset=full"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("startup log %q missing %q", out, want)
+		}
+	}
+	if got := strings.Count(out, "resolved toolset"); got != 1 {
+		t.Fatalf("resolved toolset log count = %d, want 1 in %q", got, out)
+	}
+	for _, forbidden := range []string{"get_activity_streams", "delete_event", "advanced_capabilities"} {
+		if strings.Contains(out, forbidden) {
+			t.Fatalf("startup log leaked tool name %q: %q", forbidden, out)
+		}
+	}
+}
+
+func TestRunUsesConfigDebugMetadataForServerInfo(t *testing.T) {
+	wantConfig := config.Config{
+		APIKey:        "secret",
+		AthleteID:     "i12345",
+		Timezone:      "UTC",
+		APIBaseURL:    config.DefaultAPIBaseURL,
+		HTTPTimeout:   30 * time.Second,
+		DebugMetadata: true,
+	}
+	var gotInfo ServerInfo
+	wantErr := errors.New("stop")
+	err := Run(context.Background(), Options{
+		LoadConfig: func(context.Context, config.Options) (config.Config, error) {
+			return wantConfig, nil
+		},
+		StartServer: func(_ context.Context, info ServerInfo) error {
+			gotInfo = info
+			return wantErr
+		},
+	})
+	if !errors.Is(err, wantErr) {
+		t.Fatalf("Run() error = %v, want %v", err, wantErr)
+	}
+	if !gotInfo.DebugMetadata {
+		t.Fatal("DebugMetadata = false, want config value true")
+	}
+}
+
+func TestRunDefaultPassesConfigFlags(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		args []string
+		want config.Options
+	}{
+		{
+			name: "inline config",
+			args: []string{"--config=/tmp/icuvisor.json"},
+			want: config.Options{Path: "/tmp/icuvisor.json"},
+		},
+		{
+			name: "separate config transport and bind",
+			args: []string{"--config", "/tmp/icuvisor.json", "--transport", "http", "--http-bind", "127.0.0.1:9999"},
+			want: config.Options{Path: "/tmp/icuvisor.json", Transport: "http", HTTPBindAddress: "127.0.0.1:9999"},
+		},
+		{
+			name: "inline transport and bind",
+			args: []string{"--transport=http", "--http-bind=192.168.1.20:8765"},
+			want: config.Options{Transport: "http", HTTPBindAddress: "192.168.1.20:8765"},
+		},
+		{
+			name: "separate env file",
+			args: []string{"--env-file", "/tmp/icuvisor.env"},
+			want: config.Options{DotEnvPath: "/tmp/icuvisor.env", DotEnvExplicit: true},
+		},
+		{
+			name: "inline env file",
+			args: []string{"--env-file=/tmp/icuvisor.env"},
+			want: config.Options{DotEnvPath: "/tmp/icuvisor.env", DotEnvExplicit: true},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			var got config.Options
+			err := Run(context.Background(), Options{
+				Args: tc.args,
+				LoadConfig: func(_ context.Context, opts config.Options) (config.Config, error) {
+					got = opts
+					return config.Config{}, errors.New("stop")
+				},
+			})
+			if err == nil {
+				t.Fatal("Run() error = nil, want loader error")
+			}
+			if got.Path != tc.want.Path || got.Transport != tc.want.Transport || got.HTTPBindAddress != tc.want.HTTPBindAddress || got.DotEnvPath != tc.want.DotEnvPath || got.DotEnvExplicit != tc.want.DotEnvExplicit {
+				t.Fatalf("config options = %#v, want %#v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestRunFlagErrorsAreActionable(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		args []string
+		want []string
+	}{
+		{name: "unknown", args: []string{"bogus"}, want: []string{"unknown command", "bogus", "icuvisor version"}},
+		{name: "missing config", args: []string{"--config"}, want: []string{"missing value", "--config"}},
+		{name: "empty transport", args: []string{"--transport="}, want: []string{"missing value", "--transport"}},
+		{name: "missing bind", args: []string{"--http-bind", "--transport"}, want: []string{"missing value", "--http-bind"}},
+		{name: "missing env file", args: []string{"--env-file"}, want: []string{"missing value", "--env-file"}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := Run(context.Background(), Options{Args: tc.args})
+			if err == nil {
+				t.Fatal("Run() error = nil, want error")
+			}
+			msg := err.Error()
+			for _, want := range tc.want {
+				if !strings.Contains(msg, want) {
+					t.Fatalf("error %q does not contain %q", msg, want)
+				}
+			}
+		})
+	}
+}
+
+func TestDefaultStartServerDispatchesHTTPTransport(t *testing.T) {
+	logs := &safeAppLogBuffer{}
+	previous := slog.Default()
+	t.Cleanup(func() { slog.SetDefault(previous) })
+	slog.SetDefault(slog.New(slog.NewTextHandler(logs, &slog.HandlerOptions{Level: slog.LevelInfo})))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		done <- defaultStartServer(ctx, ServerInfo{Version: "v7.8.9", Config: config.Config{
+			APIKey:          "secret",
+			AthleteID:       "i12345",
+			Timezone:        "UTC",
+			APIBaseURL:      config.DefaultAPIBaseURL,
+			HTTPTimeout:     30 * time.Second,
+			Transport:       config.TransportHTTP,
+			HTTPBindAddress: "127.0.0.1:0",
+		}})
+	}()
+	deadline := time.After(time.Second)
+	for !strings.Contains(logs.String(), "transport=streamable_http") {
+		select {
+		case <-deadline:
+			cancel()
+			t.Fatalf("startup log %q missing streamable_http transport", logs.String())
+		case <-time.After(10 * time.Millisecond):
+		}
+	}
+	cancel()
+	if err := <-done; !errors.Is(err, context.Canceled) {
+		t.Fatalf("defaultStartServer() error = %v, want context.Canceled", err)
+	}
+}
+
+func TestDefaultStartServerWarnsForHTTPNonLoopbackBind(t *testing.T) {
+	logs := &safeAppLogBuffer{}
+	previous := slog.Default()
+	t.Cleanup(func() { slog.SetDefault(previous) })
+	slog.SetDefault(slog.New(slog.NewTextHandler(logs, &slog.HandlerOptions{Level: slog.LevelInfo})))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		done <- defaultStartServer(ctx, ServerInfo{Version: "v7.8.9", Config: config.Config{
+			APIKey:          "secret",
+			AthleteID:       "i12345",
+			Timezone:        "UTC",
+			APIBaseURL:      config.DefaultAPIBaseURL,
+			HTTPTimeout:     30 * time.Second,
+			Transport:       config.TransportHTTP,
+			HTTPBindAddress: "0.0.0.0:0",
+		}})
+	}()
+	deadline := time.After(time.Second)
+	for !strings.Contains(logs.String(), "non-loopback bind") {
+		select {
+		case <-deadline:
+			cancel()
+			t.Fatalf("startup log %q missing non-loopback bind warning", logs.String())
+		case <-time.After(10 * time.Millisecond):
+		}
+	}
+	cancel()
+	if err := <-done; !errors.Is(err, context.Canceled) {
+		t.Fatalf("defaultStartServer() error = %v, want context.Canceled", err)
+	}
+	out := logs.String()
+	for _, want := range []string{"level=WARN", "non-loopback bind", "transport=http", "http_bind=0.0.0.0:0"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("startup log %q missing %q", out, want)
+		}
+	}
+	for _, forbidden := range []string{"secret", "i12345"} {
+		if strings.Contains(out, forbidden) {
+			t.Fatalf("startup log leaked sensitive value %q: %q", forbidden, out)
+		}
+	}
+}

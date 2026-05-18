@@ -1,0 +1,52 @@
+{{ $tools := hugo.Data.tools }}
+{{ if not $tools }}{{ errorf "web/data/tools.json is missing or empty; run make docs-tools" }}{{ end }}
+{{ $groups := slice "activities" "coach" "custom-items" "events" "fitness" "meta" "settings" "wellness" "workout-library" }}
+{{ $labels := dict
+  "activities" "Activities"
+  "coach" "Coach mode"
+  "custom-items" "Custom items"
+  "events" "Events"
+  "fitness" "Fitness"
+  "meta" "Meta"
+  "settings" "Settings"
+  "wellness" "Wellness"
+  "workout-library" "Workout library"
+}}
+<div class="tool-catalog">
+  {{ range $group := $groups }}
+    {{ $rows := where $tools "group" $group }}
+    {{ if gt (len $rows) 0 }}
+      <section class="tool-group" aria-labelledby="tool-group-{{ $group }}">
+        <h2 id="tool-group-{{ $group }}">{{ index $labels $group }}</h2>
+        <div class="table-wrap">
+          <table class="catalog-table">
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Summary</th>
+                <th scope="col">Tier</th>
+                <th scope="col">Safety</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{ range $rows }}
+                <tr id="{{ .anchor }}">
+                  <th scope="row"><code>{{ .name }}</code></th>
+                  <td>{{ .summary }}</td>
+                  <td>
+                    {{ if eq .tier "full" }}
+                      <a class="badge badge-tier badge-tier-full" href="{{ "/reference/safety-modes/#toolset-tier" | relURL }}">full <span class="sr-only">toolset</span></a>
+                    {{ else }}
+                      <span class="badge badge-tier">core</span>
+                    {{ end }}
+                  </td>
+                  <td><span class="badge badge-safety badge-safety-{{ .safety }}">{{ .safety }}</span></td>
+                </tr>
+              {{ end }}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    {{ end }}
+  {{ end }}
+</div>

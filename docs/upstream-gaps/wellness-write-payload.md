@@ -1,0 +1,9 @@
+# intervals.icu wellness write payload
+
+Live probing for TP-076 showed that intervals.icu's wellness write endpoint accepts `PUT /api/v1/athlete/{id}/wellness/{YYYY-MM-DD}` with a sparse JSON body, but it does not accept every wellness field that appears on read rows or older icuvisor planning docs.
+
+The subjective fields accepted in a single sparse write were `fatigue`, `soreness`, `stress`, `mood`, `motivation`, and `sleepQuality`. The `locked` flag is also accepted when set to `true`. A bundle containing those seven fields returned HTTP 200 and re-read with those fields present.
+
+The read-side `feel` field is not writable through this endpoint. Both the full dogfood bundle and a single-field `{ "feel": 3 }` write returned HTTP 422 with upstream's `Unrecognized wellness field [feel]` error. Varying date format, method, and athlete scoping did not produce an accepted `feel` write shape. icuvisor therefore rejects submitted `feel` before network I/O with `field_not_writable: feel (not accepted by intervals.icu wellness write)` rather than silently dropping it or claiming partial success.
+
+Cleanup caveat: setting `locked: true` appears one-way through the public API tested here. Follow-up attempts with `locked:false`, `null` clears for the subjective fields, alternate unlock field names, method/date/scope/query variants, and v1 DELETE were ignored, rejected, or returned 405. Avoid setting `locked:true` in future live probes unless the row is dedicated to testing or an operator can unlock it through the intervals.icu UI.

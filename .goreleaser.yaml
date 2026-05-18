@@ -1,0 +1,108 @@
+version: 2
+
+project_name: icuvisor
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: icuvisor-linux-windows
+    main: ./cmd/icuvisor
+    binary: icuvisor
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+    goos: [linux, windows]
+    goarch: [amd64, arm64]
+  - id: icuvisor-darwin
+    main: ./cmd/icuvisor
+    binary: icuvisor
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+    goos: [darwin]
+    goarch: [amd64, arm64]
+
+universal_binaries:
+  - id: icuvisor-darwin-universal
+    ids: [icuvisor-darwin]
+    replace: true
+    name_template: icuvisor
+
+archives:
+  - id: default
+    ids: [icuvisor-linux-windows]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - LICENSE
+      - README.md
+      - CHANGELOG.md
+
+checksum:
+  name_template: SHA256SUMS.txt
+  algorithm: sha256
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-SNAPSHOT-{{ .ShortCommit }}"
+
+changelog:
+  use: github
+  sort: asc
+  groups:
+    - title: Features
+      regexp: "^.*feat[(\\w)]*:.*$"
+      order: 0
+    - title: Bug fixes
+      regexp: "^.*fix[(\\w)]*:.*$"
+      order: 1
+    - title: Performance
+      regexp: "^.*perf[(\\w)]*:.*$"
+      order: 2
+    - title: Others
+      order: 999
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "^chore:"
+      - Merge pull request
+      - Merge branch
+
+scoops:
+  - name: icuvisor
+    ids: [default]
+    homepage: "https://icuvisor.dev"
+    description: "MCP server connecting intervals.icu training data to AI assistants."
+    license: MIT
+    commit_author:
+      name: icuvisor-bot
+      email: bot@icuvisor.dev
+    commit_msg_template: "chore(icuvisor): update to {{ .Tag }}"
+    directory: bucket
+    repository:
+      owner: ricardocabral
+      name: scoop-icuvisor
+      branch: main
+      token: "{{ if index .Env \"SCOOP_BUCKET_PAT\" }}{{ .Env.SCOOP_BUCKET_PAT }}{{ end }}"
+    # Skip when no bucket PAT is configured, or for prereleases.
+    skip_upload: '{{ if not (index .Env "SCOOP_BUCKET_PAT") }}true{{ else }}auto{{ end }}'
+
+release:
+  github:
+    owner: ricardocabral
+    name: icuvisor
+  draft: true
+  prerelease: auto

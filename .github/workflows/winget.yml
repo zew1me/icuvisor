@@ -1,0 +1,55 @@
+name: Publish to Winget
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish to winget-pkgs (e.g. v0.5.0)"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Submit manifests to winget-pkgs
+    runs-on: windows-latest
+    # Stable releases only; skip prereleases and drafts.
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.release.draft == false && github.event.release.prerelease == false) }}
+    steps:
+      - name: Guard on WINGET_PAT secret
+        id: guard
+        shell: pwsh
+        env:
+          WINGET_PAT: ${{ secrets.WINGET_PAT }}
+        run: |
+          if (-not $env:WINGET_PAT) {
+            Write-Warning "WINGET_PAT secret not set; skipping winget submission. Set the PAT and re-run this workflow via workflow_dispatch once the MSI is Authenticode-signed."
+            "skip=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            "skip=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+
+      - name: Resolve tag
+        if: steps.guard.outputs.skip == 'false'
+        id: tag
+        shell: pwsh
+        env:
+          DISPATCH_TAG: ${{ github.event.inputs.tag }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          $tag = if ($env:DISPATCH_TAG) { $env:DISPATCH_TAG } else { $env:RELEASE_TAG }
+          if (-not $tag) { throw "no tag provided" }
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Submit to winget-pkgs
+        if: steps.guard.outputs.skip == 'false'
+        uses: vedantmgoyal9/winget-releaser@main
+        with:
+          identifier: RicardoCabral.icuvisor
+          version: ${{ steps.tag.outputs.tag }}
+          installers-regex: '^icuvisor_.*_windows_(amd64|arm64)\.msi$'
+          release-tag: ${{ steps.tag.outputs.tag }}
+          token: ${{ secrets.WINGET_PAT }}

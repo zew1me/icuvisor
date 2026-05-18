@@ -1,0 +1,51 @@
+baseURL = "https://icuvisor.app/"
+locale = "en-us"
+title = "icuvisor — Talk to your intervals.icu data"
+enableRobotsTXT = true
+disableKinds = ["taxonomy", "term", "RSS", "sitemap"]
+
+[params]
+description = "Open-source MCP server that connects intervals.icu training data to Claude, ChatGPT, Cursor, and other AI assistants. One signed Go binary. No SaaS."
+github = "https://github.com/ricardocabral/icuvisor"
+intervals = "https://intervals.icu"
+featuredTools = [
+  "get_activities",
+  "get_activity_details",
+  "get_wellness_data",
+  "update_wellness",
+  "get_fitness",
+  "get_events",
+  "add_or_update_event",
+  "get_workout_library",
+]
+
+[markup]
+[markup.goldmark]
+[markup.goldmark.renderer]
+unsafe = true
+
+[outputs]
+home = ["HTML"]
+
+[minify]
+disableHTML = false
+
+[module]
+  [[module.mounts]]
+    source = "content"
+    target = "content"
+  [[module.mounts]]
+    source = "static"
+    target = "static"
+  [[module.mounts]]
+    source = "layouts"
+    target = "layouts"
+  [[module.mounts]]
+    source = "data"
+    target = "data"
+  [[module.mounts]]
+    source = "assets"
+    target = "assets"
+  [[module.mounts]]
+    source = "../docs/brand"
+    target = "assets/brand"

@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ .Site.Title }}</title>
+  <meta name="description" content="{{ .Site.Params.description }}" />
+  <link rel="icon" href="{{ "favicon.ico" | relURL }}" sizes="any" />
+  <link rel="icon" href="{{ "favicon-32.png" | relURL }}" type="image/png" sizes="32x32" />
+  <link rel="icon" href="{{ "favicon-192.png" | relURL }}" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="{{ "apple-touch-icon.png" | relURL }}" />
+  <meta property="og:title" content="{{ .Site.Title }}" />
+  <meta property="og:description" content="{{ .Site.Params.description }}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="{{ .Site.BaseURL }}" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ "css/style.css" | relURL }}" />
+</head>
+<body>
+  <div class="container">
+
+    <header class="site-header">
+      <a class="brand" href="/">
+        {{ partial "brand.html" . }}
+        <span>icuvisor</span>
+      </a>
+      <nav class="nav" aria-label="Primary">
+        <a href="#features">Features</a>
+        <a href="#install">Install</a>
+        <a href="#docs">Docs</a>
+        <a href="{{ "/reference/tools/" | relURL }}">Tools</a>
+        <a class="btn btn-ghost" href="{{ .Site.Params.github }}" rel="noopener">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="bento" role="main">
+
+      <section class="card hero col-12" aria-labelledby="hero-title">
+        <span class="status">Pre-alpha · v0.1 in progress</span>
+        <h1 id="hero-title">Talk to your <span style="background:linear-gradient(120deg,var(--primary),var(--secondary));-webkit-background-clip:text;background-clip:text;color:transparent;">intervals.icu</span> data.</h1>
+        <p class="lead">icuvisor is an open-source <a href="https://modelcontextprotocol.io" rel="noopener">MCP</a> server for <a href="{{ .Site.Params.intervals }}" rel="noopener">intervals.icu</a>, shipped as a single signed Go binary. Connect Claude, ChatGPT, Cursor, Pi, or Zed to your training data — locally, privately, free.</p>
+        <div class="actions">
+          <a class="btn" href="#install">Get started</a>
+          <a class="btn btn-ghost" href="{{ .Site.Params.github }}" rel="noopener">View on GitHub →</a>
+        </div>
+      </section>
+
+      <section class="card col-8" id="features" aria-labelledby="why-title">
+        <span class="tag">Why icuvisor</span>
+        <h2 id="why-title">Your training data, in any AI assistant.</h2>
+        <p>Ask follow-up questions about last week's threshold workout. Get a plain-English summary of your form trend. Plan an event from your calendar. icuvisor exposes intervals.icu through a clean MCP catalog so the assistant you already use can read and reason over your data.</p>
+        <ul class="feature-list">
+          <li><strong>Single signed binary</strong> for macOS, Windows, and Linux — no Python, no Docker.</li>
+          <li><strong>Terse-by-default responses</strong> tuned for LLM context windows. Heavy payloads are opt-in.</li>
+          <li><strong>Generated MCP tool catalog</strong> covering activities, wellness, fitness, events, and custom items.</li>
+          <li><strong>Coach mode</strong> for working across a roster of athletes from one install.</li>
+          <li><strong>stdio &amp; Streamable HTTP</strong> transports for every major MCP client.</li>
+        </ul>
+      </section>
+
+      <section class="card col-4" aria-labelledby="privacy-title">
+        <span class="tag">Privacy</span>
+        <h3 id="privacy-title">Local-first by design.</h3>
+        <p>Your API key lives in the OS keychain — never on disk in plain text, never in a tool argument, never on someone else's server. The HTTP transport binds to <span class="mono">127.0.0.1</span> by default.</p>
+      </section>
+
+      <section class="card col-4" aria-labelledby="oss-title">
+        <span class="tag">Open source &amp; free</span>
+        <h3 id="oss-title">No subscription. No lock-in.</h3>
+        <p>Free forever, with no account to create and nothing to upgrade. The code is open so you can see exactly what runs on your machine — and the community can keep it alive long after any single maintainer.</p>
+      </section>
+
+      {{ $releaseURL := "https://api.github.com/repos/ricardocabral/icuvisor/releases/latest" }}
+      {{ $releaseHeaders := dict "Accept" "application/vnd.github+json" "User-Agent" "icuvisor-hugo-build" }}
+      {{ with os.Getenv "HUGO_GITHUB_TOKEN" }}
+        {{ $releaseHeaders = merge $releaseHeaders (dict "Authorization" (printf "Bearer %s" .)) }}
+      {{ end }}
+      {{ $releaseOpts := dict "headers" $releaseHeaders }}
+      {{ $release := "" }}
+      {{ with resources.GetRemote $releaseURL $releaseOpts }}
+        {{ with .Err }}
+          {{ warnf "icuvisor: failed to fetch latest release: %s" . }}
+        {{ else }}
+          {{ $release = .Content | transform.Unmarshal }}
+        {{ end }}
+      {{ end }}
+      {{ $downloads := slice }}
+      {{ with $release }}
+        {{ range .assets }}
+          {{ if ne .name "SHA256SUMS.txt" }}
+            {{ $downloads = $downloads | append . }}
+          {{ end }}
+        {{ end }}
+      {{ end }}
+
+      <section class="card col-8" id="install" aria-labelledby="install-title">
+        <span class="tag">Install</span>
+        <h3 id="install-title">Download and install.</h3>
+        <p>Pick the build for your platform — icuvisor {{ with $release }}{{ .tag_name }}{{ end }}.</p>
+        {{ with $downloads }}
+        <ul class="feature-list">
+        {{ range . }}
+          <li><a href="{{ .browser_download_url }}" rel="noopener"><strong>{{ .name }}</strong></a> — {{ printf "%.1f" (div (float .size) 1048576.0) }} MB</li>
+        {{ end }}
+        </ul>
+        {{ end }}
+        <p style="margin-top:var(--s-3)"><a href="{{ "/install/" | relURL }}" rel="noopener">Read the full quickstart →</a>{{ with $release }} · <a href="{{ .html_url }}" rel="noopener">Release notes</a>{{ end }}</p>
+      </section>
+
+      <section class="card col-12" id="tools" aria-labelledby="tools-title">
+        <span class="tag">Tool catalog</span>
+        <h2 id="tools-title">Everything your AI assistant can do.</h2>
+        <p>The full set of MCP tools icuvisor exposes, grouped by area. See the <a href="{{ "/reference/tools/" | relURL }}">tool reference</a> for arguments and response shapes.</p>
+        {{ partial "tool-list.html" . }}
+      </section>
+
+      <section class="card col-12" id="docs" aria-labelledby="docs-title">
+        <span class="tag">Documentation</span>
+        <h2 id="docs-title">Find what you need.</h2>
+        <div class="doc-grid">
+          <a class="doc-card" href="{{ "/tutorials/" | relURL }}">
+            <h3>Tutorials</h3>
+            <p>Step-by-step walkthroughs to get your first AI assistant talking to intervals.icu.</p>
+          </a>
+          <a class="doc-card" href="{{ "/guides/" | relURL }}">
+            <h3>How-to guides</h3>
+            <p>Task-focused recipes: get an API key, set up coach mode, expose HTTP, troubleshoot.</p>
+          </a>
+          <a class="doc-card" href="{{ "/reference/" | relURL }}">
+            <h3>Reference</h3>
+            <p>The tool catalog, CLI flags, config file, resources &amp; prompts, and safety modes.</p>
+          </a>
+          <a class="doc-card" href="{{ "/explain/" | relURL }}">
+            <h3>Explanations</h3>
+            <p>What MCP is, why icuvisor is local-first, terse-by-default, and how coach mode works.</p>
+          </a>
+          <a class="doc-card" href="{{ "/connect/" | relURL }}">
+            <h3>Connect a client</h3>
+            <p>Per-client setup for Claude Desktop, Claude Code, ChatGPT, and others.</p>
+          </a>
+          <a class="doc-card" href="{{ "/install/" | relURL }}">
+            <h3>Install</h3>
+            <p>Platform-specific install instructions for macOS, Windows, and Linux.</p>
+          </a>
+        </div>
+      </section>
+
+      <section class="card col-6" aria-labelledby="clients-title">
+        <span class="tag">Compatible clients</span>
+        <h3 id="clients-title">Works where you already work.</h3>
+        <ul class="feature-list">
+          <li>Claude Desktop &amp; Claude Code</li>
+          <li>ChatGPT (custom MCP)</li>
+          <li>Cursor, Continue, Zed</li>
+          <li>Pi, and any other MCP-compatible client</li>
+        </ul>
+      </section>
+
+      <section class="card col-6" aria-labelledby="status-title">
+        <span class="tag tag-muted">Roadmap</span>
+        <h3 id="status-title">Where we are.</h3>
+        <p>icuvisor is pre-alpha. The walking-skeleton (v0.1) is in progress. v1.0 ships installers, the full tool catalog, and one-click client configs.</p>
+        <p><a href="https://github.com/ricardocabral/icuvisor/blob/main/ROADMAP.md" rel="noopener">Read the roadmap →</a></p>
+      </section>
+
+    </main>
+
+    <footer class="site-footer">
+      <div>
+        <strong>icuvisor</strong> · MIT-licensed · not affiliated with intervals.icu
+      </div>
+      <div>
+        <a href="{{ .Site.Params.github }}" rel="noopener">GitHub</a> ·
+        <a href="https://github.com/ricardocabral/icuvisor/blob/main/SECURITY.md" rel="noopener">Security</a> ·
+        <a href="https://github.com/ricardocabral/icuvisor/blob/main/CONTRIBUTING.md" rel="noopener">Contribute</a>
+      </div>
+    </footer>
+
+  </div>
+</body>
+</html>
