@@ -14,10 +14,6 @@
 
 > icuvisor is an open-source, locally installed [Model Context Protocol](https://modelcontextprotocol.io) server for [intervals.icu](https://intervals.icu), shipped as a single Go binary so athletes and coaches can talk to their training data from Claude, ChatGPT, Pi, Cursor, and other MCP-compatible clients. End-user docs live at <https://icuvisor.app>.
 
-## Status
-
-Pre-alpha. See [ROADMAP.md](ROADMAP.md).
-
 ## For users
 
 Install icuvisor, connect your AI assistant, and read the tool catalog at <https://icuvisor.app>.
@@ -66,8 +62,6 @@ make snapshot    # local goreleaser snapshot
 make docs-tools  # regenerate website tool catalog data
 make help        # list all targets
 ```
-
-The KR5 token-efficiency benchmark harness is documented in [`docs/kr5-benchmark.md`](docs/kr5-benchmark.md).
 
 See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and the [PRD](docs/prd/PRD-icuvisor.md).
 
