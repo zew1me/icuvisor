@@ -68,7 +68,9 @@ security add-generic-password -U \
 
 Do not put the API key in Claude Desktop, Claude Code, `Info.plist`, the DMG, or any committed config file.
 
-## Verify Gatekeeper and notarization
+## Verify Gatekeeper and notarization (optional)
+
+These checks are optional. macOS already enforces Gatekeeper and notarization when you first open the app — if the app launched without an "unidentified developer" warning, the signature and notarization ticket are valid. Run the commands below only if you want to confirm the chain manually or you are auditing the release.
 
 After dragging the app into Applications, run:
 
