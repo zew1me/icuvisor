@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.2] - 2026-05-19
+
 ### Changed
 
 - `icuvisor setup` always prompts for the athlete ID and requires the `i` prefix (for example `i12345`). intervals.icu does not expose the ID through the API, so the previous `/athlete/0/profile` autodetect could silently succeed with an empty ID; the API key and athlete ID are now verified together against `/athlete/{id}`.
@@ -19,5 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial public release.
 
-[Unreleased]: https://github.com/ricardocabral/icuvisor/compare/v0.0.1...HEAD
+[Unreleased]: https://github.com/ricardocabral/icuvisor/compare/v0.0.2...HEAD
+[0.0.2]: https://github.com/ricardocabral/icuvisor/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/ricardocabral/icuvisor/releases/tag/v0.0.1
