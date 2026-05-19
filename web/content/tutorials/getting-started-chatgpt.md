@@ -1,6 +1,6 @@
 ---
 title: Getting started with ChatGPT
-description: Build icuvisor on macOS, connect it to ChatGPT over local MCP stdio, and ask your first training-data question.
+description: Install icuvisor on macOS, connect it to ChatGPT over local MCP stdio, and ask your first training-data question.
 ---
 
 By the end you'll have asked ChatGPT about real activity from your intervals.icu account and gotten a sourced answer from icuvisor.
@@ -8,41 +8,34 @@ By the end you'll have asked ChatGPT about real activity from your intervals.icu
 ## What you'll need
 
 - macOS 13 or newer.
-- Git and Apple's Command Line Tools already installed.
-- Go 1.25.10 or newer already installed.
 - A ChatGPT account with custom MCP connectors enabled.
 - An intervals.icu account.
-- About 10 minutes after those tools are installed.
-
-Until the v1.0 installer ships, you'll build the binary first.
+- About 10 minutes.
 
 ## Step 1 — Install icuvisor
 
-Open Terminal and check that your Mac is ready:
+Download the signed macOS DMG from the [latest GitHub release](https://github.com/ricardocabral/icuvisor/releases/latest):
+
+- `icuvisor_<version>_macos_universal.dmg`
+- `SHA256SUMS.txt` (optional, for verification)
+
+Optional — verify the checksum from the download folder:
 
 ```bash
-git --version
-go version
-make --version
+shasum -a 256 -c SHA256SUMS.txt --ignore-missing
 ```
 
-Each command prints a version.
-
-Now paste this block:
+Open the DMG and drag `icuvisor.app` into `/Applications`. Then confirm the binary starts:
 
 ```bash
-rm -rf /Users/Shared/icuvisor-src
-git clone https://github.com/ricardocabral/icuvisor.git /Users/Shared/icuvisor-src
-cd /Users/Shared/icuvisor-src
-make build
-mkdir -p /Users/Shared/icuvisor/bin
-cp ./bin/icuvisor /Users/Shared/icuvisor/bin/icuvisor
-/Users/Shared/icuvisor/bin/icuvisor version
+/Applications/icuvisor.app/Contents/MacOS/icuvisor version
 ```
 
-The last command prints the icuvisor version. Leave this Terminal window open.
+The command prints the icuvisor version. Leave this Terminal window open.
 
-![Illustrative Terminal view showing the copied /Users/Shared/icuvisor/bin/icuvisor binary printing its version.](/img/tutorials/chatgpt/01-install.png)
+For other install paths (Windows, Linux, build from source), see the [install guide]({{< relref "../install" >}}).
+
+![Illustrative Terminal view showing the /Applications/icuvisor.app binary printing its version.](/img/tutorials/chatgpt/01-install.png)
 
 ## Step 2 — Get your intervals.icu API key
 
@@ -57,7 +50,7 @@ Scroll to **Developer Settings** or **API Key**. Create a key if you do not alre
 Return to Terminal and run:
 
 ```bash
-/Users/Shared/icuvisor/bin/icuvisor setup
+/Applications/icuvisor.app/Contents/MacOS/icuvisor setup
 ```
 
 Paste the API key when icuvisor asks for it. The prompt is masked, so the key does not appear in Terminal.
@@ -77,7 +70,7 @@ Name the connector `icuvisor` and paste this configuration:
 ```text
 {
   "name": "icuvisor",
-  "command": "/Users/Shared/icuvisor/bin/icuvisor",
+  "command": "/Applications/icuvisor.app/Contents/MacOS/icuvisor",
   "transport": "stdio"
 }
 ```

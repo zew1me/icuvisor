@@ -313,6 +313,29 @@ pre.code .s {
 	background: var(--secondary);
 }
 
+/* Download list (Install section) */
+.download-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	display: grid;
+	gap: var(--s-2);
+}
+.download-list li {
+	display: flex;
+	align-items: center;
+	gap: var(--s-2);
+}
+.download-list .platform-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	flex-shrink: 0;
+	color: var(--secondary);
+}
+
 /* Tools grid */
 .tools {
 	display: grid;
@@ -573,6 +596,40 @@ pre.code .s {
 }
 .catalog-table tbody th {
 	white-space: nowrap;
+}
+.page-card table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: var(--t-14);
+}
+.page-card th,
+.page-card td {
+	padding: 10px 12px;
+	border-bottom: 1px solid var(--border);
+	text-align: left;
+	vertical-align: top;
+}
+.page-card thead th {
+	color: var(--text-muted);
+	font-size: var(--t-12);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+.page-card tbody tr:nth-child(odd) td,
+.page-card tbody tr:nth-child(odd) th {
+	background: var(--surface);
+}
+.catalog-table tbody tr:nth-child(odd) td,
+.catalog-table tbody tr:nth-child(odd) th {
+	background: var(--surface);
+}
+.page-card h1 code,
+.page-card h2 code,
+.page-card h3 code,
+.page-card h4 code,
+.page-card h5 code,
+.page-card h6 code {
+	font-size: 0.9em;
 }
 .badge {
 	display: inline-flex;
