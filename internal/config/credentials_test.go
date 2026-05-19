@@ -26,9 +26,9 @@ func TestLoadAPIKeyPrecedenceWithCredentialStore(t *testing.T) {
 	}{
 		{
 			name:      "process env wins and skips keychain",
-			json:      `{"api_key":"json-key","athlete_id":"111"}`,
+			json:      `{"api_key":"json-key","athlete_id":"i111"}`,
 			dotEnv:    EnvAPIKey + `=dotenv-key\n` + EnvAthleteID + `=222`,
-			env:       map[string]string{EnvAPIKey: "env-key", EnvAthleteID: "333"},
+			env:       map[string]string{EnvAPIKey: "env-key", EnvAthleteID: "i333"},
 			store:     &fakeCredentialStore{err: errors.New("should not be called")},
 			wantKey:   "env-key",
 			wantSrc:   APIKeySourceEnv,
@@ -36,7 +36,7 @@ func TestLoadAPIKeyPrecedenceWithCredentialStore(t *testing.T) {
 		},
 		{
 			name:      "keychain beats plaintext files",
-			json:      `{"api_key":"json-key","athlete_id":"111"}`,
+			json:      `{"api_key":"json-key","athlete_id":"i111"}`,
 			dotEnv:    EnvAPIKey + `=dotenv-key`,
 			env:       map[string]string{},
 			store:     &fakeCredentialStore{value: "keychain-key"},
@@ -46,7 +46,7 @@ func TestLoadAPIKeyPrecedenceWithCredentialStore(t *testing.T) {
 		},
 		{
 			name:      "not found falls through to file",
-			json:      `{"api_key":"json-key","athlete_id":"111"}`,
+			json:      `{"api_key":"json-key","athlete_id":"i111"}`,
 			dotEnv:    EnvAPIKey + `=dotenv-key`,
 			env:       map[string]string{},
 			store:     &fakeCredentialStore{err: credstore.ErrNotFound},
@@ -56,7 +56,7 @@ func TestLoadAPIKeyPrecedenceWithCredentialStore(t *testing.T) {
 		},
 		{
 			name:      "dotenv supplies legacy file key when json omits it",
-			json:      `{"athlete_id":"111"}`,
+			json:      `{"athlete_id":"i111"}`,
 			dotEnv:    EnvAPIKey + `=dotenv-key`,
 			env:       map[string]string{},
 			store:     &fakeCredentialStore{err: credstore.ErrNotFound},
@@ -66,7 +66,7 @@ func TestLoadAPIKeyPrecedenceWithCredentialStore(t *testing.T) {
 		},
 		{
 			name:      "unexpected keychain error fails load",
-			json:      `{"api_key":"json-key","athlete_id":"111"}`,
+			json:      `{"api_key":"json-key","athlete_id":"i111"}`,
 			dotEnv:    "",
 			env:       map[string]string{},
 			store:     &fakeCredentialStore{err: errors.New("keychain unavailable in an unexpected way")},
@@ -105,7 +105,7 @@ func TestLoadWarnsForLegacyFileAPIKeyWithoutLeakingValue(t *testing.T) {
 	credential := strings.Repeat("w", 12)
 	dir := t.TempDir()
 	configPath := dir + "/config.json"
-	writeFile(t, configPath, `{"api_key":"`+credential+`","athlete_id":"123"}`)
+	writeFile(t, configPath, `{"api_key":"`+credential+`","athlete_id":"i123"}`)
 
 	var logs strings.Builder
 	previous := slog.Default()

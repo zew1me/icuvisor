@@ -45,7 +45,7 @@ func TestGetActivityDetailsShapesTerseFullAndStravaUnavailable(t *testing.T) {
 	t.Parallel()
 
 	activity := decodeActivityFixture(t, `{"id":"stub1","icu_athlete_id":"i12345","start_date_local":"2026-01-02T07:00:00","name":null}`)
-	client := &fakeActivityReadClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "imperial", Timezone: "America/Sao_Paulo"}}, activity: activity}
+	client := &fakeActivityReadClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "imperial", Timezone: "America/Sao_Paulo"}}, activity: activity}
 	tool := newGetActivityDetailsTool(client, client, "test", "UTC", false)
 
 	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"activity_id":"stub1","include_full":true}`)})

@@ -199,7 +199,7 @@ func TestApplyTrainingPlanRegistrationMetadata(t *testing.T) {
 func newApplyTrainingPlanTestClient(t *testing.T) *fakeApplyTrainingPlanClient {
 	t.Helper()
 	return &fakeApplyTrainingPlanClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}},
 		folders:           decodeToolWorkoutFolders(t, `{"id":"plan-1","type":"PLAN","name":"Base plan"}`),
 		workouts: decodeToolWorkouts(t,
 			`{"id":"w-1","name":"Endurance","type":"Ride","folder_id":"plan-1","day":1,"icu_training_load":45,"moving_time":3600,"workout_doc":{"steps":[{"duration":600}]}}`,

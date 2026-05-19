@@ -23,7 +23,7 @@ func (f *fakeWorkoutDeleterClient) DeleteLibraryWorkout(ctx context.Context, wor
 func TestDeleteWorkoutSuccess(t *testing.T) {
 	t.Parallel()
 
-	client := &fakeWorkoutDeleterClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}}}
+	client := &fakeWorkoutDeleterClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}}}
 	tool := newDeleteWorkoutTool(client, client, "test", "UTC", false)
 
 	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"workout_id":" w-1 "}`)})
@@ -63,7 +63,7 @@ func TestDeleteWorkoutRejectsBadArguments(t *testing.T) {
 func TestDeleteWorkoutRegistrationMetadata(t *testing.T) {
 	t.Parallel()
 
-	client := &fakeWorkoutDeleterClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}}}
+	client := &fakeWorkoutDeleterClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}}}
 	tool := newDeleteWorkoutTool(client, client, "test", "UTC", false)
 	if tool.Requirement != RequirementDelete || !tool.RequiresDelete() {
 		t.Fatalf("requirement = %q delete=%v, want delete", tool.Requirement, tool.RequiresDelete())

@@ -30,7 +30,7 @@ func (f *fakeWorkoutLibraryClient) ListLibraryWorkouts(context.Context) ([]inter
 func TestWorkoutLibraryRegistrationMetadata(t *testing.T) {
 	t.Parallel()
 
-	client := &fakeWorkoutLibraryClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}}}
+	client := &fakeWorkoutLibraryClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}}}
 	libraryTool := newGetWorkoutLibraryTool(client, client, "test", "UTC", false)
 	if !strings.Contains(libraryTool.Description, "workout-library folders") {
 		t.Fatalf("library description = %q, want workout-library language", libraryTool.Description)
@@ -51,7 +51,7 @@ func TestGetWorkoutLibraryFoldersAndTopLevelWorkouts(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeWorkoutLibraryClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}},
 		folders: decodeToolWorkoutFolders(t,
 			`{"id":20,"type":"FOLDER","name":"Threshold","visibility":"PRIVATE","num_workouts":2,"children":[{"id":3,"name":"FTP","type":"Ride"}]}`,
 			`{"id":10,"type":"PLAN","name":"Base","visibility":"PUBLIC","children":[{"id":4,"name":"Long Run","type":"Run"},{"id":5,"name":"Endurance","type":"Ride"}]}`,
@@ -107,7 +107,7 @@ func TestGetWorkoutLibraryFoldersAndTopLevelWorkouts(t *testing.T) {
 func TestGetWorkoutLibraryEmptyDoesNotFetchWorkoutsByDefault(t *testing.T) {
 	t.Parallel()
 
-	client := &fakeWorkoutLibraryClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}}}
+	client := &fakeWorkoutLibraryClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}}}
 	tool := newGetWorkoutLibraryTool(client, client, "test", "UTC", false)
 
 	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{}`)})
@@ -127,7 +127,7 @@ func TestGetWorkoutsInFolderFiltersAndPreservesWorkoutDocWithIncludeFull(t *test
 	t.Parallel()
 
 	client := &fakeWorkoutLibraryClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}},
 		workouts: decodeToolWorkouts(t,
 			`{"id":2,"name":"Sweet Spot","description":"multi-paragraph coach notes","type":"Ride","folder_id":20,"icu_training_load":70,"moving_time":3600,"target":"POWER","tags":["sweet-spot"],"workout_doc":{"steps":[{"duration":600},{"duration":300}],"name":"raw doc"}}`,
 			`{"id":1,"name":"Other Folder","type":"Run","folder_id":10,"workout_doc":{"steps":[{"duration":100}]}}`,
@@ -169,7 +169,7 @@ func TestGetWorkoutsInFolderHidesWorkoutDocByDefault(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeWorkoutLibraryClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}},
 		workouts:          decodeToolWorkouts(t, `{"id":2,"name":"Sweet Spot","description":"multi-paragraph coach notes","type":"Ride","folder_id":20,"workout_doc":{"steps":[{"duration":600}]}}`),
 	}
 	tool := newGetWorkoutsInFolderTool(client, client, "test", "UTC", false)

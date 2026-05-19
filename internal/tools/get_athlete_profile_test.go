@@ -116,7 +116,7 @@ func TestGetAthleteProfileHandlerSuccess(t *testing.T) {
 	t.Parallel()
 
 	tool, client := newTestProfileTool(t, "v1.2.3", "UTC", intervals.AthleteWithSportSettings{
-		ID:                    "12345",
+		ID:                    "i12345",
 		Name:                  "Example Athlete",
 		FirstName:             "Example",
 		LastName:              "Athlete",
@@ -127,7 +127,7 @@ func TestGetAthleteProfileHandlerSuccess(t *testing.T) {
 		Locale:                "pt_BR",
 		SportSettings: []intervals.SportSettings{{
 			ID:             7,
-			AthleteID:      "12345",
+			AthleteID:      "i12345",
 			Types:          []string{"Ride"},
 			FTP:            250,
 			IndoorFTP:      240,
@@ -196,7 +196,7 @@ func TestGetAthleteProfileIncludeFullDelta(t *testing.T) {
 		MeasurementPreference: "IMPERIAL",
 		SportSettings: []intervals.SportSettings{{
 			ID:        9,
-			AthleteID: "12345",
+			AthleteID: "i12345",
 			Types:     []string{"Run"},
 		}},
 	}
@@ -253,7 +253,7 @@ func TestGetAthleteProfileResponseShapingVariants(t *testing.T) {
 			wantUnits:    GetAthleteProfileUnits{MeasurementPreference: "imperial", Weight: "lb", Temperature: "celsius"},
 			wantMilePace: true,
 			profile: intervals.AthleteWithSportSettings{
-				ID:           "12345",
+				ID:           "i12345",
 				WeightPrefLB: true,
 				SportSettings: []intervals.SportSettings{{
 					ThresholdPace: 400,
@@ -267,7 +267,7 @@ func TestGetAthleteProfileResponseShapingVariants(t *testing.T) {
 			fallback:     "",
 			wantTimezone: config.DefaultTimezone,
 			wantUnits:    GetAthleteProfileUnits{MeasurementPreference: "metric", Weight: "kg", Temperature: "celsius"},
-			profile:      intervals.AthleteWithSportSettings{ID: "12345", MeasurementPreference: "METRIC"},
+			profile:      intervals.AthleteWithSportSettings{ID: "i12345", MeasurementPreference: "METRIC"},
 		},
 	}
 
@@ -302,7 +302,7 @@ func TestGetAthleteProfilePaceConversionPolicies(t *testing.T) {
 	slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	profile := intervals.AthleteWithSportSettings{
-		ID:             "12345",
+		ID:             "i12345",
 		PreferredUnits: "miles",
 		SportSettings: []intervals.SportSettings{
 			{Types: []string{"Run"}, ThresholdPace: 5, PaceUnits: "MINS_KM", PaceZones: []float64{4, 5}},
@@ -347,7 +347,7 @@ func TestGetAthleteProfileArgumentValidation(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			tool, client := newTestProfileTool(t, "test", "UTC", intervals.AthleteWithSportSettings{ID: "12345"})
+			tool, client := newTestProfileTool(t, "test", "UTC", intervals.AthleteWithSportSettings{ID: "i12345"})
 			_, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(tc.args)})
 			if err == nil {
 				t.Fatal("Handler() error = nil, want invalid arguments error")
@@ -397,7 +397,7 @@ func TestGetAthleteProfileCancellationIsNotMappedToCredentialError(t *testing.T)
 func TestGetAthleteProfileMetaUnitsFromPreferredUnits(t *testing.T) {
 	t.Parallel()
 
-	tool, _ := newTestProfileTool(t, "test", "UTC", intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "miles"})
+	tool, _ := newTestProfileTool(t, "test", "UTC", intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "miles"})
 	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{}`)})
 	if err != nil {
 		t.Fatalf("Handler() error = %v", err)
@@ -421,7 +421,7 @@ func TestGetAthleteProfileMetaUnitsFromPreferredUnits(t *testing.T) {
 func TestGetAthleteProfileDefaultsEmptyUnitsConsistentlyToMetric(t *testing.T) {
 	t.Parallel()
 
-	tool, _ := newTestProfileTool(t, "test", "UTC", intervals.AthleteWithSportSettings{ID: "12345"})
+	tool, _ := newTestProfileTool(t, "test", "UTC", intervals.AthleteWithSportSettings{ID: "i12345"})
 	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{}`)})
 	if err != nil {
 		t.Fatalf("Handler() error = %v", err)
@@ -437,7 +437,7 @@ func TestGetAthleteProfileDefaultsEmptyUnitsConsistentlyToMetric(t *testing.T) {
 func TestGetAthleteProfileDebugMetadataOptIn(t *testing.T) {
 	t.Parallel()
 
-	client := &fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345"}}
+	client := &fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345"}}
 	tool := newGetAthleteProfileTool(client, "test", "UTC", true)
 	result, err := tool.Handler(context.Background(), Request{Name: getAthleteProfileName, Arguments: json.RawMessage(`{}`)})
 	if err != nil {
@@ -455,12 +455,12 @@ func TestGetAthleteProfileOmitsForbiddenDebugAndSecretFields(t *testing.T) {
 	t.Parallel()
 
 	tool, _ := newTestProfileTool(t, "test", "UTC", intervals.AthleteWithSportSettings{
-		ID:                    "12345",
+		ID:                    "i12345",
 		Name:                  "Safe Athlete",
 		MeasurementPreference: "IMPERIAL",
 		SportSettings: []intervals.SportSettings{{
 			ID:        7,
-			AthleteID: "12345",
+			AthleteID: "i12345",
 		}},
 	})
 	for _, args := range []string{`{}`, `{"include_full":true}`} {

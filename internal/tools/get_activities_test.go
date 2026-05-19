@@ -520,7 +520,7 @@ func TestGetActivitiesShapesStravaFullAndUnits(t *testing.T) {
 
 func newFakeActivitiesClient(t *testing.T, rawActivities []string, preferredUnits string) *fakeActivitiesProfileClient {
 	t.Helper()
-	client := &fakeActivitiesProfileClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: preferredUnits, Timezone: "UTC"}}}
+	client := &fakeActivitiesProfileClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: preferredUnits, Timezone: "UTC"}}}
 	for _, raw := range rawActivities {
 		var activity intervals.Activity
 		if err := json.Unmarshal([]byte(raw), &activity); err != nil {

@@ -22,7 +22,7 @@ func TestCreateCustomItemCreatesPerReadableSchema(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeCustomItemsClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}},
 		items: decodeToolCustomItems(t,
 			`{"id":1,"type":"FITNESS_CHART","name":"Schema","content":{"series":[{"field":"ctl","color":"blue"}],"layout":{"height":240}}}`,
 		),
@@ -59,7 +59,7 @@ func TestCreateCustomItemFetchesDetailWhenListOmitsContentSchema(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeCustomItemsClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}},
 		items:             decodeToolCustomItems(t, `{"id":1,"type":"FITNESS_CHART","name":"Schema"}`),
 		detail:            decodeToolCustomItem(t, `{"id":1,"type":"FITNESS_CHART","name":"Schema","content":{"series":[{"field":"ctl","color":"blue"}],"layout":{"height":240}}}`),
 		createdItem:       decodeToolCustomItem(t, `{"id":9,"type":"FITNESS_CHART","name":"New CTL","content":{"series":[{"field":"atl","color":"red"}],"layout":{"height":260}}}`),
@@ -82,7 +82,7 @@ func TestCreateCustomItemRejectsSchemaViolationsBeforeUpload(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeCustomItemsClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", Timezone: "UTC"}},
 		items: decodeToolCustomItems(t,
 			`{"id":1,"type":"FITNESS_CHART","name":"Schema","content":{"series":[{"field":"ctl"}],"layout":{"height":240}}}`,
 		),
@@ -105,7 +105,7 @@ func TestCreateCustomItemRejectsSchemaViolationsBeforeUpload(t *testing.T) {
 func TestCreateCustomItemRegistrationMetadata(t *testing.T) {
 	t.Parallel()
 
-	client := &fakeCustomItemsClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}}}
+	client := &fakeCustomItemsClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}}}
 	tool := newCreateCustomItemTool(client, client, client, "test", "UTC", false)
 	if tool.Requirement != RequirementWrite {
 		t.Fatalf("requirement = %q, want write", tool.Requirement)

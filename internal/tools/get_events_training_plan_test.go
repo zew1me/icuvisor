@@ -37,7 +37,7 @@ func (f *fakeEventsTrainingPlanClient) GetTrainingPlan(ctx context.Context) (int
 func TestEventsAndTrainingPlanRegistrationMetadata(t *testing.T) {
 	t.Parallel()
 
-	client := &fakeEventsTrainingPlanClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}}}
+	client := &fakeEventsTrainingPlanClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}}}
 	eventsTool := newGetEventsTool(client, client, "test", "UTC", false)
 	if !strings.Contains(eventsTool.Description, "calendar events") {
 		t.Fatalf("events description = %q, want calendar events", eventsTool.Description)
@@ -68,7 +68,7 @@ func TestGetEventsTerseRowsTimezoneAndCategory(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeEventsTrainingPlanClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "America/Sao_Paulo"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "America/Sao_Paulo"}},
 		events:            decodeToolEvents(t, `{"id":123,"name":"Tempo","category":"WORKOUT","type":"Ride","start_date_local":"2026-01-03","end_date_local":"2026-01-03","description":"3x tempo","updated":"2026-01-03T12:00:00Z","plan_applied":"2026-01-02T12:00:00Z","calendar_id":"cal-1","training_plan_id":456,"icu_training_load":75,"distance":30000,"moving_time":3600,"workout_doc":{"steps":[{"duration":600}]}}`),
 	}
 	tool := newGetEventsTool(client, client, "test", "UTC", false)
@@ -110,7 +110,7 @@ func TestGetEventsCapsRowsAndReportsTruncation(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeEventsTrainingPlanClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}},
 		events: decodeToolEvents(t,
 			`{"id":3,"name":"Suppressed","category":"WORKOUT","start_date_local":"2026-01-03"}`,
 			`{"id":1,"name":"First","category":"WORKOUT","start_date_local":"2026-01-01"}`,
@@ -140,7 +140,7 @@ func TestGetEventsCapsRowsAndReportsTruncation(t *testing.T) {
 func TestGetEventsRejectsDateTimesAndTooLargeRange(t *testing.T) {
 	t.Parallel()
 
-	client := &fakeEventsTrainingPlanClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}}}
+	client := &fakeEventsTrainingPlanClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}}}
 	tool := newGetEventsTool(client, client, "test", "UTC", false)
 	cases := []string{
 		`{"oldest":"2026-01-01T00:00:00","newest":"2026-01-31"}`,
@@ -157,7 +157,7 @@ func TestGetTrainingPlanSummarizesNestedPlan(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeEventsTrainingPlanClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}},
 		trainingPlan:      decodeToolTrainingPlan(t, `{"training_plan_id":456,"training_plan_start_date":"2026-02-01","alias":"Base alias","training_plan":{"id":456,"name":"Base plan","children":[{"workout_doc":{"steps":[1]}}],"workout_doc":{"steps":[2]}}}`),
 	}
 	tool := newGetTrainingPlanTool(client, client, "test", "UTC", false)
@@ -191,7 +191,7 @@ func TestGetTrainingPlanIncludeFullPreservesRawPayload(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeEventsTrainingPlanClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}},
 		trainingPlan:      decodeToolTrainingPlan(t, `{"training_plan_id":456,"training_plan_start_date":"2026-02-01","alias":"Base alias","training_plan":{"id":456,"name":"Base plan","children":[],"workouts":[],"custom":"kept"}}`),
 	}
 	tool := newGetTrainingPlanTool(client, client, "test", "UTC", false)
@@ -215,7 +215,7 @@ func TestGetTrainingPlanIncludeFullPreservesRawPayload(t *testing.T) {
 func TestGetTrainingPlanNoActivePlanShape(t *testing.T) {
 	t.Parallel()
 
-	client := &fakeEventsTrainingPlanClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}}}
+	client := &fakeEventsTrainingPlanClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}}}
 	tool := newGetTrainingPlanTool(client, client, "test", "UTC", false)
 
 	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{}`)})

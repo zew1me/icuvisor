@@ -92,7 +92,7 @@ func (f *fakeDeleteToolsClient) ListEvents(ctx context.Context, params intervals
 func TestDeletePerIDToolsSuccessAndEcho(t *testing.T) {
 	t.Parallel()
 
-	profile := intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC", SportSettings: []intervals.SportSettings{{ID: 7, Type: "Ride", FTP: 280, LTHR: 172}}}
+	profile := intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC", SportSettings: []intervals.SportSettings{{ID: 7, Type: "Ride", FTP: 280, LTHR: 172}}}
 	tests := []struct {
 		name       string
 		tool       func(*fakeDeleteToolsClient) Tool
@@ -162,7 +162,7 @@ func TestDeletePerIDToolsRejectConfirmArgument(t *testing.T) {
 func TestDeleteEventsByDateRangeValidationAndTimezone(t *testing.T) {
 	t.Parallel()
 
-	client := &fakeDeleteToolsClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "America/Sao_Paulo"}}, events: []intervals.Event{mustEvent(t, `{"id":"11","category":"WORKOUT","name":"Morning","start_date_local":"2026-05-13T00:00:00"}`), mustEvent(t, `{"id":"12","category":"NOTE","name":"Evening","start_date_local":"2026-05-13T23:59:59"}`)}}
+	client := &fakeDeleteToolsClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "America/Sao_Paulo"}}, events: []intervals.Event{mustEvent(t, `{"id":"11","category":"WORKOUT","name":"Morning","start_date_local":"2026-05-13T00:00:00"}`), mustEvent(t, `{"id":"12","category":"NOTE","name":"Evening","start_date_local":"2026-05-13T23:59:59"}`)}}
 	tool := newDeleteEventsByDateRangeTool(client, client, "test", "UTC", false)
 
 	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"start_date":"2026-05-13","end_date":"2026-05-13","category":"WORKOUT"}`)})
@@ -204,7 +204,7 @@ func TestDeleteEventsByDateRangeValidationAndTimezone(t *testing.T) {
 func TestDeleteToolsRegistrationMetadata(t *testing.T) {
 	t.Parallel()
 
-	client := &fakeDeleteToolsClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}}}
+	client := &fakeDeleteToolsClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}}}
 	tools := []Tool{
 		newDeleteEventTool(client, client, "test", "UTC", false),
 		newDeleteActivityTool(client, client, "test", "UTC", false),

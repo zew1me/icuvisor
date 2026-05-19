@@ -29,7 +29,7 @@ func TestLoadCoachModeFromEnvAndDotEnv(t *testing.T) {
 
 	cfg, err = Load(context.Background(), Options{DotEnvPath: dotEnvPath, Env: map[string]string{
 		EnvAPIKey:     "env-key",
-		EnvAthleteID:  "12345",
+		EnvAthleteID:  "i12345",
 		EnvCoachMode:  " ON ",
 		EnvConfigPath: "",
 	}})
@@ -42,7 +42,7 @@ func TestLoadCoachModeFromEnvAndDotEnv(t *testing.T) {
 
 	_, err = Load(context.Background(), Options{Env: map[string]string{
 		EnvAPIKey:     "env-key",
-		EnvAthleteID:  "12345",
+		EnvAthleteID:  "i12345",
 		EnvCoachMode:  "maybe",
 		EnvConfigPath: "",
 	}})
@@ -58,13 +58,13 @@ func TestLoadCoachConfigSchemaAndValidation(t *testing.T) {
 	configPath := dir + "/config.json"
 	writeFile(t, configPath, `{
 		"api_key": "json-key",
-		"athlete_id": "111",
+		"athlete_id": "i111",
 		"coach": {
 			"athletes": [
-				{"id": "222", "label": " Jane ", "allowed_tools": ["get_*", "get_*"], "denied_tools": ["delete_event"]},
+				{"id": "i222", "label": " Jane ", "allowed_tools": ["get_*", "get_*"], "denied_tools": ["delete_event"]},
 				{"id": "i333", "allowed_tools": ["*"], "denied_tools": []}
 			],
-			"default_athlete_id": "333"
+			"default_athlete_id": "i333"
 		}
 	}`)
 
@@ -108,8 +108,8 @@ func TestLoadCoachModeAllowsCoachOnlyConfig(t *testing.T) {
 			writeFile(t, path, `{
 				"api_key": "json-key",
 				"coach": {
-					"athletes": [{"id": "222", "allowed_tools": ["*"]}],
-					"default_athlete_id": "222"
+					"athletes": [{"id": "i222", "allowed_tools": ["*"]}],
+					"default_athlete_id": "i222"
 				}
 			}`)
 			cfg, err := Load(context.Background(), Options{Path: path, DotEnvPath: dir + "/missing.env", Env: map[string]string{EnvCoachMode: tc.mode}})
@@ -132,13 +132,13 @@ func TestLoadCoachConfigValidationErrors(t *testing.T) {
 		env     map[string]string
 		wantErr string
 	}{
-		{name: "unknown json field", json: `{"api_key":"k","athlete_id":"1","coach":{"athletes":[],"typo":true}}`, wantErr: "unknown field"},
-		{name: "duplicate normalized athlete", json: `{"api_key":"k","athlete_id":"1","coach":{"athletes":[{"id":"2"},{"id":"i2"}]}}`, wantErr: "duplicate coach athlete id"},
-		{name: "default outside roster", json: `{"api_key":"k","athlete_id":"1","coach":{"athletes":[{"id":"2"}],"default_athlete_id":"3"}}`, wantErr: "coach.default_athlete_id"},
-		{name: "unknown exact tool", json: `{"api_key":"k","athlete_id":"1","coach":{"athletes":[{"id":"2","allowed_tools":["get_athlete_profiel"]}]}}`, wantErr: "unknown athlete-scoped tool"},
-		{name: "unknown wildcard", json: `{"api_key":"k","athlete_id":"1","coach":{"athletes":[{"id":"2","allowed_tools":["bogus_*"]}]}}`, wantErr: "matches no athlete-scoped tools"},
-		{name: "off still validates stanza", json: `{"api_key":"k","athlete_id":"1","coach":{"athletes":[{"id":"2","denied_tools":["select_athlete"]}]}}`, env: map[string]string{EnvCoachMode: "off"}, wantErr: "unknown athlete-scoped tool"},
-		{name: "on multiple athletes needs default", json: `{"api_key":"k","athlete_id":"1","coach":{"athletes":[{"id":"2"},{"id":"3"}]}}`, env: map[string]string{EnvCoachMode: "on"}, wantErr: "default_athlete_id is required"},
+		{name: "unknown json field", json: `{"api_key":"k","athlete_id":"i1","coach":{"athletes":[],"typo":true}}`, wantErr: "unknown field"},
+		{name: "duplicate normalized athlete", json: `{"api_key":"k","athlete_id":"i1","coach":{"athletes":[{"id":"i2"},{"id":"I2"}]}}`, wantErr: "duplicate coach athlete id"},
+		{name: "default outside roster", json: `{"api_key":"k","athlete_id":"i1","coach":{"athletes":[{"id":"i2"}],"default_athlete_id":"i3"}}`, wantErr: "coach.default_athlete_id"},
+		{name: "unknown exact tool", json: `{"api_key":"k","athlete_id":"i1","coach":{"athletes":[{"id":"i2","allowed_tools":["get_athlete_profiel"]}]}}`, wantErr: "unknown athlete-scoped tool"},
+		{name: "unknown wildcard", json: `{"api_key":"k","athlete_id":"i1","coach":{"athletes":[{"id":"i2","allowed_tools":["bogus_*"]}]}}`, wantErr: "matches no athlete-scoped tools"},
+		{name: "off still validates stanza", json: `{"api_key":"k","athlete_id":"i1","coach":{"athletes":[{"id":"i2","denied_tools":["select_athlete"]}]}}`, env: map[string]string{EnvCoachMode: "off"}, wantErr: "unknown athlete-scoped tool"},
+		{name: "on multiple athletes needs default", json: `{"api_key":"k","athlete_id":"i1","coach":{"athletes":[{"id":"i2"},{"id":"i3"}]}}`, env: map[string]string{EnvCoachMode: "on"}, wantErr: "default_athlete_id is required"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

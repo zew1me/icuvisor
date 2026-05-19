@@ -12,7 +12,7 @@ func TestNormalizeAthleteIDForDisplay(t *testing.T) {
 		input string
 		want  string
 	}{
-		{name: "numeric", input: "12345", want: "i12345"},
+		{name: "bare digits returned as typed", input: "12345", want: "12345"},
 		{name: "prefixed", input: "i12345", want: "i12345"},
 		{name: "invalid", input: " athlete ", want: "athlete"},
 	}
@@ -35,10 +35,11 @@ func TestNormalizeAthleteID(t *testing.T) {
 		want    string
 		wantErr bool
 	}{
-		{name: "digits", input: "12345", want: "i12345"},
 		{name: "prefixed", input: "i12345", want: "i12345"},
 		{name: "uppercase prefix", input: "I12345", want: "i12345"},
-		{name: "trim spaces", input: " 12345 ", want: "i12345"},
+		{name: "trim spaces", input: " i12345 ", want: "i12345"},
+		{name: "bare digits rejected", input: "12345", wantErr: true},
+		{name: "bare digits with spaces rejected", input: " 12345 ", wantErr: true},
 		{name: "empty", input: "", wantErr: true},
 		{name: "prefix only", input: "i", wantErr: true},
 		{name: "letters", input: "abc", wantErr: true},

@@ -47,7 +47,7 @@ func TestValidateConfigNormalizesRosterAndPatterns(t *testing.T) {
 
 	cfg, err := ValidateConfig(Config{Athletes: []Athlete{
 		{ID: "123", Label: " Rider ", AllowedTools: []string{" get_* ", "get_*"}, DeniedTools: []string{"delete_event"}},
-	}, DefaultAthleteID: "123"}, ModeOn, testNormalizeAthleteID)
+	}, DefaultAthleteID: "i123"}, ModeOn, testNormalizeAthleteID)
 	if err != nil {
 		t.Fatalf("ValidateConfig() error = %v", err)
 	}

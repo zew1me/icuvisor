@@ -127,15 +127,6 @@ func (c *Client) GetAthleteProfile(ctx context.Context) (AthleteWithSportSetting
 	return profile, nil
 }
 
-// GetAuthenticatedAthleteProfile retrieves the profile for the authenticated API key.
-func (c *Client) GetAuthenticatedAthleteProfile(ctx context.Context) (AthleteWithSportSettings, error) {
-	var profile AthleteWithSportSettings
-	if err := c.doJSON(ctx, &profile, "athlete", "0", "profile"); err != nil {
-		return AthleteWithSportSettings{}, fmt.Errorf("getting authenticated athlete profile: %w", err)
-	}
-	return profile, nil
-}
-
 func (c *Client) newRequest(ctx context.Context, method string, pathParts ...string) (*http.Request, error) {
 	pathParts = c.resolvePathAthleteID(ctx, pathParts)
 	requestURL := c.baseURL.JoinPath(pathParts...)

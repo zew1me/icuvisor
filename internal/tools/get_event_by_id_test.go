@@ -14,7 +14,7 @@ func TestGetEventByIDDetailSuccessUsesEventEnvelope(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeEventsTrainingPlanClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "America/Sao_Paulo"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "America/Sao_Paulo"}},
 		eventDetail:       decodeToolEvents(t, `{"id":123,"name":"Tempo","category":"WORKOUT","start_date_local":"2026-01-03","updated":"2026-01-03T12:00:00Z"}`)[0],
 	}
 	tool := newGetEventByIDToolWithClock(client, client, "test", "UTC", false, fixedNow("2026-05-01T12:00:00Z"))
@@ -44,7 +44,7 @@ func TestGetEventByIDFallbackScansDateWindowWithResolveAndCap(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeEventsTrainingPlanClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}},
 		eventDetailErr:    fmt.Errorf("detail: %w", intervals.ErrNotFound),
 		events:            decodeToolEvents(t, `{"id":"target","name":"Recovered","category":"WORKOUT","start_date_local":"2026-03-15"}`),
 	}
@@ -83,7 +83,7 @@ func TestGetEventByIDMissReturnsStructuredUnavailable(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeEventsTrainingPlanClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}},
 		eventDetailErr:    fmt.Errorf("detail: %w", intervals.ErrNotFound),
 		events:            manyToolEvents(t, fallbackEventByIDLimit+1),
 	}

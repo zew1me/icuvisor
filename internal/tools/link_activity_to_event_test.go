@@ -42,7 +42,7 @@ func TestLinkActivityToEventSuccessNoWarning(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeLinkActivityToEventClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", Timezone: "UTC"}},
 		activity:          decodeActivityFixture(t, `{"id":"a1","start_date_local":"2026-05-10T07:00:00"}`),
 		event:             decodeToolEvents(t, `{"id":1001,"start_date_local":"2026-05-10"}`)[0],
 		linked:            decodeActivityFixture(t, `{"id":"a1","paired_event_id":1001,"start_date_local":"2026-05-10T07:00:00","extra":null}`),
@@ -138,7 +138,7 @@ func TestLinkActivityToEventValidationAndErrors(t *testing.T) {
 func TestLinkActivityToEventRegistrationMetadata(t *testing.T) {
 	t.Parallel()
 
-	client := &fakeLinkActivityToEventClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", Timezone: "UTC"}}}
+	client := &fakeLinkActivityToEventClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", Timezone: "UTC"}}}
 	tool := newLinkActivityToEventTool(client, client, client, "test", false)
 	if tool.Requirement != RequirementWrite {
 		t.Fatalf("requirement = %q, want write", tool.Requirement)

@@ -26,7 +26,7 @@ func TestUpdateWorkoutRenameUsesSparseNameOnly(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeWorkoutUpdaterClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}},
 		workout:           decodeToolWorkouts(t, `{"id":"w-1","name":"Renamed Tempo","type":"Ride","folder_id":"f-20","tags":["base"]}`)[0],
 	}
 	tool := newUpdateWorkoutTool(client, client, "test", "UTC", false)
@@ -67,7 +67,7 @@ func TestUpdateWorkoutSwapWorkoutDocSerializesGoldenDSL(t *testing.T) {
 		t.Fatalf("marshal structured fixture: %v", err)
 	}
 	client := &fakeWorkoutUpdaterClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}},
 		workout:           decodeToolWorkouts(t, `{"id":"w-2","name":"Ramp","type":"Ride","workout_doc":`+string(rawDoc)+`}`)[0],
 	}
 	tool := newUpdateWorkoutTool(client, client, "test", "UTC", false)
@@ -101,7 +101,7 @@ func TestUpdateWorkoutAppendTagSendsReplacementTagList(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeWorkoutUpdaterClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}},
 		workout:           decodeToolWorkouts(t, `{"id":"w-3","name":"Tagged","type":"Run","tags":["base","new"]}`)[0],
 	}
 	tool := newUpdateWorkoutTool(client, client, "test", "UTC", false)
@@ -138,7 +138,7 @@ func TestUpdateWorkoutRejectsBadArguments(t *testing.T) {
 func TestUpdateWorkoutRegistrationMetadata(t *testing.T) {
 	t.Parallel()
 
-	client := &fakeWorkoutUpdaterClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}}}
+	client := &fakeWorkoutUpdaterClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}}}
 	tool := newUpdateWorkoutTool(client, client, "test", "UTC", false)
 	if tool.Requirement != RequirementWrite {
 		t.Fatalf("requirement = %q, want write", tool.Requirement)

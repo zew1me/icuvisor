@@ -16,7 +16,7 @@ import (
 )
 
 func TestRegisteredV03WriteToolsExposeInputExamples(t *testing.T) {
-	client, err := intervals.NewClient(intervals.Options{Config: config.Config{APIKey: "example", AthleteID: "12345"}, Version: "test"})
+	client, err := intervals.NewClient(intervals.Options{Config: config.Config{APIKey: "example", AthleteID: "i12345"}, Version: "test"})
 	if err != nil {
 		t.Fatalf("NewClient() error = %v", err)
 	}

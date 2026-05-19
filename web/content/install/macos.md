@@ -28,7 +28,14 @@ The app does not contain credentials. Your intervals.icu API key stays in the ma
    /Applications/icuvisor.app/Contents/MacOS/icuvisor version
    ```
 
-A properly signed and notarized release should not show the macOS "unidentified developer" warning. If macOS blocks the app, verify the signature before overriding Gatekeeper.
+A properly signed and notarized release should not show the macOS "unidentified developer" warning. If macOS blocks the app, verify the signature before overriding security warnings.
+
+## Before you start: API key and athlete ID
+
+You need two things from intervals.icu:
+
+- **API key.** Log in to [intervals.icu](https://intervals.icu), open **Settings → Developer Settings**, and copy your API key. Setup will ask for this with masked input.
+- **Athlete ID.** It's displayed near the API key on the page above, or open any page on intervals.icu while logged in and look at the URL — it contains `/athlete/i12345/...`, where `i12345` is your athlete ID. intervals.icu IDs always start with the letter `i` followed by digits.
 
 ## First-run setup
 
@@ -38,7 +45,7 @@ After installing, run:
 /Applications/icuvisor.app/Contents/MacOS/icuvisor setup
 ```
 
-Setup asks for the intervals.icu API key with masked input, verifies it, stores it in Keychain under service `icuvisor` and account `intervals-icu-api-key`, autodetects your athlete ID/timezone, and writes only non-secret fields to the icuvisor config file.
+Setup asks for the intervals.icu API key (masked) and your athlete ID, verifies them against intervals.icu, stores the key in Keychain under service `icuvisor` and account `intervals-icu-api-key`, autodetects your timezone, and writes only non-secret fields to the icuvisor config file.
 
 Useful setup flags:
 

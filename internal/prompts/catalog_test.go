@@ -57,7 +57,7 @@ func TestRenderedPromptsGolden(t *testing.T) {
 		{name: "recovery_check", prompt: RecoveryCheckPrompt(), arguments: map[string]string{"date": "2026-05-14", "lookback_days": "10"}, goldenFile: "recovery_check.md"},
 		{name: "weekly_planning", prompt: WeeklyPlanningPrompt(), arguments: map[string]string{"week_start": "2026-05-18"}, goldenFile: "weekly_planning.md"},
 		{name: "race_week_taper", prompt: RaceWeekTaperPrompt(), arguments: map[string]string{"race_date": "2026-06-07", "race_name": "A Race"}, goldenFile: "race_week_taper.md"},
-		{name: "coach_roster_triage", prompt: CoachRosterTriagePrompt(), arguments: map[string]string{"athlete_id": "12345", "start_date": "2026-05-01", "end_date": "2026-05-14"}, goldenFile: "coach_roster_triage.md"},
+		{name: "coach_roster_triage", prompt: CoachRosterTriagePrompt(), arguments: map[string]string{"athlete_id": "i12345", "start_date": "2026-05-01", "end_date": "2026-05-14"}, goldenFile: "coach_roster_triage.md"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -78,7 +78,7 @@ func TestRenderedPromptsGolden(t *testing.T) {
 func TestCoachRosterTriageNormalizesAthleteID(t *testing.T) {
 	t.Parallel()
 
-	text := renderPromptText(t, CoachRosterTriagePrompt(), map[string]string{"athlete_id": "12345"})
+	text := renderPromptText(t, CoachRosterTriagePrompt(), map[string]string{"athlete_id": "i12345"})
 	if !strings.Contains(text, "athlete_id=i12345") {
 		t.Fatalf("coach prompt text = %q, want normalized athlete ID", text)
 	}

@@ -29,8 +29,8 @@ type SetupProfile struct {
 	TimezoneName string
 }
 
-// SetupProfileFetcher verifies an API key and returns the authenticated athlete profile.
-type SetupProfileFetcher func(context.Context, string) (SetupProfile, error)
+// SetupProfileFetcher verifies an API key against the supplied athlete ID and returns the athlete profile.
+type SetupProfileFetcher func(ctx context.Context, apiKey, athleteID string) (SetupProfile, error)
 
 // SetupConfigWriter writes non-secret setup config fields.
 type SetupConfigWriter func(context.Context, string, config.Config, config.WriteOptions) error
@@ -60,30 +60,24 @@ type setupProfileOptions struct {
 }
 
 func setupProfile(ctx context.Context, opts setupProfileOptions) (SetupProfile, error) {
-	if opts.offline {
-		_, _ = fmt.Fprintln(opts.stdout, "Offline setup skips intervals.icu verification. Your API key will be stored, but icuvisor cannot confirm it works until you run a tool.")
-		athleteID, err := opts.prompter.ReadLine(ctx, "Athlete ID (accepts 12345 or i12345):")
-		if err != nil {
-			return SetupProfile{}, fmt.Errorf("read athlete ID: %w", err)
-		}
-		normalized, err := config.NormalizeAthleteID(athleteID)
-		if err != nil {
-			return SetupProfile{}, err
-		}
-		return SetupProfile{AthleteID: normalized}, nil
+	athleteID, err := readAthleteID(ctx, opts.prompter)
+	if err != nil {
+		return SetupProfile{}, err
 	}
 
-	profile, err := opts.fetcher(ctx, opts.secret)
+	if opts.offline {
+		_, _ = fmt.Fprintln(opts.stdout, "Offline setup skips intervals.icu verification. Your API key will be stored, but icuvisor cannot confirm it works until you run a tool.")
+		return SetupProfile{AthleteID: athleteID}, nil
+	}
+
+	profile, err := opts.fetcher(ctx, opts.secret, athleteID)
 	if err != nil {
-		if errors.Is(err, intervals.ErrUnauthorized) {
-			return SetupProfile{}, errors.New("API key not accepted by intervals.icu; double-check the key on https://intervals.icu/settings")
+		if errors.Is(err, intervals.ErrUnauthorized) || errors.Is(err, intervals.ErrNotFound) {
+			return SetupProfile{}, errors.New("intervals.icu rejected the API key or athlete ID. Verify both at https://intervals.icu/settings (your URL there ends with /athlete/i<digits>/)")
 		}
 		return SetupProfile{}, fmt.Errorf("could not reach intervals.icu. Nothing was written. Re-run setup when online, or use --offline to store settings without verification: %w", err)
 	}
-	profile, err = normalizeSetupProfile(profile)
-	if err != nil {
-		return SetupProfile{}, fmt.Errorf("normalizing autodetected athlete ID: %w", err)
-	}
+	profile.AthleteID = athleteID
 	if profile.FTP > 0 {
 		_, _ = fmt.Fprintf(opts.stdout, "Checking intervals.icu… connected as %q (athlete %s, FTP %d W).\n", profileNameForOutput(profile), profile.AthleteID, profile.FTP)
 	} else {
@@ -92,13 +86,16 @@ func setupProfile(ctx context.Context, opts setupProfileOptions) (SetupProfile, 
 	return profile, nil
 }
 
-func normalizeSetupProfile(profile SetupProfile) (SetupProfile, error) {
-	normalized, err := config.NormalizeAthleteID(profile.AthleteID)
+func readAthleteID(ctx context.Context, prompter SetupPrompter) (string, error) {
+	answer, err := prompter.ReadLine(ctx, "Athlete ID (intervals.icu IDs start with 'i' — find yours in the URL, e.g. i12345):")
 	if err != nil {
-		return SetupProfile{}, err
+		return "", fmt.Errorf("read athlete ID: %w", err)
 	}
-	profile.AthleteID = normalized
-	return profile, nil
+	normalized, err := config.NormalizeAthleteID(answer)
+	if err != nil {
+		return "", err
+	}
+	return normalized, nil
 }
 
 func profileNameForOutput(profile SetupProfile) string {
@@ -159,12 +156,12 @@ func validateTimezone(value string) (string, error) {
 	return timezoneName, nil
 }
 
-func defaultSetupProfileFetcher(ctx context.Context, apiKey string) (SetupProfile, error) {
-	client, err := intervals.NewClient(intervals.Options{Config: config.Config{APIKey: apiKey, AthleteID: "0", APIBaseURL: config.DefaultAPIBaseURL, HTTPTimeout: config.DefaultHTTPTimeout}})
+func defaultSetupProfileFetcher(ctx context.Context, apiKey, athleteID string) (SetupProfile, error) {
+	client, err := intervals.NewClient(intervals.Options{Config: config.Config{APIKey: apiKey, AthleteID: athleteID, APIBaseURL: config.DefaultAPIBaseURL, HTTPTimeout: config.DefaultHTTPTimeout}})
 	if err != nil {
 		return SetupProfile{}, err
 	}
-	profile, err := client.GetAuthenticatedAthleteProfile(ctx)
+	profile, err := client.GetAthleteProfile(ctx)
 	if err != nil {
 		return SetupProfile{}, err
 	}

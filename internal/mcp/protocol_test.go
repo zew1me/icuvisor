@@ -224,7 +224,7 @@ func TestProtocolSharedTransportSuite(t *testing.T) {
 						t.Fatalf("prompts[%d] = %#v, want name %q with description", i, result.Prompts[i], want)
 					}
 				}
-				got, err := session.GetPrompt(ctx, &sdkmcp.GetPromptParams{Name: promptscatalog.CoachRosterTriageName, Arguments: map[string]string{"athlete_id": "12345"}})
+				got, err := session.GetPrompt(ctx, &sdkmcp.GetPromptParams{Name: promptscatalog.CoachRosterTriageName, Arguments: map[string]string{"athlete_id": "i12345"}})
 				if err != nil {
 					t.Fatalf("GetPrompt() error = %v", err)
 				}
@@ -698,7 +698,7 @@ func TestProtocolCoachACLFiltersCatalogAndResolvesAthleteID(t *testing.T) {
 		t.Fatalf("get_athlete_profile schema = %#v, missing athlete_id", profileSchema)
 	}
 
-	call, err := session.CallTool(ctx, &sdkmcp.CallToolParams{Name: toolcatalog.GetAthleteProfile, Arguments: map[string]any{"athlete_id": "222"}})
+	call, err := session.CallTool(ctx, &sdkmcp.CallToolParams{Name: toolcatalog.GetAthleteProfile, Arguments: map[string]any{"athlete_id": "i222"}})
 	if err != nil {
 		t.Fatalf("CallTool() error = %v", err)
 	}
@@ -805,7 +805,7 @@ func TestProtocolSelectAthleteUpdatesVisibleCatalogAndListAthletes(t *testing.T)
 		t.Fatalf("list_athletes _meta = %#v, want config source and active i111", listParsed.Meta)
 	}
 
-	selectResult, err := session.CallTool(ctx, &sdkmcp.CallToolParams{Name: toolcatalog.SelectAthlete, Arguments: map[string]any{"athlete_id": "222"}})
+	selectResult, err := session.CallTool(ctx, &sdkmcp.CallToolParams{Name: toolcatalog.SelectAthlete, Arguments: map[string]any{"athlete_id": "i222"}})
 	if err != nil || selectResult.IsError {
 		t.Fatalf("select_athlete result = %#v err=%v", selectResult, err)
 	}
@@ -1013,7 +1013,7 @@ func TestProtocolVisibleCatalogMetadataMatchesToolsListAndSessionsAreIsolated(t 
 		t.Fatalf("session B initial tools/list leaked %s", toolcatalog.GetPowerCurves)
 	}
 
-	selectedA, err := sessionA.CallTool(ctx, &sdkmcp.CallToolParams{Name: toolcatalog.SelectAthlete, Arguments: map[string]any{"athlete_id": "222"}})
+	selectedA, err := sessionA.CallTool(ctx, &sdkmcp.CallToolParams{Name: toolcatalog.SelectAthlete, Arguments: map[string]any{"athlete_id": "i222"}})
 	if err != nil || selectedA.IsError {
 		t.Fatalf("session A select_athlete = %#v err=%v", selectedA, err)
 	}
@@ -1066,7 +1066,7 @@ func TestProtocolSelectAthleteMetadataUsesPostGateCatalog(t *testing.T) {
 			ctx, session, cleanup := connectTestClientWithOptions(t, Options{Config: cfg, Registry: registry, Capability: safety.NewCapability(tc.mode), Toolset: tc.toolset})
 			defer cleanup()
 
-			result, err := session.CallTool(ctx, &sdkmcp.CallToolParams{Name: toolcatalog.SelectAthlete, Arguments: map[string]any{"athlete_id": "222"}})
+			result, err := session.CallTool(ctx, &sdkmcp.CallToolParams{Name: toolcatalog.SelectAthlete, Arguments: map[string]any{"athlete_id": "i222"}})
 			if err != nil || result.IsError {
 				t.Fatalf("select_athlete result = %#v err=%v", result, err)
 			}
@@ -1110,9 +1110,9 @@ func TestProtocolCoachModeEndToEndRoutesSelectedDefaultAndOverrideTargets(t *tes
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/athlete/i111":
-			_, _ = io.WriteString(w, `{"id":"111","name":"Full Athlete","measurement_preference":"METRIC","timezone":"UTC","sportSettings":[{"types":["Ride"],"ftp":300}]}`)
+			_, _ = io.WriteString(w, `{"id":"i111","name":"Full Athlete","measurement_preference":"METRIC","timezone":"UTC","sportSettings":[{"types":["Ride"],"ftp":300}]}`)
 		case "/athlete/i222":
-			_, _ = io.WriteString(w, `{"id":"222","name":"Read Only Athlete","measurement_preference":"METRIC","timezone":"UTC","sportSettings":[{"types":["Ride"],"ftp":200}]}`)
+			_, _ = io.WriteString(w, `{"id":"i222","name":"Read Only Athlete","measurement_preference":"METRIC","timezone":"UTC","sportSettings":[{"types":["Ride"],"ftp":200}]}`)
 		}
 	}))
 	defer closeServer()
@@ -1139,7 +1139,7 @@ func TestProtocolCoachModeEndToEndRoutesSelectedDefaultAndOverrideTargets(t *tes
 		t.Fatalf("default profile text = %s, want i111 route", text)
 	}
 
-	selected, err := session.CallTool(ctx, &sdkmcp.CallToolParams{Name: toolcatalog.SelectAthlete, Arguments: map[string]any{"athlete_id": "222"}})
+	selected, err := session.CallTool(ctx, &sdkmcp.CallToolParams{Name: toolcatalog.SelectAthlete, Arguments: map[string]any{"athlete_id": "i222"}})
 	if err != nil || selected.IsError {
 		t.Fatalf("select_athlete = %#v err=%v", selected, err)
 	}
@@ -1169,7 +1169,7 @@ func TestProtocolCoachModeEndToEndRoutesSelectedDefaultAndOverrideTargets(t *tes
 		t.Fatalf("selected profile text = %s, want i222 route", text)
 	}
 
-	overrideProfile, err := session.CallTool(ctx, &sdkmcp.CallToolParams{Name: toolcatalog.GetAthleteProfile, Arguments: map[string]any{"athlete_id": "111"}})
+	overrideProfile, err := session.CallTool(ctx, &sdkmcp.CallToolParams{Name: toolcatalog.GetAthleteProfile, Arguments: map[string]any{"athlete_id": "i111"}})
 	if err != nil || overrideProfile.IsError {
 		t.Fatalf("override get_athlete_profile = %#v err=%v", overrideProfile, err)
 	}
@@ -1209,7 +1209,7 @@ func TestProtocolAthleteIDRejectionMessageIsEnumerationSafe(t *testing.T) {
 
 	for _, args := range []map[string]any{
 		{"athlete_id": "not-an-id"},
-		{"athlete_id": "999"},
+		{"athlete_id": "i999"},
 	} {
 		result, err := session.CallTool(ctx, &sdkmcp.CallToolParams{Name: toolcatalog.GetAthleteProfile, Arguments: args})
 		if err != nil {
@@ -1438,7 +1438,7 @@ func TestProtocolGetAthleteProfileDispatch(t *testing.T) {
 			t.Fatalf("request path = %s, want /athlete/i12345", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"id":"12345","name":"Example Athlete","measurement_preference":"METRIC","timezone":"America/Sao_Paulo","sportSettings":[{"types":["Ride"],"ftp":250}]}`)
+		_, _ = io.WriteString(w, `{"id":"i12345","name":"Example Athlete","measurement_preference":"METRIC","timezone":"America/Sao_Paulo","sportSettings":[{"types":["Ride"],"ftp":250}]}`)
 	}))
 	defer closeServer()
 	registry := tools.NewRegistry(client, "v0.1-test", "UTC")

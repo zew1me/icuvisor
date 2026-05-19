@@ -175,7 +175,7 @@ func TestRunSetupForceSkipsOnlyConfigPrompt(t *testing.T) {
 	t.Parallel()
 
 	var stdout bytes.Buffer
-	prompter := &fakeSetupPrompter{confirms: []bool{true}, secrets: []string{"api-key"}}
+	prompter := &fakeSetupPrompter{confirms: []bool{true}, lines: []string{"i12345"}, secrets: []string{"api-key"}}
 	err := RunSetup(context.Background(), SetupOptions{
 		ConfigPath:      "/tmp/icuvisor.json",
 		Force:           true,
@@ -189,8 +189,8 @@ func TestRunSetupForceSkipsOnlyConfigPrompt(t *testing.T) {
 			}
 			return nil
 		},
-		ProfileFetcher: func(context.Context, string) (SetupProfile, error) {
-			return SetupProfile{AthleteID: "12345", DisplayName: "Jane Doe", FTP: 245}, nil
+		ProfileFetcher: func(context.Context, string, string) (SetupProfile, error) {
+			return SetupProfile{AthleteID: "i12345", DisplayName: "Jane Doe", FTP: 245}, nil
 		},
 		TimezoneDetector: func() string { return "UTC" },
 	})
@@ -209,8 +209,8 @@ func TestRunSetupFetchesProfileNormalizesIDAndConfirmsTimezone(t *testing.T) {
 	t.Parallel()
 
 	var stdout bytes.Buffer
-	prompter := &fakeSetupPrompter{confirms: []bool{true}, secrets: []string{"api-key"}}
-	var gotKey string
+	prompter := &fakeSetupPrompter{confirms: []bool{true}, lines: []string{"i12345"}, secrets: []string{"api-key"}}
+	var gotKey, gotAthleteID string
 	err := RunSetup(context.Background(), SetupOptions{
 		ConfigPath:      "/tmp/icuvisor.json",
 		Stdout:          &stdout,
@@ -218,17 +218,18 @@ func TestRunSetupFetchesProfileNormalizesIDAndConfirmsTimezone(t *testing.T) {
 		Prompter:        prompter,
 		ConfigExists:    func(string) (bool, error) { return false, nil },
 		ConfigWriter:    noOpSetupConfigWriter,
-		ProfileFetcher: func(_ context.Context, apiKey string) (SetupProfile, error) {
+		ProfileFetcher: func(_ context.Context, apiKey, athleteID string) (SetupProfile, error) {
 			gotKey = apiKey
-			return SetupProfile{AthleteID: "12345", DisplayName: "Jane Doe", FTP: 245}, nil
+			gotAthleteID = athleteID
+			return SetupProfile{AthleteID: "i12345", DisplayName: "Jane Doe", FTP: 245}, nil
 		},
 		TimezoneDetector: func() string { return "Europe/Madrid" },
 	})
 	if err != nil {
 		t.Fatalf("RunSetup() error = %v", err)
 	}
-	if gotKey != "api-key" {
-		t.Fatalf("profile fetcher key = %q, want api-key", gotKey)
+	if gotKey != "api-key" || gotAthleteID != "i12345" {
+		t.Fatalf("profile fetcher key/athlete = %q/%q, want api-key/i12345", gotKey, gotAthleteID)
 	}
 	for _, want := range []string{"connected as \"Jane Doe\"", "athlete i12345", "FTP 245 W", "timezone Europe/Madrid"} {
 		if !strings.Contains(stdout.String(), want) {
@@ -241,7 +242,7 @@ func TestRunSetupAllowsTimezoneOverride(t *testing.T) {
 	t.Parallel()
 
 	var stdout bytes.Buffer
-	prompter := &fakeSetupPrompter{confirms: []bool{false}, lines: []string{"America/Sao_Paulo"}, secrets: []string{"api-key"}}
+	prompter := &fakeSetupPrompter{confirms: []bool{false}, lines: []string{"i12345", "America/Sao_Paulo"}, secrets: []string{"api-key"}}
 	err := RunSetup(context.Background(), SetupOptions{
 		ConfigPath:      "/tmp/icuvisor.json",
 		Stdout:          &stdout,
@@ -249,7 +250,7 @@ func TestRunSetupAllowsTimezoneOverride(t *testing.T) {
 		Prompter:        prompter,
 		ConfigExists:    func(string) (bool, error) { return false, nil },
 		ConfigWriter:    noOpSetupConfigWriter,
-		ProfileFetcher: func(context.Context, string) (SetupProfile, error) {
+		ProfileFetcher: func(context.Context, string, string) (SetupProfile, error) {
 			return SetupProfile{AthleteID: "i12345", DisplayName: "Jane Doe"}, nil
 		},
 		TimezoneDetector: func() string { return "Europe/Madrid" },
@@ -257,8 +258,8 @@ func TestRunSetupAllowsTimezoneOverride(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RunSetup() error = %v", err)
 	}
-	if got := prompter.linePrompts; len(got) != 1 || !strings.Contains(got[0], "Timezone") {
-		t.Fatalf("line prompts = %v, want timezone override prompt", got)
+	if got := prompter.linePrompts; len(got) != 2 || !strings.Contains(got[0], "Athlete ID") || !strings.Contains(got[1], "Timezone") {
+		t.Fatalf("line prompts = %v, want athlete ID then timezone override prompt", got)
 	}
 	if !strings.Contains(stdout.String(), "timezone America/Sao_Paulo") {
 		t.Fatalf("stdout %q missing timezone override", stdout.String())
@@ -268,27 +269,30 @@ func TestRunSetupAllowsTimezoneOverride(t *testing.T) {
 func TestRunSetupUnauthorizedKeyReturnsFixURL(t *testing.T) {
 	t.Parallel()
 
-	prompter := &fakeSetupPrompter{secrets: []string{"bad-key"}}
+	prompter := &fakeSetupPrompter{lines: []string{"i12345"}, secrets: []string{"bad-key"}}
 	store := &fakeSetupStore{getErr: credstore.ErrNotFound}
 	err := RunSetup(context.Background(), SetupOptions{
 		ConfigPath:      "/tmp/icuvisor.json",
 		CredentialStore: store,
 		Prompter:        prompter,
 		ConfigExists:    func(string) (bool, error) { return false, nil },
-		ProfileFetcher: func(context.Context, string) (SetupProfile, error) {
+		ProfileFetcher: func(context.Context, string, string) (SetupProfile, error) {
 			return SetupProfile{}, errors.Join(errors.New("wrapped"), intervals.ErrUnauthorized)
 		},
 	})
 	if err == nil {
 		t.Fatal("RunSetup() error = nil, want unauthorized error")
 	}
-	if !strings.Contains(err.Error(), "API key not accepted") || !strings.Contains(err.Error(), "https://intervals.icu/settings") {
-		t.Fatalf("error = %q, want fix URL", err.Error())
+	if !strings.Contains(err.Error(), "rejected the API key or athlete ID") || !strings.Contains(err.Error(), "https://intervals.icu/settings") {
+		t.Fatalf("error = %q, want rejection guidance", err.Error())
 	}
 	if len(store.sets) != 0 {
 		t.Fatalf("Set calls = %v, want none", store.sets)
 	}
-	if len(prompter.linePrompts) != 0 || len(prompter.confirmPrompts) != 0 {
-		t.Fatalf("prompts after unauthorized = confirms %v lines %v, want none", prompter.confirmPrompts, prompter.linePrompts)
+	if got := prompter.linePrompts; len(got) != 1 || !strings.Contains(got[0], "Athlete ID") {
+		t.Fatalf("line prompts = %v, want only athlete ID prompt before fetch", got)
+	}
+	if len(prompter.confirmPrompts) != 0 {
+		t.Fatalf("confirm prompts after unauthorized = %v, want none", prompter.confirmPrompts)
 	}
 }

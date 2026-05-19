@@ -21,7 +21,7 @@ func newNoNetworkIntervalsClient(t *testing.T) *intervals.Client {
 	client, err := intervals.NewClient(intervals.Options{
 		Config: config.Config{
 			APIKey:      strings.Repeat("x", 8),
-			AthleteID:   "12345",
+			AthleteID:   "i12345",
 			APIBaseURL:  "http://127.0.0.1",
 			HTTPTimeout: time.Second,
 		},

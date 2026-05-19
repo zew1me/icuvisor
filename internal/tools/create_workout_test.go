@@ -27,7 +27,7 @@ func TestCreateWorkoutWithStructuredStepsSerializesDSLAndReturnsReadShape(t *tes
 	t.Parallel()
 
 	client := &fakeWorkoutCreatorClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}},
 		workout:           decodeToolWorkouts(t, `{"id":"w-1","name":"Sweet Spot","type":"Ride","folder_id":"f-20","tags":["sweet-spot"],"workout_doc":{"steps":[{"duration":600},{"duration":300}],"name":"Sweet Spot"}}`)[0],
 	}
 	tool := newCreateWorkoutTool(client, client, "test", "UTC", false)
@@ -73,7 +73,7 @@ func TestCreateWorkoutWithFreeTextOnlyPreservesDescription(t *testing.T) {
 
 	description := "  Coach note\nKeep this verbatim.  "
 	client := &fakeWorkoutCreatorClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}},
 		workout:           decodeToolWorkouts(t, `{"id":"w-2","name":"Free Text","type":"Run","description":"  Coach note\nKeep this verbatim.  ","tags":["coach"]}`)[0],
 	}
 	tool := newCreateWorkoutTool(client, client, "test", "UTC", false)
@@ -119,7 +119,7 @@ func TestCreateWorkoutGoldenFixtureRoundTripFromWorkoutDocSerializer(t *testing.
 		t.Fatalf("golden fixture parse/serialize mismatch: parsed=%#v structured=%#v", parsed.Steps, structured.Steps)
 	}
 	client := &fakeWorkoutCreatorClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}},
 		workout:           decodeToolWorkouts(t, `{"id":"w-3","name":"Golden","type":"Ride","workout_doc":`+string(rawDoc)+`}`)[0],
 	}
 	tool := newCreateWorkoutTool(client, client, "test", "UTC", false)
@@ -155,7 +155,7 @@ func TestCreateWorkoutRejectsBadArguments(t *testing.T) {
 func TestCreateWorkoutRegistrationMetadata(t *testing.T) {
 	t.Parallel()
 
-	client := &fakeWorkoutCreatorClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}}}
+	client := &fakeWorkoutCreatorClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}}}
 	tool := newCreateWorkoutTool(client, client, "test", "UTC", false)
 	if tool.Requirement != RequirementWrite {
 		t.Fatalf("requirement = %q, want write", tool.Requirement)

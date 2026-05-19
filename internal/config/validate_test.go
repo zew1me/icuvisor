@@ -44,7 +44,7 @@ func TestLoadConfigFileErrorsAreActionableAndRedacted(t *testing.T) {
 			DotEnvPath: dir + "/missing.env",
 			Env: map[string]string{
 				EnvAPIKey:    testCredential,
-				EnvAthleteID: "123",
+				EnvAthleteID: "i123",
 			},
 		})
 		if err == nil {
@@ -65,7 +65,7 @@ func TestLoadConfigFileErrorsAreActionableAndRedacted(t *testing.T) {
 		t.Parallel()
 
 		path := dir + "/invalid.json"
-		writeFile(t, path, `{"api_key":"`+testCredential+`","athlete_id":"123","extra":true}`)
+		writeFile(t, path, `{"api_key":"`+testCredential+`","athlete_id":"i123","extra":true}`)
 
 		_, err := Load(context.Background(), Options{Path: path, DotEnvPath: dir + "/missing.env", Env: map[string]string{}})
 		if err == nil {
@@ -97,14 +97,14 @@ func TestLoadValidationErrorsAreActionableAndRedacted(t *testing.T) {
 		env     map[string]string
 		wantErr string
 	}{
-		{name: "missing API key", env: map[string]string{EnvAthleteID: "123"}, wantErr: "missing intervals.icu API key"},
+		{name: "missing API key", env: map[string]string{EnvAthleteID: "i123"}, wantErr: "missing intervals.icu API key"},
 		{name: "missing athlete ID", env: withCredential(map[string]string{}), wantErr: "missing athlete ID"},
 		{name: "invalid athlete ID", env: withCredential(map[string]string{EnvAthleteID: "abc"}), wantErr: "invalid athlete ID"},
-		{name: "invalid timezone", env: withCredential(map[string]string{EnvAthleteID: "123", EnvTimezone: "Mars/Base"}), wantErr: "invalid timezone"},
-		{name: "invalid timeout", env: withCredential(map[string]string{EnvAthleteID: "123", EnvHTTPTimeout: "0s"}), wantErr: "invalid HTTP timeout"},
-		{name: "invalid base URL", env: withCredential(map[string]string{EnvAthleteID: "123", EnvAPIBaseURL: "ftp://example.test"}), wantErr: "invalid API base URL"},
-		{name: "invalid transport", env: withCredential(map[string]string{EnvAthleteID: "123", EnvTransport: "websocket"}), wantErr: "invalid MCP transport"},
-		{name: "invalid bind", env: withCredential(map[string]string{EnvAthleteID: "123", EnvHTTPBind: ":8765"}), wantErr: "invalid HTTP bind address"},
+		{name: "invalid timezone", env: withCredential(map[string]string{EnvAthleteID: "i123", EnvTimezone: "Mars/Base"}), wantErr: "invalid timezone"},
+		{name: "invalid timeout", env: withCredential(map[string]string{EnvAthleteID: "i123", EnvHTTPTimeout: "0s"}), wantErr: "invalid HTTP timeout"},
+		{name: "invalid base URL", env: withCredential(map[string]string{EnvAthleteID: "i123", EnvAPIBaseURL: "ftp://example.test"}), wantErr: "invalid API base URL"},
+		{name: "invalid transport", env: withCredential(map[string]string{EnvAthleteID: "i123", EnvTransport: "websocket"}), wantErr: "invalid MCP transport"},
+		{name: "invalid bind", env: withCredential(map[string]string{EnvAthleteID: "i123", EnvHTTPBind: ":8765"}), wantErr: "invalid HTTP bind address"},
 	}
 
 	for _, tc := range tests {

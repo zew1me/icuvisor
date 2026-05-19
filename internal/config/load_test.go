@@ -17,7 +17,7 @@ func TestLoadPrecedenceAndDefaults(t *testing.T) {
 	dotEnvPath := dir + "/.env"
 	writeFile(t, configPath, `{
 		"api_key": "json-key",
-		"athlete_id": "111",
+		"athlete_id": "i111",
 		"timezone": "America/Sao_Paulo",
 		"api_base_url": "https://json.example.test/api",
 		"http_timeout": "10s"
@@ -37,7 +37,7 @@ func TestLoadPrecedenceAndDefaults(t *testing.T) {
 		DotEnvPath: dotEnvPath,
 		Env: map[string]string{
 			EnvAPIKey:            "env-key",
-			EnvAthleteID:         "333",
+			EnvAthleteID:         "i333",
 			EnvHTTPTimeout:       "45s",
 			safety.EnvToolset:    "core",
 			safety.EnvDeleteMode: "full",
@@ -80,7 +80,7 @@ func TestLoadDebugMetadataFromEnv(t *testing.T) {
 
 	cfg, err := Load(context.Background(), Options{Env: map[string]string{
 		EnvAPIKey:        "env-key",
-		EnvAthleteID:     "12345",
+		EnvAthleteID:     "i12345",
 		EnvDebugMetadata: " TRUE ",
 	}})
 	if err != nil {
@@ -205,7 +205,7 @@ func TestLoadUsesConfigPathFromEnv(t *testing.T) {
 
 	dir := t.TempDir()
 	configPath := dir + "/config.json"
-	writeFile(t, configPath, `{"api_key":"json-key","athlete_id":"555"}`)
+	writeFile(t, configPath, `{"api_key":"json-key","athlete_id":"i555"}`)
 
 	cfg, err := Load(context.Background(), Options{
 		DotEnvPath: dir + "/missing.env",

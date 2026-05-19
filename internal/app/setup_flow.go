@@ -162,14 +162,11 @@ func setupPrintCompletion(ctx context.Context, path string, offline bool, profil
 	if offline {
 		_, _ = fmt.Fprintln(deps.stdout, "Offline setup skipped the final intervals.icu test connection. Run an icuvisor tool when online to verify the key.")
 	} else {
-		verifiedProfile, err := deps.profileFetcher(ctx, secret)
+		verifiedProfile, err := deps.profileFetcher(ctx, secret, profile.AthleteID)
 		if err != nil {
 			return fmt.Errorf("final test connection failed: %w", err)
 		}
-		verifiedProfile, err = normalizeSetupProfile(verifiedProfile)
-		if err != nil {
-			return err
-		}
+		verifiedProfile.AthleteID = profile.AthleteID
 		_, _ = fmt.Fprintf(deps.stdout, "Test connection OK: %s%s.\n", profileNameForOutput(verifiedProfile), profileFTPForOutput(verifiedProfile))
 	}
 	_, _ = fmt.Fprintln(deps.stdout, "Next: point Claude Desktop at icuvisor — see https://icuvisor.app/connect/claude-desktop/")

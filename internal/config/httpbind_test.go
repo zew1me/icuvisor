@@ -14,7 +14,7 @@ func TestLoadTransportAndHTTPBindSelection(t *testing.T) {
 	dotEnvPath := dir + "/.env"
 	writeFile(t, configPath, `{
 		"api_key": "json-key",
-		"athlete_id": "111",
+		"athlete_id": "i111",
 		"transport": "http",
 		"http_bind": "127.0.0.1:9000"
 	}`)
@@ -67,7 +67,7 @@ func TestLoadTransportAndHTTPBindSelection(t *testing.T) {
 		DotEnvPath: dir + "/missing.env",
 		Env: map[string]string{
 			EnvAPIKey:    "env-key",
-			EnvAthleteID: "333",
+			EnvAthleteID: "i333",
 			EnvTransport: "http",
 		},
 	})

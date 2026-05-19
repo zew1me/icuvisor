@@ -30,7 +30,7 @@ func TestAddOrUpdateEventCreatePreservesFreeTextTagsAndReadShape(t *testing.T) {
 
 	description := "  Coach note\nKeep this verbatim.  "
 	client := &fakeEventWriterClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "America/Sao_Paulo"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "America/Sao_Paulo"}},
 		event:             decodeToolEvents(t, `{"id":"evt-1","category":"WORKOUT","name":"Tempo","start_date_local":"2026-06-01","description":"  Coach note\nKeep this verbatim.  ","tags":["tempo","coach"],"load_target":75,"distance_target":30000,"time_target":3600,"updated":"2026-06-01T12:00:00Z"}`)[0],
 	}
 	tool := newAddOrUpdateEventTool(client, client, "test", "UTC", false)
@@ -74,7 +74,7 @@ func TestAddOrUpdateEventUpdateUsesEventID(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeEventWriterClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}},
 		event:             decodeToolEvents(t, `{"id":"evt-2","category":"RACE","name":"Updated race","start_date_local":"2026-07-01"}`)[0],
 	}
 	tool := newAddOrUpdateEventTool(client, client, "test", "UTC", false)
@@ -99,7 +99,7 @@ func TestAddOrUpdateEventSerializesWorkoutDocGoldenFixture(t *testing.T) {
 	structured := readWorkoutDocFixture(t, "01-steady-power-cadence-structured.json")
 	wantDSL := strings.TrimRight(readTextFixture(t, "01-steady-power-cadence-dsl.txt"), "\n")
 	client := &fakeEventWriterClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}},
 		event:             decodeToolEvents(t, `{"id":"evt-3","category":"WORKOUT","name":"Golden","start_date_local":"2026-08-01","workout_doc":{"steps":[{"duration":600}]}}`)[0],
 	}
 	tool := newAddOrUpdateEventTool(client, client, "test", "UTC", false)
@@ -149,7 +149,7 @@ func TestAddOrUpdateEventRejectsBadArguments(t *testing.T) {
 func TestAddOrUpdateEventRegistrationMetadata(t *testing.T) {
 	t.Parallel()
 
-	client := &fakeEventWriterClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}}}
+	client := &fakeEventWriterClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}}}
 	tool := newAddOrUpdateEventTool(client, client, "test", "UTC", false)
 	if tool.Requirement != RequirementWrite {
 		t.Fatalf("requirement = %q, want write", tool.Requirement)

@@ -117,7 +117,7 @@ func TestUpdateSportSettingsRegistrationMetadata(t *testing.T) {
 
 func newFakeSportSettingsClient(setting intervals.SportSettings) *fakeSportSettingsWriterClient {
 	return &fakeSportSettingsWriterClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC", SportSettings: []intervals.SportSettings{setting}}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC", SportSettings: []intervals.SportSettings{setting}}},
 		setting:           setting,
 	}
 }

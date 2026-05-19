@@ -34,7 +34,7 @@ func (f *fakeCustomItemsClient) GetCustomItem(_ context.Context, itemID string) 
 func TestCustomItemsRegistrationMetadata(t *testing.T) {
 	t.Parallel()
 
-	client := &fakeCustomItemsClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}}}
+	client := &fakeCustomItemsClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}}}
 	listTool := newGetCustomItemsTool(client, client, "test", "UTC", false)
 	if !strings.Contains(listTool.Description, "id, name, and item_type") {
 		t.Fatalf("list description = %q, want terse row language", listTool.Description)
@@ -49,7 +49,7 @@ func TestGetCustomItemsListsMultipleItemTypeVariants(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeCustomItemsClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}},
 		items: decodeToolCustomItems(t,
 			`{"id":2,"type":"ZONES","name":"Run Zones","visibility":"PRIVATE","usage_count":3,"index":2,"content":{"zones":[{"name":"Z1"}]}}`,
 			`{"id":1,"type":"FITNESS_CHART","name":"CTL Chart","visibility":"PUBLIC","usage_count":9,"index":1,"content":{"series":[{"field":"ctl"}]}}`,
@@ -85,7 +85,7 @@ func TestGetCustomItemsFiltersByItemType(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeCustomItemsClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}},
 		items: decodeToolCustomItems(t,
 			`{"id":1,"type":"FITNESS_CHART","name":"CTL Chart"}`,
 			`{"id":3,"type":"INPUT_FIELD","name":"Shoe"}`,
@@ -107,7 +107,7 @@ func TestGetCustomItemByIDReturnsFullContentPayload(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeCustomItemsClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}},
 		detail:            decodeToolCustomItem(t, `{"id":7,"type":"FITNESS_CHART","name":"CTL Chart","content":{"series":[{"field":"ctl","color":"blue"}],"layout":{"height":240}},"from_athlete":{"id":"i999"}}`),
 	}
 	tool := newGetCustomItemByIDTool(client, client, "test", "UTC", false)

@@ -12,7 +12,7 @@ func TestWriteStoresOnlyNonSecretFieldsAndRoundTrips(t *testing.T) {
 
 	path := t.TempDir() + "/icuvisor/config.json"
 	plainValue := strings.Join([]string{"must", "not", "write"}, "-")
-	err := Write(context.Background(), path, Config{APIKey: plainValue, AthleteID: "12345", Timezone: "Europe/Madrid", APIBaseURL: DefaultAPIBaseURL}, WriteOptions{})
+	err := Write(context.Background(), path, Config{APIKey: plainValue, AthleteID: "i12345", Timezone: "Europe/Madrid", APIBaseURL: DefaultAPIBaseURL}, WriteOptions{})
 	if err != nil {
 		t.Fatalf("Write() error = %v", err)
 	}
@@ -45,7 +45,7 @@ func TestLoadWriteReloadRoundTripBytes(t *testing.T) {
 	dir := t.TempDir()
 	fixturePath := dir + "/fixture.json"
 	writtenPath := dir + "/written.json"
-	fixture := []byte("{\n  \"athlete_id\": \"12345\",\n  \"timezone\": \"Europe/Madrid\",\n  \"api_base_url\": \"https://example.test/api\"\n}\n")
+	fixture := []byte("{\n  \"athlete_id\": \"I12345\",\n  \"timezone\": \"Europe/Madrid\",\n  \"api_base_url\": \"https://example.test/api\"\n}\n")
 	if err := os.WriteFile(fixturePath, fixture, 0o600); err != nil {
 		t.Fatalf("write fixture: %v", err)
 	}
@@ -79,13 +79,13 @@ func TestWriteRefusesClobberWithoutAllowOverwrite(t *testing.T) {
 	t.Parallel()
 
 	path := t.TempDir() + "/config.json"
-	if err := Write(context.Background(), path, Config{AthleteID: "12345", Timezone: "UTC"}, WriteOptions{}); err != nil {
+	if err := Write(context.Background(), path, Config{AthleteID: "i12345", Timezone: "UTC"}, WriteOptions{}); err != nil {
 		t.Fatalf("initial Write() error = %v", err)
 	}
-	if err := Write(context.Background(), path, Config{AthleteID: "67890", Timezone: "UTC"}, WriteOptions{}); err == nil {
+	if err := Write(context.Background(), path, Config{AthleteID: "i67890", Timezone: "UTC"}, WriteOptions{}); err == nil {
 		t.Fatal("second Write() error = nil, want clobber refusal")
 	}
-	if err := Write(context.Background(), path, Config{AthleteID: "67890", Timezone: "UTC"}, WriteOptions{AllowOverwrite: true}); err != nil {
+	if err := Write(context.Background(), path, Config{AthleteID: "i67890", Timezone: "UTC"}, WriteOptions{AllowOverwrite: true}); err != nil {
 		t.Fatalf("overwrite Write() error = %v", err)
 	}
 	loaded, err := Load(context.Background(), Options{Path: path, Env: map[string]string{EnvAPIKey: "env-key"}})

@@ -22,8 +22,8 @@ func TestRunDiagnosticsPrintsRedactedMetadataAndBypassesServer(t *testing.T) {
 	t.Parallel()
 
 	secret := "sk-" + strings.Repeat("x", 40)
-	rawAthleteID := "7777777"
-	normalizedAthleteID := "i" + rawAthleteID
+	rawAthleteID := "i7777777"
+	normalizedAthleteID := rawAthleteID
 	recentPath := t.TempDir() + "/recent-tool-calls.jsonl"
 	store := diagnosticsdata.NewRecentToolCallStore(recentPath)
 	if err := store.RecordToolCall(context.Background(), "get_activities", time.Date(2026, 5, 14, 10, 0, 0, 0, time.UTC)); err != nil {
@@ -105,8 +105,8 @@ func TestRunDiagnosticsLoadErrorIsSanitized(t *testing.T) {
 
 func TestRunDiagnosticsDefaultLoaderSuppressesPathLogs(t *testing.T) {
 	secret := "sk-" + strings.Repeat("z", 40)
-	rawAthleteID := "9997771"
-	baseDir := filepath.Join(t.TempDir(), "i"+rawAthleteID, secret)
+	rawAthleteID := "i9997771"
+	baseDir := filepath.Join(t.TempDir(), rawAthleteID, secret)
 	if err := os.MkdirAll(baseDir, 0o700); err != nil {
 		t.Fatalf("MkdirAll() error = %v", err)
 	}
@@ -136,7 +136,7 @@ func TestRunDiagnosticsDefaultLoaderSuppressesPathLogs(t *testing.T) {
 		t.Fatalf("Run() error = %v", err)
 	}
 	combined := stdout.String() + logs.String()
-	assertDiagnosticsNoSecrets(t, combined, secret, rawAthleteID, "i"+rawAthleteID)
+	assertDiagnosticsNoSecrets(t, combined, secret, rawAthleteID)
 	for _, leaked := range []string{configPath, envPath, baseDir} {
 		if strings.Contains(combined, leaked) {
 			t.Fatalf("diagnostics output/logs leaked path %q:\n%s", leaked, combined)
@@ -180,8 +180,8 @@ func TestRunDiagnosticsHelpAndFlagErrors(t *testing.T) {
 func TestDiagnosticsCatalogHashChangesWithCatalogMode(t *testing.T) {
 	t.Parallel()
 
-	safeCore := diagnosticsTestConfig("secret-key", "9999999", config.APIKeySourceKeychain, config.TransportStdio, safety.ModeSafe, safety.ToolsetCore)
-	fullCatalog := diagnosticsTestConfig("secret-key", "9999999", config.APIKeySourceKeychain, config.TransportStdio, safety.ModeFull, safety.ToolsetFull)
+	safeCore := diagnosticsTestConfig("secret-key", "i9999999", config.APIKeySourceKeychain, config.TransportStdio, safety.ModeSafe, safety.ToolsetCore)
+	fullCatalog := diagnosticsTestConfig("secret-key", "i9999999", config.APIKeySourceKeychain, config.TransportStdio, safety.ModeFull, safety.ToolsetFull)
 	safeHash, err := diagnosticsCatalogHash(context.Background(), safeCore, "test")
 	if err != nil {
 		t.Fatalf("diagnosticsCatalogHash(safe) error = %v", err)

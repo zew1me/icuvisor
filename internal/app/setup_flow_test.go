@@ -17,7 +17,7 @@ func TestRunSetupOfflineSkipsVerifyAndReadsAthleteIDTimezone(t *testing.T) {
 	t.Parallel()
 
 	var stdout bytes.Buffer
-	prompter := &fakeSetupPrompter{lines: []string{"12345", "Europe/Madrid"}, secrets: []string{"api-key"}}
+	prompter := &fakeSetupPrompter{lines: []string{"i12345", "Europe/Madrid"}, secrets: []string{"api-key"}}
 	err := RunSetup(context.Background(), SetupOptions{
 		ConfigPath:      "/tmp/icuvisor.json",
 		Offline:         true,
@@ -26,7 +26,7 @@ func TestRunSetupOfflineSkipsVerifyAndReadsAthleteIDTimezone(t *testing.T) {
 		Prompter:        prompter,
 		ConfigExists:    func(string) (bool, error) { return false, nil },
 		ConfigWriter:    noOpSetupConfigWriter,
-		ProfileFetcher: func(context.Context, string) (SetupProfile, error) {
+		ProfileFetcher: func(context.Context, string, string) (SetupProfile, error) {
 			t.Fatal("offline setup must not fetch profile")
 			return SetupProfile{}, nil
 		},
@@ -52,8 +52,9 @@ func TestRunSetupWritesConfigAndVerifiesKeychainRoundTrip(t *testing.T) {
 	dir := t.TempDir()
 	configPath := dir + "/config.json"
 	store := &fakeSetupStore{getErr: credstore.ErrNotFound}
-	prompter := &fakeSetupPrompter{confirms: []bool{true}, secrets: []string{"api-key"}}
+	prompter := &fakeSetupPrompter{confirms: []bool{true}, lines: []string{"i12345"}, secrets: []string{"api-key"}}
 	fetchCalls := 0
+	var gotAthleteIDs []string
 	var stdout bytes.Buffer
 	err := RunSetup(context.Background(), SetupOptions{
 		ConfigPath:      configPath,
@@ -61,9 +62,10 @@ func TestRunSetupWritesConfigAndVerifiesKeychainRoundTrip(t *testing.T) {
 		CredentialStore: store,
 		Prompter:        prompter,
 		ConfigExists:    func(string) (bool, error) { return false, nil },
-		ProfileFetcher: func(context.Context, string) (SetupProfile, error) {
+		ProfileFetcher: func(_ context.Context, _ string, athleteID string) (SetupProfile, error) {
 			fetchCalls++
-			return SetupProfile{AthleteID: "12345", DisplayName: "Jane Doe", FTP: 245}, nil
+			gotAthleteIDs = append(gotAthleteIDs, athleteID)
+			return SetupProfile{AthleteID: "i12345", DisplayName: "Jane Doe", FTP: 245}, nil
 		},
 		TimezoneDetector: func() string { return "Europe/Madrid" },
 	})
@@ -96,8 +98,11 @@ func TestRunSetupWritesConfigAndVerifiesKeychainRoundTrip(t *testing.T) {
 	if got, want := prompter.confirmPrompts, []string{"Detected timezone: Europe/Madrid. Use this? [Y/n]"}; !slices.Equal(got, want) {
 		t.Fatalf("confirm prompts = %v, want %v", got, want)
 	}
-	if len(prompter.linePrompts) != 0 {
-		t.Fatalf("line prompts = %v, want none", prompter.linePrompts)
+	if got := prompter.linePrompts; len(got) != 1 || !strings.Contains(got[0], "Athlete ID") {
+		t.Fatalf("line prompts = %v, want athlete ID prompt", got)
+	}
+	if got, want := gotAthleteIDs, []string{"i12345", "i12345"}; !slices.Equal(got, want) {
+		t.Fatalf("fetcher athlete IDs = %v, want %v", got, want)
 	}
 	wantStdout := strings.Join([]string{
 		"Welcome to icuvisor.",
@@ -133,10 +138,10 @@ func TestRunSetupKeychainWriteFailuresDoNotClaimSuccess(t *testing.T) {
 				ConfigPath:      t.TempDir() + "/config.json",
 				Stdout:          &stdout,
 				CredentialStore: tc.store,
-				Prompter:        &fakeSetupPrompter{confirms: []bool{true}, secrets: []string{"api-key"}},
+				Prompter:        &fakeSetupPrompter{confirms: []bool{true}, lines: []string{"i12345"}, secrets: []string{"api-key"}},
 				ConfigExists:    func(string) (bool, error) { return false, nil },
-				ProfileFetcher: func(context.Context, string) (SetupProfile, error) {
-					return SetupProfile{AthleteID: "12345", DisplayName: "Jane Doe"}, nil
+				ProfileFetcher: func(context.Context, string, string) (SetupProfile, error) {
+					return SetupProfile{AthleteID: "i12345", DisplayName: "Jane Doe"}, nil
 				},
 				TimezoneDetector: func() string { return "UTC" },
 			})
@@ -206,13 +211,13 @@ func TestRunSetupStillPromptsForExistingKeyWithForce(t *testing.T) {
 func TestRunSetupNetworkErrorMentionsOfflineOverride(t *testing.T) {
 	t.Parallel()
 
-	prompter := &fakeSetupPrompter{secrets: []string{"api-key"}}
+	prompter := &fakeSetupPrompter{lines: []string{"i12345"}, secrets: []string{"api-key"}}
 	err := RunSetup(context.Background(), SetupOptions{
 		ConfigPath:      "/tmp/icuvisor.json",
 		CredentialStore: &fakeSetupStore{getErr: credstore.ErrNotFound},
 		Prompter:        prompter,
 		ConfigExists:    func(string) (bool, error) { return false, nil },
-		ProfileFetcher: func(context.Context, string) (SetupProfile, error) {
+		ProfileFetcher: func(context.Context, string, string) (SetupProfile, error) {
 			return SetupProfile{}, errors.New("dial tcp timeout")
 		},
 	})

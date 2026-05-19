@@ -22,7 +22,7 @@ func TestUpdateCustomItemUpdatesSingleSparseField(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeCustomItemsClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}},
 		updatedItem:       decodeToolCustomItem(t, `{"id":9,"type":"FITNESS_CHART","name":"Renamed","content":{"series":[{"field":"ctl"}],"layout":{"height":240}}}`),
 	}
 	tool := newUpdateCustomItemTool(client, client, client, "test", "UTC", false)
@@ -54,7 +54,7 @@ func TestUpdateCustomItemMergesContentPatchAndRejectsSchemaViolation(t *testing.
 	t.Parallel()
 
 	client := &fakeCustomItemsClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", Timezone: "UTC"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", Timezone: "UTC"}},
 		detail:            decodeToolCustomItem(t, `{"id":9,"type":"FITNESS_CHART","name":"Chart","content":{"series":[{"field":"ctl","color":"blue"}],"layout":{"height":240,"width":600}}}`),
 		updatedItem:       decodeToolCustomItem(t, `{"id":9,"type":"FITNESS_CHART","name":"Chart","content":{"series":[{"field":"ctl","color":"blue"}],"layout":{"height":260,"width":600}}}`),
 	}
@@ -95,7 +95,7 @@ func TestUpdateCustomItemMergesContentPatchAndRejectsSchemaViolation(t *testing.
 func TestUpdateCustomItemRegistrationMetadata(t *testing.T) {
 	t.Parallel()
 
-	client := &fakeCustomItemsClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345", PreferredUnits: "metric", Timezone: "UTC"}}}
+	client := &fakeCustomItemsClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}}}
 	tool := newUpdateCustomItemTool(client, client, client, "test", "UTC", false)
 	if tool.Requirement != RequirementWrite {
 		t.Fatalf("requirement = %q, want write", tool.Requirement)

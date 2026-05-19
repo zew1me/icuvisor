@@ -26,7 +26,7 @@ func TestAddActivityMessageSuccessAppendsFreeText(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeActivityMessageWriterClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345"}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345"}},
 		message:           decodeNewActivityMessage(t, `{"id":42,"new_chat":{"id":7},"extra":null}`),
 	}
 	tool := newAddActivityMessageTool(client, client, "test", false)
@@ -83,7 +83,7 @@ func TestAddActivityMessagePublicError(t *testing.T) {
 func TestAddActivityMessageRegistrationMetadata(t *testing.T) {
 	t.Parallel()
 
-	client := &fakeActivityMessageWriterClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "12345"}}}
+	client := &fakeActivityMessageWriterClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345"}}}
 	tool := newAddActivityMessageTool(client, client, "test", false)
 	if tool.Requirement != RequirementWrite {
 		t.Fatalf("requirement = %q, want write", tool.Requirement)

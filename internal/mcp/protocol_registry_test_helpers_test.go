@@ -17,7 +17,7 @@ func newProtocolIntervalsClient(t *testing.T, handler http.Handler) (*intervals.
 	client, err := intervals.NewClient(intervals.Options{
 		Config: config.Config{
 			APIKey:      strings.Repeat("x", 8),
-			AthleteID:   "12345",
+			AthleteID:   "i12345",
 			APIBaseURL:  server.URL,
 			HTTPTimeout: time.Second,
 		},
