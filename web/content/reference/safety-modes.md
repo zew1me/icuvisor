@@ -32,6 +32,14 @@ Implementation source of truth: `internal/safety/mode.go`.
 
 The [`icuvisor_list_advanced_capabilities`]({{< relref "tools#icuvisor_list_advanced_capabilities" >}}) tool remains available in `core` so an AI client can explain which hidden full-tier tools are available and how to enable them.
 
+### Which tier should you pick?
+
+- **Current frontier models** (Claude Opus/Sonnet, GPT-5-class, Gemini 2.5-class): `full` is a reasonable opt-in. Large context windows and strong tool selection handle the 38-tool catalog comfortably.
+- **Haiku-class, older, or local/self-hosted models**: keep `core`. The curated catalog reduces tool-selection load and per-conversation tokens.
+- **Unsure or shared setups**: keep `core`; an AI client can still call `icuvisor_list_advanced_capabilities` to discover the rest.
+
+To switch, set `ICUVISOR_TOOLSET=full` in your MCP client's icuvisor entry, restart icuvisor, and start a fresh conversation.
+
 Implementation source of truth: `internal/safety/toolset.go` and `internal/mcp/registrar_tools.go`.
 
 ## How the gates combine
