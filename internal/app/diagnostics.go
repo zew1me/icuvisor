@@ -34,6 +34,7 @@ func runDiagnosticsCommand(ctx context.Context, opts Options, args []string) err
 	if err != nil {
 		return err
 	}
+	configOpts.Path = applyDefaultConfigPath(configOpts.Path)
 	loader := opts.LoadConfig
 	if loader == nil {
 		if configOpts.CredentialStore == nil {

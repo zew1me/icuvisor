@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"strings"
 
 	"github.com/ricardocabral/icuvisor/internal/config"
 	"github.com/ricardocabral/icuvisor/internal/credstore"
@@ -96,6 +98,7 @@ func Run(ctx context.Context, opts Options) error {
 	if err != nil {
 		return err
 	}
+	configOpts.Path = applyDefaultConfigPath(configOpts.Path)
 
 	return startServer(ctx, opts.LoadConfig, opts.StartServer, ServerInfo{Version: version}, configOpts)
 }
@@ -141,6 +144,31 @@ func hasCommand(args []string, command string) bool {
 		}
 	}
 	return false
+}
+
+// applyDefaultConfigPath is the package-level hook tests stub out; production code calls the
+// default implementation which probes the platform default config path.
+var applyDefaultConfigPath = applyDefaultConfigPathFromDisk
+
+// applyDefaultConfigPathFromDisk returns the platform default config path when neither
+// --config nor ICUVISOR_CONFIG was supplied and that default file exists on disk; otherwise
+// it returns the input unchanged. Callers should pass an empty string to mean "no path
+// supplied".
+func applyDefaultConfigPathFromDisk(path string) string {
+	if strings.TrimSpace(path) != "" {
+		return path
+	}
+	if strings.TrimSpace(os.Getenv(config.EnvConfigPath)) != "" {
+		return path
+	}
+	defaultPath, err := config.DefaultPath()
+	if err != nil {
+		return path
+	}
+	if _, err := os.Stat(defaultPath); err != nil {
+		return path
+	}
+	return defaultPath
 }
 
 func startServer(ctx context.Context, loader func(context.Context, config.Options) (config.Config, error), starter func(context.Context, ServerInfo) error, info ServerInfo, configOpts config.Options) error {

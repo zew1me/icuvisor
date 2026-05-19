@@ -87,7 +87,7 @@ func load(ctx context.Context, opts Options) (Config, error) {
 		if explicitDotEnv {
 			return Config{}, fmt.Errorf("env file %q not found; check --env-file path or %s", dotEnvPath, EnvDotEnvPath)
 		}
-		slog.Default().Info("env file not found", "path", dotEnvPath)
+		// Missing default .env is normal when credentials live in the keychain or config file; staying quiet here.
 	} else {
 		raw.merge(rawFromEnv(dotEnv, APIKeySourceFile, "env_file"), true)
 		slog.Default().Info("env file loaded", "path", dotEnvPath)
@@ -105,6 +105,7 @@ func load(ctx context.Context, opts Options) (Config, error) {
 				}
 			} else {
 				raw.merge(rawConfig{apiKey: strings.TrimSpace(apiKey), apiKeySource: APIKeySourceKeychain, apiKeyLocation: "os_keychain"}, false)
+				slog.Default().Info("intervals.icu API key loaded from OS keychain", "service", credstore.ServiceName, "account", credstore.IntervalsAPIKeyAccount)
 			}
 		}
 		raw.merge(processRaw, false)

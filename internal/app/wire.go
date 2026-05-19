@@ -78,7 +78,7 @@ func wireServer(ctx context.Context, info ServerInfo, d deps) (*mcpserver.Server
 		version = "dev"
 	}
 	info.Version = version
-	logger.Info("server starting", "version", version)
+	logger.Info("server starting", "version", version, "athlete_id", info.Config.AthleteID, "api_key_source", info.Config.APIKeySource)
 	if info.Config.Transport == config.TransportHTTP && !config.HTTPBindAddressIsLoopback(info.Config.HTTPBindAddress) {
 		logger.Warn("http transport non-loopback bind active", "transport", info.Config.Transport, "http_bind", info.Config.HTTPBindAddress, "security", "any host that can reach this address can connect")
 	}

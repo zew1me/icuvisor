@@ -15,6 +15,11 @@ import (
 	"github.com/ricardocabral/icuvisor/internal/safety"
 )
 
+func TestMain(m *testing.M) {
+	applyDefaultConfigPath = func(path string) string { return path }
+	os.Exit(m.Run())
+}
+
 type safeAppLogBuffer struct {
 	mu sync.Mutex
 	bytes.Buffer
@@ -553,9 +558,10 @@ func TestDefaultStartServerWarnsForHTTPNonLoopbackBind(t *testing.T) {
 			t.Fatalf("startup log %q missing %q", out, want)
 		}
 	}
-	for _, forbidden := range []string{"secret", "i12345"} {
-		if strings.Contains(out, forbidden) {
-			t.Fatalf("startup log leaked sensitive value %q: %q", forbidden, out)
-		}
+	if strings.Contains(out, "secret") {
+		t.Fatalf("startup log leaked API key: %q", out)
+	}
+	if !strings.Contains(out, "athlete_id=i12345") {
+		t.Fatalf("startup log %q missing athlete_id", out)
 	}
 }
