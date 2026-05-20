@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ricardocabral/icuvisor/internal/analysis"
 	"github.com/ricardocabral/icuvisor/internal/intervals"
 	"github.com/ricardocabral/icuvisor/internal/response"
 	"github.com/ricardocabral/icuvisor/internal/units"
@@ -61,11 +62,13 @@ type getActivityIntervalsUnavailableResponse struct {
 }
 
 type activityReadMeta struct {
-	ServerVersion  string            `json:"server_version"`
-	IncludeFull    bool              `json:"include_full"`
-	Limit          int               `json:"limit,omitempty"`
-	SinceID        int64             `json:"since_id,omitempty"`
-	FieldSemantics map[string]string `json:"field_semantics,omitempty"`
+	ServerVersion    string                  `json:"server_version"`
+	IncludeFull      bool                    `json:"include_full"`
+	Limit            int                     `json:"limit,omitempty"`
+	SinceID          int64                   `json:"since_id,omitempty"`
+	FieldSemantics   map[string]string       `json:"field_semantics,omitempty"`
+	IntervalSource   analysis.IntervalSource `json:"interval_source,omitempty"`
+	AutoLapSuspected *bool                   `json:"auto_lap_suspected,omitempty"`
 }
 
 type activityIntervalRow struct {
@@ -197,7 +200,8 @@ func shapeActivityIntervalsDTO(activityID string, dto intervals.IntervalsDTO, in
 			return stravaUnavailableIntervalsResponse(firstNonEmpty(dto.ID, activityID), includeFull, version, dto.Raw)
 		}
 	}
-	out := getActivityIntervalsResponse{ActivityID: firstNonEmpty(dto.ID, activityID), Analyzed: dto.Analyzed, Intervals: make([]activityIntervalRow, 0, len(dto.ICUIntervals)), Groups: make([]activityIntervalGroup, 0, len(dto.ICUGroups)), Meta: activityReadMeta{ServerVersion: normalizeVersion(version), IncludeFull: includeFull}}
+	classification := classifyActivityIntervalsDTO(dto)
+	out := getActivityIntervalsResponse{ActivityID: firstNonEmpty(dto.ID, activityID), Analyzed: dto.Analyzed, Intervals: make([]activityIntervalRow, 0, len(dto.ICUIntervals)), Groups: make([]activityIntervalGroup, 0, len(dto.ICUGroups)), Meta: activityReadMeta{ServerVersion: normalizeVersion(version), IncludeFull: includeFull, IntervalSource: classification.Source, AutoLapSuspected: boolPtr(classification.AutoLapSuspected)}}
 	if includeFull {
 		out.Full = dto.Raw
 	}
@@ -208,6 +212,21 @@ func shapeActivityIntervalsDTO(activityID string, dto intervals.IntervalsDTO, in
 		out.Groups = append(out.Groups, shapeActivityIntervalGroup(group, includeFull))
 	}
 	return out
+}
+
+func classifyActivityIntervalsDTO(dto intervals.IntervalsDTO) analysis.IntervalSourceResult {
+	input := analysis.IntervalSourceInput{Raw: dto.Raw, Intervals: make([]analysis.IntervalSourceInterval, 0, len(dto.ICUIntervals)), Groups: make([]analysis.IntervalSourceGroup, 0, len(dto.ICUGroups))}
+	for _, interval := range dto.ICUIntervals {
+		input.Intervals = append(input.Intervals, analysis.IntervalSourceInterval{Name: stringValue(interval.Name), Type: stringValue(interval.Type), Label: anyString(interval.Raw["label"]), Raw: interval.Raw, StartIndex: interval.StartIndex, EndIndex: interval.EndIndex, StartDistance: interval.StartDistance, EndDistance: interval.EndDistance, Distance: interval.Distance, Duration: interval.Duration})
+	}
+	for _, group := range dto.ICUGroups {
+		input.Groups = append(input.Groups, analysis.IntervalSourceGroup{Name: stringValue(group.Name), Type: stringValue(group.Type), Raw: group.Raw, StartIndex: group.StartIndex, EndIndex: group.EndIndex})
+	}
+	return analysis.InferIntervalSource(input)
+}
+
+func boolPtr(value bool) *bool {
+	return &value
 }
 
 func stravaUnavailableIntervalsResponse(activityID string, includeFull bool, version string, raw map[string]any) getActivityIntervalsUnavailableResponse {
