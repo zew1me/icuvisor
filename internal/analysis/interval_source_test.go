@@ -68,6 +68,16 @@ func TestInferIntervalSource(t *testing.T) {
 			want: IntervalSourceResult{Source: IntervalSourceUnknown},
 		},
 		{
+			name: "non generic custom names remain unknown despite uniform distances",
+			in: IntervalSourceInput{Intervals: []IntervalSourceInterval{
+				distanceInterval("Set A", 0, 1000),
+				distanceInterval("Set B", 1000, 2000),
+				distanceInterval("Set C", 2000, 3000),
+				distanceInterval("Set D", 3000, 4000),
+			}},
+			want: IntervalSourceResult{Source: IntervalSourceUnknown},
+		},
+		{
 			name: "explicit workout step marker is structured",
 			in: IntervalSourceInput{Intervals: []IntervalSourceInterval{
 				{Name: "Lap", Raw: map[string]any{"workout_step_id": "step-1"}},
@@ -78,6 +88,20 @@ func TestInferIntervalSource(t *testing.T) {
 			name: "explicit auto lap marker is device laps",
 			in: IntervalSourceInput{Intervals: []IntervalSourceInterval{
 				{Name: "Lap", Raw: map[string]any{"lap_source": "device auto lap"}},
+			}},
+			want: IntervalSourceResult{Source: IntervalSourceDeviceLaps, AutoLapSuspected: true},
+		},
+		{
+			name: "explicit boolean auto lap marker is device laps",
+			in: IntervalSourceInput{Intervals: []IntervalSourceInterval{
+				{Name: "Lap", Raw: map[string]any{"auto_lap": true}},
+			}},
+			want: IntervalSourceResult{Source: IntervalSourceDeviceLaps, AutoLapSuspected: true},
+		},
+		{
+			name: "explicit auto lap type marker is device laps",
+			in: IntervalSourceInput{Intervals: []IntervalSourceInterval{
+				{Name: "Lap", Raw: map[string]any{"lap_type": "auto"}},
 			}},
 			want: IntervalSourceResult{Source: IntervalSourceDeviceLaps, AutoLapSuspected: true},
 		},

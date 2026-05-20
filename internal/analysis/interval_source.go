@@ -152,7 +152,7 @@ func rawHasDeviceLapMarker(raw map[string]any) bool {
 			continue
 		}
 		text := normalizeMarkerText(anyMarkerString(value))
-		if strings.Contains(text, "autolap") || strings.Contains(text, "devicelap") || strings.Contains(text, "device") || strings.Contains(text, "lap") {
+		if strings.Contains(text, "autolap") || strings.Contains(text, "devicelap") || strings.Contains(text, "device") || strings.Contains(text, "lap") || text == "auto" || text == "true" {
 			return true
 		}
 	}
@@ -173,6 +173,19 @@ func isStructuredIntervalText(text string) bool {
 	return false
 }
 
+func hasNonGenericIntervalText(values ...string) bool {
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" {
+			continue
+		}
+		if !isGenericLapText(trimmed) {
+			return true
+		}
+	}
+	return false
+}
+
 func isGenericLapText(text string) bool {
 	text = strings.TrimSpace(strings.ToLower(text))
 	if text == "" || text == "lap" || text == "split" {
@@ -185,15 +198,10 @@ func isGenericLapText(text string) bool {
 }
 
 func nearUniformAutoLaps(input IntervalSourceInput) bool {
-	genericRows := true
 	for _, interval := range input.Intervals {
-		if !isGenericLapText(interval.Name) && !isGenericLapText(interval.Type) && !isGenericLapText(interval.Label) {
-			genericRows = false
-			break
+		if hasNonGenericIntervalText(interval.Name, interval.Type, interval.Label) {
+			return false
 		}
-	}
-	if !genericRows {
-		return false
 	}
 	distanceTargets := []intervalSourceTarget{
 		{value: 1000, tolerance: math.Max(25, 1000*0.025), metric: intervalMetricDistance},
@@ -338,6 +346,8 @@ func anyMarkerString(value any) string {
 			parts = append(parts, anyMarkerString(item))
 		}
 		return strings.Join(parts, " ")
+	case bool:
+		return strconv.FormatBool(typed)
 	case map[string]any:
 		parts := make([]string, 0, len(typed))
 		for key, item := range typed {
