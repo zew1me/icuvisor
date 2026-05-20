@@ -65,7 +65,7 @@ func catalogTools() []Tool {
 
 func registryBaseTools(client *intervals.Client, opts registryToolOptions) []Tool {
 	capability := capabilityOrSafe(opts.capability)
-	tools := make([]Tool, 0, 41)
+	tools := make([]Tool, 0, 42)
 	tools = append(tools,
 		newGetAthleteProfileTool(client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newGetFitnessTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
@@ -101,6 +101,7 @@ func registryBaseTools(client *intervals.Client, opts registryToolOptions) []Too
 		newDeleteActivityTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newGetActivityIntervalsTool(client, client, opts.version, opts.debugMetadata, opts.shaping),
 		newGetActivityStreamsTool(client, client, opts.version, opts.debugMetadata, opts.shaping),
+		newComputeActivitySegmentStatsTool(client, opts.version, opts.debugMetadata, opts.shaping),
 		newGetActivitySplitsTool(client, client, client, client, opts.version, opts.debugMetadata, opts.shaping),
 		newGetActivityMessagesTool(client, client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newAddActivityMessageTool(client, client, opts.version, opts.debugMetadata, opts.shaping),
@@ -133,6 +134,8 @@ func toolCatalogGroup(name string) string {
 		return "wellness"
 	case getActivitiesName, getActivityDetailsName, getActivityIntervalsName, getActivityStreamsName, getActivitySplitsName, getActivityMessagesName, addActivityMessageName, getExtendedMetricsName, deleteActivityName:
 		return "activities"
+	case computeActivitySegmentStatsName:
+		return "analyzers"
 	case getEventsName, getEventByIDName, addOrUpdateEventName, deleteEventName, deleteEventsByDateRangeName, linkActivityToEventName:
 		return "events"
 	case getTrainingPlanName, applyTrainingPlanName, getWorkoutLibraryName, getWorkoutsInFolderName, createWorkoutName, updateWorkoutName, deleteWorkoutName:

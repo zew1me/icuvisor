@@ -14,7 +14,7 @@ import (
 
 const (
 	computeActivitySegmentStatsName        = "compute_activity_segment_stats"
-	computeActivitySegmentStatsDescription = "Compute deterministic stats over one activity segment from canonical raw streams. This is the analyzer-family raw-stream exception; terse mode returns only the computed stat and analyzer _meta."
+	computeActivitySegmentStatsDescription = "Compute deterministic stats over one activity segment from canonical raw streams as the analyzer-family raw-stream exception. Terse mode returns only the computed stat and analyzer _meta."
 	invalidActivitySegmentStatsMessage     = "invalid compute_activity_segment_stats arguments; provide activity_id, one stat, exactly one time or distance range, and required metric or ftp_watts only when applicable"
 	computeActivitySegmentStatsMessage     = "could not compute activity segment stats"
 )

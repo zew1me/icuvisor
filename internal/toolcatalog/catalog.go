@@ -10,6 +10,7 @@ const (
 	AddActivityMessage               = "add_activity_message"
 	AddOrUpdateEvent                 = "add_or_update_event"
 	ApplyTrainingPlan                = "apply_training_plan"
+	ComputeActivitySegmentStats      = "compute_activity_segment_stats"
 	CreateCustomItem                 = "create_custom_item"
 	CreateWorkout                    = "create_workout"
 	DeleteActivity                   = "delete_activity"
@@ -56,6 +57,7 @@ var athleteScopedToolNames = []string{
 	AddActivityMessage,
 	AddOrUpdateEvent,
 	ApplyTrainingPlan,
+	ComputeActivitySegmentStats,
 	CreateCustomItem,
 	CreateWorkout,
 	DeleteActivity,

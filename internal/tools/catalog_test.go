@@ -23,6 +23,7 @@ func TestCatalogDescriptors(t *testing.T) {
 	snakeCase := regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 	allowedGroups := map[string]struct{}{
 		"activities":      {},
+		"analyzers":       {},
 		"coach":           {},
 		"custom-items":    {},
 		"events":          {},
@@ -93,7 +94,6 @@ func TestCatalogMatchesRegistryAndPRDRegisteredTools(t *testing.T) {
 		"compute_zone_time",
 		"compute_load_balance",
 		"compute_baseline",
-		"compute_activity_segment_stats",
 		"compute_compliance_rate",
 		"get_fitness_projection",
 	}
@@ -104,6 +104,22 @@ func TestCatalogMatchesRegistryAndPRDRegisteredTools(t *testing.T) {
 		if _, exists := catalogNames[name]; exists {
 			t.Fatalf("analyzer-family ghost %q unexpectedly present in Catalog()", name)
 		}
+	}
+}
+
+func TestCatalogIncludesActivitySegmentStatsAsFullAnalyzer(t *testing.T) {
+	t.Parallel()
+
+	descriptors := descriptorNameSet(Catalog())
+	descriptor, exists := descriptors[computeActivitySegmentStatsName]
+	if !exists {
+		t.Fatalf("Catalog() missing %q", computeActivitySegmentStatsName)
+	}
+	if descriptor.Group != "analyzers" || descriptor.Tier != string(safety.ToolsetFull) {
+		t.Fatalf("descriptor = %#v, want analyzers/full", descriptor)
+	}
+	if !strings.Contains(descriptor.Summary, "raw-stream exception") {
+		t.Fatalf("summary = %q, want raw-stream exception", descriptor.Summary)
 	}
 }
 

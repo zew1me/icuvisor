@@ -27,9 +27,17 @@ func TestComputeActivitySegmentStatsHandlerScalarDistanceOmitsTimeFetch(t *testi
 		{Type: "watts", Data: []float64{100, 200, 300, 400}},
 	}}
 	handler := computeActivitySegmentStatsHandler(client, "test", false, responseShaping{})
-	_, err := handler(context.Background(), Request{Arguments: json.RawMessage(`{"activity_id":"a1","stat":"mean","metric":"watts","start_distance_m":100,"end_distance_m":300}`)})
+	result, err := handler(context.Background(), Request{Arguments: json.RawMessage(`{"activity_id":"a1","stat":"mean","metric":"watts","start_distance_m":100,"end_distance_m":300}`)})
 	if err != nil {
 		t.Fatalf("handler error = %v", err)
+	}
+	payload := result.StructuredContent.(map[string]any)
+	body := payload["result"].(map[string]any)
+	if body["value"] != float64(300) || body["unit"] != "W" {
+		t.Fatalf("result body = %#v, want mean 300 W", body)
+	}
+	if _, ok := payload["series"]; ok {
+		t.Fatalf("terse payload has series: %#v", payload["series"])
 	}
 	if got := strings.Join(client.params.Types, ","); got != "distance,watts" {
 		t.Fatalf("requested types = %q, want distance,watts", got)
@@ -93,6 +101,9 @@ func TestComputeActivitySegmentStatsHandlerAlignsInsufficientMeta(t *testing.T) 
 	}
 	payload := result.StructuredContent.(map[string]any)
 	meta := payload["_meta"].(map[string]any)
+	if meta["source_tools"].([]any)[0] != getActivityStreamsName || meta["missing_days"] != float64(0) || meta["missing_action"] != "skip" || meta["method"] == "" {
+		t.Fatalf("_meta mandatory fields = %#v", meta)
+	}
 	if meta["insufficient_sample"] != true {
 		t.Fatalf("_meta.insufficient_sample = %#v, want true", meta["insufficient_sample"])
 	}
@@ -121,6 +132,10 @@ func TestComputeActivitySegmentStatsHandlerFullDecouplingAudit(t *testing.T) {
 		t.Fatalf("handler error = %v", err)
 	}
 	payload := result.StructuredContent.(map[string]any)
+	meta := payload["_meta"].(map[string]any)
+	if meta["source_tools"].([]any)[0] != getActivityStreamsName || meta["formula_ref"] == "" {
+		t.Fatalf("_meta = %#v, want source_tools and decoupling formula_ref", meta)
+	}
 	series := payload["series"].(map[string]any)
 	if _, ok := series["watts_first_half"]; !ok {
 		t.Fatalf("series = %#v, want watts_first_half audit", series)
