@@ -50,6 +50,42 @@ if [ "$BINARY_SIZE" -lt 1048576 ]; then
   exit 1
 fi
 
+if ! command -v file >/dev/null 2>&1; then
+  echo "file(1) is required to verify ICUVISOR_MCPB_PLATFORM matches the binary format" >&2
+  exit 1
+fi
+
+BINARY_FORMAT="$(file -b "$BINARY_PATH" 2>/dev/null || true)"
+case "$PLATFORM" in
+  darwin)
+    case "$BINARY_FORMAT" in
+      *Mach-O*) ;;
+      *)
+        echo "ICUVISOR_MCPB_PLATFORM=darwin requires a Mach-O icuvisor binary, got: $BINARY_FORMAT" >&2
+        exit 1
+        ;;
+    esac
+    ;;
+  linux)
+    case "$BINARY_FORMAT" in
+      *ELF*) ;;
+      *)
+        echo "ICUVISOR_MCPB_PLATFORM=linux requires an ELF icuvisor binary, got: $BINARY_FORMAT" >&2
+        exit 1
+        ;;
+    esac
+    ;;
+  win32)
+    case "$BINARY_FORMAT" in
+      *PE32*|*MS\ Windows*) ;;
+      *)
+        echo "ICUVISOR_MCPB_PLATFORM=win32 requires a PE/Windows icuvisor binary, got: $BINARY_FORMAT" >&2
+        exit 1
+        ;;
+    esac
+    ;;
+esac
+
 if ! command -v npx >/dev/null 2>&1; then
   echo "npx is required to run $CLI_PACKAGE validate/pack; install Node.js/npm or set up the MCPB CLI first" >&2
   exit 1

@@ -80,7 +80,7 @@
       "description": "Update athlete-entered wellness fields for a date."
     },
     {
-      "name": "list_advanced_capabilities",
+      "name": "icuvisor_list_advanced_capabilities",
       "description": "Explain which advanced tools are hidden by the default core toolset and how to enable them."
     }
   ],
