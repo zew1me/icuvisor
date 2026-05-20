@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added NOTE-category examples for `add_or_update_event` so assistants and users can discover nutrition plans, travel logistics, daily reminders, and coach annotations without a separate note tool.
 - Added reusable closed `analysis_metric` enum helpers for planned analyzer tools, including canonical schema values, conservative aliases, source metadata, and concise unknown-metric hints.
 - `get_gear_list` lists intervals.icu gear IDs/names in the full toolset with a manual refresh path for the per-athlete gear cache.
 - Activity reads now surface `gear_id`, resolved `gear_name`, and explicit `gear_resolution` statuses when upstream exposes gear IDs.
