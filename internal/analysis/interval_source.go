@@ -148,7 +148,7 @@ func hasExplicitDeviceLapSignal(input IntervalSourceInput) bool {
 func rawHasDeviceLapMarker(raw map[string]any) bool {
 	for key, value := range raw {
 		normalizedKey := normalizeMarkerText(key)
-		if !(strings.Contains(normalizedKey, "intervalsource") || strings.Contains(normalizedKey, "lapsource") || strings.Contains(normalizedKey, "autolap") || strings.Contains(normalizedKey, "laptype") || normalizedKey == "source" || normalizedKey == "origin") {
+		if !isDeviceLapMarkerKey(normalizedKey) {
 			continue
 		}
 		text := normalizeMarkerText(anyMarkerString(value))
@@ -157,6 +157,10 @@ func rawHasDeviceLapMarker(raw map[string]any) bool {
 		}
 	}
 	return false
+}
+
+func isDeviceLapMarkerKey(normalizedKey string) bool {
+	return strings.Contains(normalizedKey, "intervalsource") || strings.Contains(normalizedKey, "lapsource") || strings.Contains(normalizedKey, "autolap") || strings.Contains(normalizedKey, "laptype") || normalizedKey == "source" || normalizedKey == "origin"
 }
 
 func isStructuredIntervalText(text string) bool {

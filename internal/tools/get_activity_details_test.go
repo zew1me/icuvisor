@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -194,34 +196,20 @@ func TestGetActivityIntervalsSourceMetadata(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		raw           string
+		fixture       string
 		wantSource    string
 		wantSuspected bool
 	}{
-		{
-			name:          "structured group",
-			raw:           `{"id":"a123","analyzed":true,"icu_intervals":[{"id":"i1","name":"Warmup","distance":1000},{"id":"i2","name":"Work","distance":1000}],"icu_groups":[{"id":"g1","name":"Main"}]}`,
-			wantSource:    "structured_workout",
-			wantSuspected: false,
-		},
-		{
-			name:          "one kilometer device laps",
-			raw:           `{"id":"a123","analyzed":true,"icu_intervals":[{"id":"i1","name":"Lap 1","start_distance":0,"end_distance":1000,"distance":1000},{"id":"i2","name":"Lap 2","start_distance":1000,"end_distance":2002,"distance":1002},{"id":"i3","name":"Lap 3","start_distance":2002,"end_distance":3001,"distance":999},{"id":"i4","name":"Lap 4","start_distance":3001,"end_distance":4003,"distance":1002},{"id":"i5","name":"Lap 5","start_distance":4003,"end_distance":5000,"distance":997}]}`,
-			wantSource:    "device_laps",
-			wantSuspected: true,
-		},
-		{
-			name:          "unknown insufficient rows",
-			raw:           `{"id":"a123","analyzed":true,"icu_intervals":[{"id":"i1","name":"Lap","distance":1000},{"id":"i2","name":"Lap","distance":1000}]}`,
-			wantSource:    "unknown",
-			wantSuspected: false,
-		},
+		{name: "structured group", fixture: "structured.json", wantSource: "structured_workout"},
+		{name: "one kilometer device laps", fixture: "auto_laps_1km.json", wantSource: "device_laps", wantSuspected: true},
+		{name: "one mile device laps", fixture: "auto_laps_1mi.json", wantSource: "device_laps", wantSuspected: true},
+		{name: "unknown source", fixture: "unknown.json", wantSource: "unknown"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			client := &fakeActivityReadClient{intervals: decodeIntervalsFixture(t, tc.raw)}
+			client := &fakeActivityReadClient{intervals: decodeActivityIntervalsFileFixture(t, tc.fixture)}
 			tool := newGetActivityIntervalsTool(client, client, "test", false)
 
 			result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"activity_id":"a123"}`)})
@@ -367,4 +355,14 @@ func decodeIntervalsFixture(t *testing.T, raw string) intervals.IntervalsDTO {
 		t.Fatalf("decode intervals fixture: %v", err)
 	}
 	return dto
+}
+
+func decodeActivityIntervalsFileFixture(t *testing.T, name string) intervals.IntervalsDTO {
+	t.Helper()
+	path := filepath.Join("testdata", "activity_intervals", name)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read intervals fixture %s: %v", path, err)
+	}
+	return decodeIntervalsFixture(t, string(data))
 }

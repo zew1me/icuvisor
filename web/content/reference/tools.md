@@ -47,4 +47,13 @@ Common NOTE use cases:
 }
 ```
 
+## Activity interval source metadata
+
+`get_activity_intervals` includes additive response metadata to help clients distinguish structured workout segments from generic device laps:
+
+- `_meta.interval_source`: `structured_workout`, `device_laps`, or `unknown`.
+- `_meta.auto_lap_suspected`: `true` when generic near-uniform 1 km / 1 mi (or supported duration) rows look like device auto-laps.
+
+When auto-laps are suspected, analyzer-style clients should avoid claiming the athlete hit or missed individual structured workout steps from those rows; they are device splits, not necessarily planned workout segments.
+
 {{< tool-catalog >}}
