@@ -2,7 +2,7 @@
   "_meta": {
     "catalog_hash": "dev-catalog-hash",
     "delete_mode": "safe",
-    "formula_ref": "resource://icuvisor/analysis-formulas#z_score",
+    "formula_ref": "icuvisor://analysis-formulas#z_score",
     "insufficient_sample": false,
     "method": "z_score",
     "missing_action": "skip",
