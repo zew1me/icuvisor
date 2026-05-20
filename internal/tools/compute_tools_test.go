@@ -368,11 +368,13 @@ func TestComputeCompliancePairingDeltasAndBreakdowns(t *testing.T) {
 	client.events = []intervals.Event{
 		eventFixture("evt-targetless", "Workout", "2026-05-01", nil, map[string]any{"activity_id": "act-targetless"}, false),
 		eventFixture("evt-auto", "Workout", "2026-05-01", intPtr(3600), nil, false),
+		eventFixture("evt-nonworkout", "Race", "2026-05-01", intPtr(3600), nil, false),
 		eventFixture("evt-linked", "Workout", "2026-05-02", intPtr(1800), map[string]any{"activity_id": "act-linked"}, false),
 		eventFixture("evt-conflict", "Workout", "2026-05-02", intPtr(1800), map[string]any{"activity_id": "act-linked"}, false),
 	}
 	client.activities = []intervals.Activity{
 		activityWithTime("act-targetless", "Run", "2026-05-01T07:00:00", 3600, map[string]any{"paired_event_id": "evt-targetless"}),
+		activityWithTime("act-ride-closer", "Ride", "2026-05-01T07:05:00", 3590, nil),
 		activityWithTime("act-linked", "Run", "2026-05-02T07:00:00", 1980, nil),
 	}
 	tool := newComputeComplianceRateTool(client, client, client, client, "test", "UTC", false)
@@ -393,8 +395,11 @@ func TestComputeCompliancePairingDeltasAndBreakdowns(t *testing.T) {
 		t.Fatalf("delta_sample_count = %v, want completed denominator 2", resultMap["delta_sample_count"])
 	}
 	rows := rowsByEventID(got["series"].([]any))
+	if _, ok := rows["evt-nonworkout"]; ok {
+		t.Fatalf("evt-nonworkout appeared in series despite event_type filter: %v", rows["evt-nonworkout"])
+	}
 	if rows["evt-auto"]["paired_activity_id"] != "act-targetless" || rows["evt-auto"]["pairing_source"] != "date_metric_match" {
-		t.Fatalf("evt-auto row = %v, want targetless-linked activity available for auto-pair", rows["evt-auto"])
+		t.Fatalf("evt-auto row = %v, want targetless-linked Run activity available for auto-pair instead of closer Ride", rows["evt-auto"])
 	}
 	if rows["evt-conflict"]["pairing_source"] != "linked_conflict" && rows["evt-linked"]["pairing_source"] != "linked_conflict" {
 		t.Fatalf("linked rows = %v / %v, want one linked conflict without activity reuse", rows["evt-linked"], rows["evt-conflict"])
