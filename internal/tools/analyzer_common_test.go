@@ -28,6 +28,44 @@ func TestShapeAnalyzerResponseIncludesMandatoryMeta(t *testing.T) {
 	}
 }
 
+func TestShapeAnalyzerResponsePropagatesIntervalSourceEvidence(t *testing.T) {
+	input := analyzerDemoInput()
+	input.Meta = analysis.ApplyIntervalSourceEvidence(input.Meta, analysis.IntervalSourceResult{Source: analysis.IntervalSourceDeviceLaps, AutoLapSuspected: true})
+
+	shaped, err := shapeAnalyzerResponse(input, false, "test", false, "demo_analyzer", "")
+	if err != nil {
+		t.Fatalf("shape analyzer response: %v", err)
+	}
+	meta := analyzerMap(t, analyzerMap(t, shaped)["_meta"])
+	if meta["interval_source"] != string(analysis.IntervalSourceDeviceLaps) || meta["auto_lap_suspected"] != true {
+		t.Fatalf("_meta = %#v, want propagated interval source evidence", meta)
+	}
+	sourceTools, ok := meta["source_tools"].([]any)
+	if !ok {
+		t.Fatalf("source_tools = %T(%#v), want JSON array", meta["source_tools"], meta["source_tools"])
+	}
+	seen := map[any]bool{}
+	for _, tool := range sourceTools {
+		seen[tool] = true
+	}
+	if !seen["get_activity_intervals"] || !seen["get_wellness_data"] || len(sourceTools) != 2 {
+		t.Fatalf("source_tools = %#v, want deduplicated get_activity_intervals and existing sources", sourceTools)
+	}
+}
+
+func TestShapeAnalyzerResponseOmitsIntervalSourceForNonIntervalAnalyzer(t *testing.T) {
+	shaped, err := shapeAnalyzerResponse(analyzerDemoInput(), false, "test", false, "demo_analyzer", "")
+	if err != nil {
+		t.Fatalf("shape analyzer response: %v", err)
+	}
+	meta := analyzerMap(t, analyzerMap(t, shaped)["_meta"])
+	for _, key := range []string{"interval_source", "auto_lap_suspected"} {
+		if _, ok := meta[key]; ok {
+			t.Fatalf("_meta = %#v, want no %s for non-interval analyzer", meta, key)
+		}
+	}
+}
+
 func TestShapeAnalyzerResponseTerseAndFullSeries(t *testing.T) {
 	terse, err := shapeAnalyzerResponse(analyzerDemoInput(), false, "test", false, "demo_analyzer", "")
 	if err != nil {
