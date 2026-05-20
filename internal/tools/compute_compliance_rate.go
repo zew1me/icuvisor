@@ -443,25 +443,6 @@ func findComplianceActivity(activities []complianceActivity, id string) *complia
 	return nil
 }
 
-func linkedActivityForEvent(event intervals.Event, activities []complianceActivity, linked map[string]string, used map[string]bool) (*complianceActivity, string) {
-	ids := []string{}
-	for _, key := range []string{"activity_id", "icu_activity_id", "paired_activity_id", "completed_activity_id"} {
-		if value := anyString(event.Raw[key]); value != "" {
-			ids = append(ids, value)
-		}
-	}
-	if linked[event.ID] != "" {
-		ids = append(ids, linked[event.ID])
-	}
-	for _, id := range ids {
-		for i := range activities {
-			if activities[i].ID == id && !used[id] {
-				return &activities[i], "linked"
-			}
-		}
-	}
-	return nil, ""
-}
 func autoPairActivity(event intervals.Event, target float64, kind string, requestSport string, activities []complianceActivity, used map[string]bool, reserved map[string]bool) (*complianceActivity, string) {
 	date := localDatePrefix(stringValue(event.StartDateLocal))
 	sport := firstNonEmpty(requestSport, stringValue(event.Type))

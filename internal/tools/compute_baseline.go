@@ -175,12 +175,12 @@ func collectBaselineSamples(ctx context.Context, args computeBaselineRequest, me
 			if wellnessClient == nil {
 				continue
 			}
-			return collectWellnessBaseline(ctx, args, metric, source, wellnessClient)
+			return collectWellnessBaseline(ctx, args, source, wellnessClient)
 		case analysis.SourceActivityRow, analysis.SourceExtendedActivity:
 			if activitiesClient == nil {
 				continue
 			}
-			return collectActivityBaseline(ctx, args, metric, source, activitiesClient, extendedClient)
+			return collectActivityBaseline(ctx, args, source, activitiesClient, extendedClient)
 		}
 	}
 	return baselineCollected{UnsupportedReason: "interval_grain_not_supported_for_baseline"}, nil
@@ -232,7 +232,7 @@ func collectSummaryBaseline(ctx context.Context, args computeBaselineRequest, me
 	return out, nil
 }
 
-func collectWellnessBaseline(ctx context.Context, args computeBaselineRequest, metric analysis.Metric, source analysis.MetricSource, client WellnessClient) (baselineCollected, error) {
+func collectWellnessBaseline(ctx context.Context, args computeBaselineRequest, source analysis.MetricSource, client WellnessClient) (baselineCollected, error) {
 	rows, err := client.ListWellness(ctx, intervals.WellnessParams{Oldest: args.BaselineStartDate, Newest: args.CurrentEndDate, Fields: []string{source.Field}})
 	if err != nil {
 		return baselineCollected{}, err
@@ -262,7 +262,7 @@ func collectWellnessBaseline(ctx context.Context, args computeBaselineRequest, m
 	return out, nil
 }
 
-func collectActivityBaseline(ctx context.Context, args computeBaselineRequest, metric analysis.Metric, source analysis.MetricSource, activitiesClient ActivitiesClient, extendedClient ExtendedMetricsClient) (baselineCollected, error) {
+func collectActivityBaseline(ctx context.Context, args computeBaselineRequest, source analysis.MetricSource, activitiesClient ActivitiesClient, extendedClient ExtendedMetricsClient) (baselineCollected, error) {
 	activities, err := activitiesClient.ListActivities(ctx, intervals.ListActivitiesParams{Oldest: args.BaselineStartDate, Newest: args.CurrentEndDate, Limit: maxComputeActivityCandidates})
 	if err != nil {
 		return baselineCollected{}, err

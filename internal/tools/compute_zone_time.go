@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -253,7 +252,7 @@ func collectZoneAggregate(ctx context.Context, args computeZoneRequest, fitnessC
 			continue
 		}
 		agg.Zones = addZoneSlices(agg.Zones, zones)
-		if value, ok := loadValueForZoneMetric(loadRaw, args.ZoneMetric); ok {
+		if value, ok := loadValueForZoneMetric(loadRaw); ok {
 			agg.TrainingLoadTotal += value
 		} else if activity.TrainingLoad != nil {
 			agg.TrainingLoadTotal += float64(*activity.TrainingLoad)
@@ -272,7 +271,7 @@ func collectZoneAggregate(ctx context.Context, args computeZoneRequest, fitnessC
 	return agg, nil
 }
 
-func loadValueForZoneMetric(raw map[string]any, metric string) (float64, bool) {
+func loadValueForZoneMetric(raw map[string]any) (float64, bool) {
 	keys := []string{"power_load", "hr_load", "pace_load", "icu_training_load"}
 	for _, key := range keys {
 		if value, ok := rawNumber(raw, key); ok {
@@ -416,5 +415,3 @@ func computeZoneInputSchema(requireMetric bool) map[string]any {
 		"include_full": map[string]any{"type": "boolean", "default": false, "description": "When true, include per-source audit rows. Default returns aggregate zones/buckets only."},
 	}}
 }
-
-func _compileComputeZoneFmtUse() { _ = fmt.Sprintf }
