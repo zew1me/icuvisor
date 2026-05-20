@@ -192,6 +192,22 @@
     "anchor": "get_fitness"
   },
   {
+    "name": "get_hr_curves",
+    "group": "fitness",
+    "tier": "full",
+    "safety": "read",
+    "summary": "Get upstream-computed heart-rate best-effort curves for a date range.",
+    "anchor": "get_hr_curves"
+  },
+  {
+    "name": "get_pace_curves",
+    "group": "fitness",
+    "tier": "full",
+    "safety": "read",
+    "summary": "Get upstream-computed pace best-effort curves for a date range.",
+    "anchor": "get_pace_curves"
+  },
+  {
     "name": "get_power_curves",
     "group": "fitness",
     "tier": "full",
