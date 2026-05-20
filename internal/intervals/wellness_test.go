@@ -21,7 +21,8 @@ func TestWellnessUnmarshalExtractsNativeProviders(t *testing.T) {
 		"sleepScore":88,
 		"sleepQuality":3,
 		"polar":{"ans_charge":4,"nightly_recharge_status":"ok","sleep_score":91},
-		"garmin":{"bodyBatteryMin":25,"bodyBatteryMax":76},
+		"garmin":{"bodyBatteryMin":25,"bodyBatteryMax":76,"sleepScore":79},
+		"whoop":{"sleepPerformancePercentage":88,"recoveryScore":64},
 		"oura_sleep_score":82,
 		"provider":"Oura Ring",
 		"sleep_score":83
@@ -35,10 +36,10 @@ func TestWellnessUnmarshalExtractsNativeProviders(t *testing.T) {
 	if got.Raw["provider"] != "Oura Ring" {
 		t.Fatalf("Raw provider = %#v, want preserved raw fields", got.Raw["provider"])
 	}
-	if got.Native["polar"]["ans_charge"] != float64(4) || got.Native["garmin"]["body_battery_min"] != float64(25) || got.Native["oura"]["sleep_score"] == nil {
+	if got.Native["polar"]["ans_charge"] != float64(4) || got.Native["garmin"]["body_battery_min"] != float64(25) || got.Native["garmin"]["sleep_score"] != float64(79) || got.Native["whoop"]["sleep_performance_percentage"] != float64(88) || got.Native["whoop"]["recovery_score"] != float64(64) || got.Native["oura"]["sleep_score"] == nil {
 		t.Fatalf("Native providers = %#v", got.Native)
 	}
-	if !containsString(got.NativeClaimedKeys, "polar") || !containsString(got.NativeClaimedKeys, "garmin") || !containsString(got.NativeClaimedKeys, "oura_sleep_score") || !containsString(got.NativeClaimedKeys, "sleep_score") {
+	if !containsString(got.NativeClaimedKeys, "polar") || !containsString(got.NativeClaimedKeys, "garmin") || !containsString(got.NativeClaimedKeys, "whoop") || !containsString(got.NativeClaimedKeys, "oura_sleep_score") || !containsString(got.NativeClaimedKeys, "sleep_score") {
 		t.Fatalf("NativeClaimedKeys = %#v", got.NativeClaimedKeys)
 	}
 }
@@ -60,8 +61,10 @@ func TestNativeSleepScoreSourceAndDedupe(t *testing.T) {
 		raw  map[string]any
 		want string
 	}{
-		{name: "polar source", raw: map[string]any{"source": "Polar Flow"}, want: "polar"},
+		{name: "garmin provider", raw: map[string]any{"provider": "Garmin Connect"}, want: "garmin"},
 		{name: "oura integration", raw: map[string]any{"integration": "oura cloud"}, want: "oura"},
+		{name: "polar source", raw: map[string]any{"source": "Polar Flow"}, want: "polar"},
+		{name: "whoop device", raw: map[string]any{"device": "WHOOP 4.0"}, want: "whoop"},
 		{name: "unknown provider", raw: map[string]any{"provider": "manual"}, want: ""},
 	}
 	for _, tc := range tests {
