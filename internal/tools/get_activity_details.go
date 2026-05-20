@@ -16,7 +16,7 @@ import (
 const (
 	getActivityDetailsName              = "get_activity_details"
 	getActivityIntervalsName            = "get_activity_intervals"
-	getActivityDetailsDescription       = "Get one activity's terse metadata and metrics by activity_id. Use include_full only when raw upstream fields are needed; Strava-blocked activities return an unavailable marker instead of sparse N/A rows."
+	getActivityDetailsDescription       = "Get one activity's terse metadata and metrics by activity_id, including calories_burned as active/exercise calories when upstream provides it. Use include_full only when raw upstream fields are needed; Strava-blocked activities return an unavailable marker instead of sparse N/A rows."
 	getActivityIntervalsDescription     = "Get analyzed intervals for one activity by activity_id. Interval units are normalized to the canonical intervals.icu unit enum and raw interval payloads require include_full."
 	invalidActivityReadArgumentsMessage = "invalid activity read arguments; provide activity_id and optional include_full"
 	fetchActivityDetailsMessage         = "could not fetch activity details; check activity_id and intervals.icu credentials"

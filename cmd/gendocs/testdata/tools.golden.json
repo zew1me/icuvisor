@@ -20,7 +20,7 @@
     "group": "activities",
     "tier": "core",
     "safety": "read",
-    "summary": "List activities for a date range with terse unit-disambiguated rows, Strava-unavailable detection, and opaque pagination.",
+    "summary": "List activities for a date range with terse unit-disambiguated rows, calories_burned as active/exercise calories, Strava-unavailable detection, and opaque pagination.",
     "anchor": "get_activities"
   },
   {
@@ -28,7 +28,7 @@
     "group": "activities",
     "tier": "core",
     "safety": "read",
-    "summary": "Get one activity's terse metadata and metrics by activity_id.",
+    "summary": "Get one activity's terse metadata and metrics by activity_id, including calories_burned as active/exercise calories when upstream provides it.",
     "anchor": "get_activity_details"
   },
   {
@@ -260,7 +260,7 @@
     "group": "wellness",
     "tier": "core",
     "safety": "read",
-    "summary": "Get daily wellness rows for a local date range with distinct sleepQuality, sleepScore, sleepSecs, custom fields, and native provider sidecars.",
+    "summary": "Get daily wellness rows for a local date range with distinct sleepQuality, sleepScore, sleepSecs, nutrition keys calories_intake/carbs_g/protein_g/fat_g when present, custom fields, and native provider sidecars.",
     "anchor": "get_wellness_data"
   },
   {

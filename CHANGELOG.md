@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `get_gear_list` lists intervals.icu gear IDs/names in the full toolset with a manual refresh path for the per-athlete gear cache.
 - Activity reads now surface `gear_id`, resolved `gear_name`, and explicit `gear_resolution` statuses when upstream exposes gear IDs.
+- Activity and wellness reads now disambiguate nutrition fields: activity `calories` is exposed as `calories_burned`, while wellness intake/macros use `calories_intake`, `carbs_g`, `protein_g`, and `fat_g` with `_meta.field_semantics` labels.
 - Homebrew install path: releases now produce a `darwin_universal` tarball and publish a Homebrew formula to the [`ricardocabral/homebrew-icuvisor`](https://github.com/ricardocabral/homebrew-icuvisor) tap. Install with `brew install ricardocabral/icuvisor/icuvisor`. The macOS tarball binary is not yet codesigned independently of the DMG, so first run may require dismissing Gatekeeper; signing the tarball binary is tracked as a follow-up.
 
 ### Changed
