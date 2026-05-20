@@ -110,15 +110,18 @@ func computeBaselineHandler(fitnessClient FitnessClient, wellnessClient Wellness
 		if minSamples == 0 {
 			minSamples = analysis.MinBaselineSamples
 		}
-		stats := analysis.ComputeBaselineStats(collected.Baseline, collected.Current, minSamples, metric == "weekly_tss" || metric == "weekly_hours")
+		stats := analysis.ComputeBaselineStats(collected.Baseline, collected.Current, minSamples, false)
 		if collected.UnsupportedReason != "" {
 			stats.Status = "unsupported_metric_source"
 			stats.Reason = collected.UnsupportedReason
 		}
+		if collected.Truncated && stats.Status == "ok" {
+			stats.Status = "partial"
+		}
 		interpretation := analysis.InterpretBaselineZScore(metric, stats.ZScore)
 		result := computeBaselineResult{Status: stats.Status, Metric: string(metric), MetricSource: sourceDTO(collected.Source), BaselineWindow: dateWindow{args.BaselineStartDate, args.BaselineEndDate}, CurrentWindow: dateWindow{args.CurrentStartDate, args.CurrentEndDate}, CurrentValue: roundOptional(stats.CurrentValue), BaselineMean: roundOptional(stats.BaselineMean), BaselineStdDev: roundOptional(stats.BaselineStdDev), ZScore: roundOptional(stats.ZScore), Interpretation: interpretation, NBaseline: len(collected.Baseline), NCurrent: len(collected.Current), MinSamples: minSamples, MissingBaselineDays: collected.MissingBaselineDays, MissingCurrentDays: collected.MissingCurrentDays, TruncatedActivityCandidates: collected.Truncated, InsufficientReason: stats.Reason}
 		assumptions := map[string]any{"metric": string(metric), "interpretation": interpretation, "interpretation_direction": baselineInterpretationDirection(metric), "activity_candidates_truncated": collected.Truncated}
-		meta := analysis.AnalyzerMetaInput{Method: "baseline_z_score", SourceTools: collected.SourceTools, N: len(collected.Baseline), MissingDays: collected.MissingBaselineDays + collected.MissingCurrentDays, MissingAction: analysis.MissingActionSkip, MinSamples: minSamples, FormulaRef: resources.AnalysisFormulaRefZScore, Assumptions: assumptions, Boundaries: []string{"missing samples are skipped; no imputation", "raw streams are not used for baseline metrics"}}
+		meta := analysis.AnalyzerMetaInput{Method: "baseline_z_score", SourceTools: collected.SourceTools, N: len(collected.Baseline), MissingDays: collected.MissingBaselineDays + collected.MissingCurrentDays, MissingAction: analysis.MissingActionSkip, MinSamples: minSamples, FormulaRef: resources.AnalysisFormulaRefZScore, Assumptions: assumptions, Boundaries: baselineBoundaries(collected.Truncated)}
 		return encodeAnalyzerResponse(analyzerResponseInput{Result: result, Series: collected.Series, Meta: meta}, args.IncludeFull, version, debugMetadata, computeBaselineName, unitSystem, shapeCfg)
 	}
 }
@@ -142,6 +145,9 @@ func decodeComputeBaselineRequest(raw json.RawMessage) (computeBaselineRequest, 
 	}
 	if args.BaselineEndDate < args.BaselineStartDate || args.CurrentEndDate < args.CurrentStartDate {
 		return args, "", errors.New("window end dates must be on or after start dates")
+	}
+	if args.BaselineEndDate >= args.CurrentStartDate {
+		return args, "", errors.New("baseline_end_date must be before current_start_date")
 	}
 	if args.MinSamples != 0 && args.MinSamples < 2 {
 		return args, "", errors.New("min_samples must be at least 2")
@@ -339,6 +345,12 @@ func summaryMetricValueForSport(row intervals.SummaryWithCats, metric analysis.M
 			return float64(category.ElapsedTime), category.ElapsedTime != 0
 		case "calories_burned":
 			return float64(category.Calories), category.Calories != 0
+		case "distance_km":
+			return category.Distance / 1000, category.Distance != 0
+		case "distance_mi":
+			return category.Distance / 1609.344, category.Distance != 0
+		case "session_rpe":
+			return float64(category.SRPE), category.SRPE != 0
 		case "elevation_gain_m":
 			return category.TotalElevationGain, category.TotalElevationGain != 0
 		}
@@ -384,6 +396,12 @@ func summaryMetricValue(row intervals.SummaryWithCats, metric analysis.Metric, f
 		return float64(row.ElapsedTime), row.ElapsedTime != 0
 	case "calories_burned":
 		return float64(row.Calories), row.Calories != 0
+	case "distance_km":
+		return row.Distance / 1000, row.Distance != 0
+	case "distance_mi":
+		return row.Distance / 1609.344, row.Distance != 0
+	case "session_rpe":
+		return float64(row.SRPE), row.SRPE != 0
 	case "elevation_gain_m":
 		return row.TotalElevationGain, row.TotalElevationGain != 0
 	case "time_in_zones_total_seconds":
@@ -407,6 +425,48 @@ func activityMetricValue(activity intervals.Activity, field string) (float64, bo
 	case "training_load":
 		if activity.TrainingLoad != nil {
 			return float64(*activity.TrainingLoad), true
+		}
+	case "distance_km":
+		if activity.Distance != nil {
+			return *activity.Distance / 1000, true
+		}
+		if activity.ICUDistance != nil {
+			return *activity.ICUDistance / 1000, true
+		}
+	case "distance_mi":
+		if activity.Distance != nil {
+			return *activity.Distance / 1609.344, true
+		}
+		if activity.ICUDistance != nil {
+			return *activity.ICUDistance / 1609.344, true
+		}
+	case "pace_seconds_per_km":
+		if activity.MovingTime != nil {
+			if d := activityDistanceMeters(activity); d > 0 {
+				return float64(*activity.MovingTime) / (d / 1000), true
+			}
+		}
+	case "pace_seconds_per_mile":
+		if activity.MovingTime != nil {
+			if d := activityDistanceMeters(activity); d > 0 {
+				return float64(*activity.MovingTime) / (d / 1609.344), true
+			}
+		}
+	case "average_speed_kmh":
+		if activity.AverageSpeed != nil {
+			return *activity.AverageSpeed * 3.6, true
+		}
+	case "average_speed_mph":
+		if activity.AverageSpeed != nil {
+			return *activity.AverageSpeed * 2.2369362921, true
+		}
+	case "max_speed_kmh":
+		if activity.MaxSpeed != nil {
+			return *activity.MaxSpeed * 3.6, true
+		}
+	case "max_speed_mph":
+		if activity.MaxSpeed != nil {
+			return *activity.MaxSpeed * 2.2369362921, true
 		}
 	case "average_heart_rate_bpm":
 		if activity.AverageHeartRate != nil {
@@ -450,6 +510,24 @@ func wellnessDate(row intervals.Wellness) string {
 	}
 	return ""
 }
+func baselineBoundaries(truncated bool) []string {
+	boundaries := []string{"missing samples are skipped; no imputation", "raw streams are not used for baseline metrics"}
+	if truncated {
+		boundaries = append(boundaries, "activity candidates truncated at deterministic cap; baseline/current activity samples may be incomplete")
+	}
+	return boundaries
+}
+
+func activityDistanceMeters(activity intervals.Activity) float64 {
+	if activity.Distance != nil {
+		return *activity.Distance
+	}
+	if activity.ICUDistance != nil {
+		return *activity.ICUDistance
+	}
+	return 0
+}
+
 func sourceDTO(source analysis.MetricSource) baselineMetricSource {
 	return baselineMetricSource{Family: string(source.Family), Tool: source.Tool, Field: source.Field, Grain: string(source.Grain)}
 }

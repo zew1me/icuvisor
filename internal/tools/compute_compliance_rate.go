@@ -240,7 +240,7 @@ func computeCompliance(ctx context.Context, args computeComplianceRequest, event
 			source = "linked"
 		}
 		if activity == nil {
-			activity, source = autoPairActivity(event, target, targetKind, activities, used, reservedActivities)
+			activity, source = autoPairActivity(event, target, targetKind, args.Sport, activities, used, reservedActivities)
 		}
 		if activity == nil {
 			unpaired++
@@ -288,17 +288,31 @@ func computeCompliance(ctx context.Context, args computeComplianceRequest, event
 	case "load":
 		result.MeanDeltaLoad = meanPtr(acc.delta)
 	}
-	if acc.scheduled == 0 {
-		result.Status = "insufficient_sample"
-		result.InsufficientReason = "no_scheduled_target_events"
-	} else if activityTruncated || eventTruncated {
+	if activityTruncated || eventTruncated {
 		result.Status = "partial"
 	}
-	meta := analysis.AnalyzerMetaInput{Method: "scheduled_completed_event_compliance", SourceTools: []string{getEventsName, getActivitiesName}, N: acc.scheduled, MissingDays: 0, MissingAction: analysis.MissingActionSkip, Assumptions: map[string]any{"target_metric": args.TargetMetric, "tolerance_percent": args.TolerancePercent, "activity_candidates_truncated": activityTruncated, "event_candidates_truncated": eventTruncated}, Boundaries: []string{"one-to-one event/activity matching", "raw streams are not used for compliance"}, InsufficientSample: boolPtr(acc.scheduled == 0)}
+	if acc.scheduled == 0 {
+		if result.Status != "partial" {
+			result.Status = "insufficient_sample"
+		}
+		result.InsufficientReason = "no_scheduled_target_events"
+	}
+	meta := analysis.AnalyzerMetaInput{Method: "scheduled_completed_event_compliance", SourceTools: []string{getEventsName, getActivitiesName}, N: acc.scheduled, MissingDays: 0, MissingAction: analysis.MissingActionSkip, Assumptions: map[string]any{"target_metric": args.TargetMetric, "tolerance_percent": args.TolerancePercent, "activity_candidates_truncated": activityTruncated, "event_candidates_truncated": eventTruncated}, Boundaries: complianceBoundaries(activityTruncated, eventTruncated), InsufficientSample: boolPtr(acc.scheduled == 0)}
 	if intervalUsed {
 		meta = analysis.ApplyIntervalSourceEvidence(meta, intervalEvidence)
 	}
 	return result, series, meta, nil
+}
+
+func complianceBoundaries(activityTruncated bool, eventTruncated bool) []string {
+	boundaries := []string{"one-to-one event/activity matching", "raw streams are not used for compliance"}
+	if activityTruncated {
+		boundaries = append(boundaries, "activity candidates truncated at deterministic cap")
+	}
+	if eventTruncated {
+		boundaries = append(boundaries, "event candidates truncated at deterministic cap; scheduled denominators may exclude rows past the cap")
+	}
+	return boundaries
 }
 
 func filterComplianceEvents(events []intervals.Event, args computeComplianceRequest) []intervals.Event {
@@ -434,9 +448,9 @@ func linkedActivityForEvent(event intervals.Event, activities []complianceActivi
 	}
 	return nil, ""
 }
-func autoPairActivity(event intervals.Event, target float64, kind string, activities []complianceActivity, used map[string]bool, reserved map[string]bool) (*complianceActivity, string) {
+func autoPairActivity(event intervals.Event, target float64, kind string, requestSport string, activities []complianceActivity, used map[string]bool, reserved map[string]bool) (*complianceActivity, string) {
 	date := localDatePrefix(stringValue(event.StartDateLocal))
-	sport := stringValue(event.Type)
+	sport := firstNonEmpty(requestSport, stringValue(event.Type))
 	best := -1
 	bestDiff := math.MaxFloat64
 	for i := range activities {
@@ -502,7 +516,7 @@ func meanPtr(values []float64) *float64 {
 func breakdowns(values map[string]*complianceAccumulator) []complianceBreakdown {
 	out := make([]complianceBreakdown, 0, len(values))
 	for key, acc := range values {
-		out = append(out, complianceBreakdown{Key: key, ScheduledCount: acc.scheduled, CompletedCount: acc.completed, CompliantCount: acc.compliant, ComplianceRate: ratePtr(acc.compliant, acc.scheduled), MeanDeltaPercent: meanPtr(acc.deltaPct), MeanDelta: meanPtr(acc.delta)})
+		out = append(out, complianceBreakdown{Key: key, ScheduledCount: acc.scheduled, CompletedCount: acc.completed, CompliantCount: acc.compliant, ComplianceRate: ratePtr(acc.compliant, acc.scheduled), MeanDeltaPercent: meanPtr(acc.deltaPct), MeanDelta: meanPtr(acc.delta), DeltaSampleCount: acc.completed})
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].Key < out[j].Key })
 	return out

@@ -238,10 +238,14 @@ func collectZoneAggregate(ctx context.Context, args computeZoneRequest, fitnessC
 			date = localDatePrefix(stringValue(activity.StartDate))
 		}
 		zones, key := zoneSliceForMetric(activity.Raw, args.ZoneMetric)
-		if len(zones) == 0 && extendedClient != nil && activity.ID != "" {
+		loadRaw := activity.Raw
+		if extendedClient != nil && activity.ID != "" {
 			detail, detailErr := extendedClient.GetActivity(ctx, activity.ID)
 			if detailErr == nil {
-				zones, key = zoneSliceForMetric(detail.Raw, args.ZoneMetric)
+				loadRaw = detail.Raw
+				if len(zones) == 0 {
+					zones, key = zoneSliceForMetric(detail.Raw, args.ZoneMetric)
+				}
 			}
 		}
 		if len(zones) == 0 {
@@ -249,10 +253,10 @@ func collectZoneAggregate(ctx context.Context, args computeZoneRequest, fitnessC
 			continue
 		}
 		agg.Zones = addZoneSlices(agg.Zones, zones)
-		if activity.TrainingLoad != nil {
-			agg.TrainingLoadTotal += float64(*activity.TrainingLoad)
-		} else if value, ok := rawNumber(activity.Raw, "icu_training_load"); ok {
+		if value, ok := loadValueForZoneMetric(loadRaw, args.ZoneMetric); ok {
 			agg.TrainingLoadTotal += value
+		} else if activity.TrainingLoad != nil {
+			agg.TrainingLoadTotal += float64(*activity.TrainingLoad)
 		}
 		agg.N++
 		if date != "" {
@@ -266,6 +270,26 @@ func collectZoneAggregate(ctx context.Context, args computeZoneRequest, fitnessC
 		agg.MissingSources = append(agg.MissingSources, "precomputed_zone_times")
 	}
 	return agg, nil
+}
+
+func loadValueForZoneMetric(raw map[string]any, metric string) (float64, bool) {
+	keys := []string{}
+	switch metric {
+	case "power":
+		keys = []string{"power_load", "icu_training_load"}
+	case "heart_rate":
+		keys = []string{"hr_load", "icu_training_load"}
+	case "pace":
+		keys = []string{"pace_load", "icu_training_load"}
+	default:
+		keys = []string{"power_load", "hr_load", "pace_load", "icu_training_load"}
+	}
+	for _, key := range keys {
+		if value, ok := rawNumber(raw, key); ok {
+			return value, true
+		}
+	}
+	return 0, false
 }
 
 func zoneSliceForMetric(raw map[string]any, metric string) ([]float64, string) {
