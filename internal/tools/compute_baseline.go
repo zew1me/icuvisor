@@ -115,7 +115,10 @@ func computeBaselineHandler(fitnessClient FitnessClient, wellnessClient Wellness
 			stats.Status = "unsupported_metric_source"
 			stats.Reason = collected.UnsupportedReason
 		}
-		if collected.Truncated && stats.Status == "ok" {
+		if collected.Truncated {
+			if stats.Reason == "" && stats.Status != "ok" {
+				stats.Reason = stats.Status
+			}
 			stats.Status = "partial"
 		}
 		interpretation := analysis.InterpretBaselineZScore(metric, stats.ZScore)

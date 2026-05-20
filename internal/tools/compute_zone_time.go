@@ -273,17 +273,7 @@ func collectZoneAggregate(ctx context.Context, args computeZoneRequest, fitnessC
 }
 
 func loadValueForZoneMetric(raw map[string]any, metric string) (float64, bool) {
-	keys := []string{}
-	switch metric {
-	case "power":
-		keys = []string{"power_load", "icu_training_load"}
-	case "heart_rate":
-		keys = []string{"hr_load", "icu_training_load"}
-	case "pace":
-		keys = []string{"pace_load", "icu_training_load"}
-	default:
-		keys = []string{"power_load", "hr_load", "pace_load", "icu_training_load"}
-	}
+	keys := []string{"power_load", "hr_load", "pace_load", "icu_training_load"}
 	for _, key := range keys {
 		if value, ok := rawNumber(raw, key); ok {
 			return value, true
@@ -331,10 +321,13 @@ func loadBalanceResult(args computeZoneRequest, agg zoneAggregate, balance analy
 }
 
 func aggregateStatus(agg zoneAggregate, balance analysis.ZoneBalance) (string, string) {
+	if agg.Truncated {
+		return "partial", "activity_candidates_truncated"
+	}
 	if agg.N == 0 || balance.TotalSeconds == 0 {
 		return "unavailable", "missing_precomputed_zone_times"
 	}
-	if agg.MissingDays > 0 || len(agg.MissingSources) > 0 || agg.Truncated {
+	if agg.MissingDays > 0 || len(agg.MissingSources) > 0 {
 		return "partial", "some_days_or_sources_missing"
 	}
 	return "ok", ""

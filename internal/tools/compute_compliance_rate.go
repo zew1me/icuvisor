@@ -210,8 +210,9 @@ func computeCompliance(ctx context.Context, args computeComplianceRequest, event
 	unpaired := 0
 	autoLap := false
 	intervalUsed := false
+	intervalUnavailable := false
 	intervalEvidence := analysis.IntervalSourceResult{}
-	reservedByEvent, reservedActivities, linkConflicts := buildComplianceReservations(scheduled, activities, linked)
+	reservedByEvent, reservedActivities, linkConflicts := buildComplianceReservations(scheduled, activities, linked, args.TargetMetric)
 	for _, event := range scheduled {
 		target, targetKind, ok := complianceTarget(event, args.TargetMetric)
 		if !ok {
@@ -256,9 +257,16 @@ func computeCompliance(ctx context.Context, args computeComplianceRequest, event
 			pct = delta / target * 100
 		}
 		compliant := math.Abs(pct) <= args.TolerancePercent
-		if intervalsClient != nil && event.WorkoutDoc != nil {
-			if evidence, ierr := complianceIntervalEvidence(ctx, intervalsClient, activity.ID); ierr != nil {
+		if event.WorkoutDoc != nil {
+			if intervalsClient == nil {
+				intervalUnavailable = true
+				row.CautionReason = "interval_evidence_unavailable"
+			} else if evidence, unavailable, ierr := complianceIntervalEvidence(ctx, intervalsClient, activity.ID); ierr != nil {
 				return complianceResult{}, nil, analysis.AnalyzerMetaInput{}, ierr
+			} else if unavailable {
+				intervalUsed = true
+				intervalUnavailable = true
+				row.CautionReason = "interval_evidence_unavailable"
 			} else {
 				intervalUsed = true
 				intervalEvidence = evidence
@@ -297,20 +305,23 @@ func computeCompliance(ctx context.Context, args computeComplianceRequest, event
 		}
 		result.InsufficientReason = "no_scheduled_target_events"
 	}
-	meta := analysis.AnalyzerMetaInput{Method: "scheduled_completed_event_compliance", SourceTools: []string{getEventsName, getActivitiesName}, N: acc.scheduled, MissingDays: 0, MissingAction: analysis.MissingActionSkip, Assumptions: map[string]any{"target_metric": args.TargetMetric, "tolerance_percent": args.TolerancePercent, "activity_candidates_truncated": activityTruncated, "event_candidates_truncated": eventTruncated}, Boundaries: complianceBoundaries(activityTruncated, eventTruncated), InsufficientSample: boolPtr(acc.scheduled == 0)}
+	meta := analysis.AnalyzerMetaInput{Method: "scheduled_completed_event_compliance", SourceTools: []string{getEventsName, getActivitiesName}, N: acc.scheduled, MissingDays: 0, MissingAction: analysis.MissingActionSkip, Assumptions: map[string]any{"target_metric": args.TargetMetric, "tolerance_percent": args.TolerancePercent, "activity_candidates_truncated": activityTruncated, "event_candidates_truncated": eventTruncated}, Boundaries: complianceBoundaries(activityTruncated, eventTruncated, intervalUnavailable), InsufficientSample: boolPtr(acc.scheduled == 0)}
 	if intervalUsed {
 		meta = analysis.ApplyIntervalSourceEvidence(meta, intervalEvidence)
 	}
 	return result, series, meta, nil
 }
 
-func complianceBoundaries(activityTruncated bool, eventTruncated bool) []string {
+func complianceBoundaries(activityTruncated bool, eventTruncated bool, intervalUnavailable bool) []string {
 	boundaries := []string{"one-to-one event/activity matching", "raw streams are not used for compliance"}
 	if activityTruncated {
 		boundaries = append(boundaries, "activity candidates truncated at deterministic cap")
 	}
 	if eventTruncated {
 		boundaries = append(boundaries, "event candidates truncated at deterministic cap; scheduled denominators may exclude rows past the cap")
+	}
+	if intervalUnavailable {
+		boundaries = append(boundaries, "interval execution evidence could not be verified for one or more paired workout-doc events")
 	}
 	return boundaries
 }
@@ -385,11 +396,14 @@ func complianceActivityFromActivity(activity intervals.Activity) complianceActiv
 	}
 	return ca
 }
-func buildComplianceReservations(events []intervals.Event, activities []complianceActivity, linked map[string]string) (map[string]string, map[string]bool, map[string]bool) {
+func buildComplianceReservations(events []intervals.Event, activities []complianceActivity, linked map[string]string, targetMetric string) (map[string]string, map[string]bool, map[string]bool) {
 	reservedByEvent := map[string]string{}
 	reservedActivities := map[string]bool{}
 	conflicts := map[string]bool{}
 	for _, event := range events {
+		if _, _, ok := complianceTarget(event, targetMetric); !ok {
+			continue
+		}
 		ids := linkedActivityIDsForEvent(event, linked)
 		for _, id := range ids {
 			if findComplianceActivity(activities, id) == nil {
@@ -471,15 +485,15 @@ func autoPairActivity(event intervals.Event, target float64, kind string, reques
 	}
 	return &activities[best], "date_metric_match"
 }
-func complianceIntervalEvidence(ctx context.Context, client ActivityIntervalsClient, activityID string) (analysis.IntervalSourceResult, error) {
+func complianceIntervalEvidence(ctx context.Context, client ActivityIntervalsClient, activityID string) (analysis.IntervalSourceResult, bool, error) {
 	dto, err := client.GetActivityIntervals(ctx, activityID)
 	if err != nil {
 		if contextError(err) {
-			return analysis.IntervalSourceResult{}, err
+			return analysis.IntervalSourceResult{}, false, err
 		}
-		return analysis.IntervalSourceResult{}, nil
+		return analysis.IntervalSourceResult{}, true, nil
 	}
-	return classifyActivityIntervalsDTO(dto), nil
+	return classifyActivityIntervalsDTO(dto), false, nil
 }
 func addCompliance(acc *complianceAccumulator, compliant bool, delta, pct float64) {
 	acc.completed++
