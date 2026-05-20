@@ -65,10 +65,11 @@ func catalogTools() []Tool {
 
 func registryBaseTools(client *intervals.Client, opts registryToolOptions) []Tool {
 	capability := capabilityOrSafe(opts.capability)
-	tools := make([]Tool, 0, 41)
+	tools := make([]Tool, 0, 42)
 	tools = append(tools,
 		newGetAthleteProfileTool(client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newGetFitnessTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
+		newGetFitnessProjectionTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newGetTrainingSummaryTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newGetWellnessDataTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newUpdateWellnessTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
@@ -127,7 +128,7 @@ func toolCatalogGroup(name string) string {
 	switch name {
 	case getAthleteProfileName, updateSportSettingsName, deleteSportSettingsName, getGearListName, deleteGearName:
 		return "settings"
-	case getFitnessName, getTrainingSummaryName, getBestEffortsName, getPowerCurvesName, getHRCurvesName, getPaceCurvesName:
+	case getFitnessName, getFitnessProjectionName, getTrainingSummaryName, getBestEffortsName, getPowerCurvesName, getHRCurvesName, getPaceCurvesName:
 		return "fitness"
 	case getWellnessDataName, updateWellnessName:
 		return "wellness"
