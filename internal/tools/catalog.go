@@ -107,6 +107,10 @@ func registryBaseTools(client *intervals.Client, opts registryToolOptions) []Too
 		newGetActivityIntervalsTool(client, client, opts.version, opts.debugMetadata, opts.shaping),
 		newGetActivityStreamsTool(client, client, opts.version, opts.debugMetadata, opts.shaping),
 		newComputeActivitySegmentStatsTool(client, opts.version, opts.debugMetadata, opts.shaping),
+		newComputeZoneTimeTool(client, client, client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
+		newComputeLoadBalanceTool(client, client, client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
+		newComputeBaselineTool(client, client, client, client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
+		newComputeComplianceRateTool(client, client, client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newGetActivitySplitsTool(client, client, client, client, opts.version, opts.debugMetadata, opts.shaping),
 		newGetActivityHistogramTool(client, client, client, opts.version, opts.debugMetadata, opts.shaping),
 		newGetActivityMessagesTool(client, client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
@@ -140,7 +144,7 @@ func toolCatalogGroup(name string) string {
 		return "wellness"
 	case getActivitiesName, getActivityDetailsName, getActivityIntervalsName, getActivityStreamsName, getActivitySplitsName, getActivityHistogramName, getActivityMessagesName, addActivityMessageName, getExtendedMetricsName, deleteActivityName:
 		return "activities"
-	case computeActivitySegmentStatsName, analyzeTrendName, analyzeDistributionName, analyzeCorrelationName, analyzeEffortsDeltaName:
+	case computeActivitySegmentStatsName, analyzeTrendName, analyzeDistributionName, analyzeCorrelationName, analyzeEffortsDeltaName, computeZoneTimeName, computeLoadBalanceName, computeBaselineName, computeComplianceRateName:
 		return "analyzers"
 	case getEventsName, getEventByIDName, addOrUpdateEventName, deleteEventName, deleteEventsByDateRangeName, linkActivityToEventName:
 		return "events"
