@@ -1,0 +1,7 @@
+{
+  "id": "a-bike",
+  "name": "Tempo Ride",
+  "type": "Ride",
+  "start_date_local": "2026-05-20T07:00:00",
+  "gear_id": 123
+}

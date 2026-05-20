@@ -43,6 +43,7 @@ type registryToolOptions struct {
 	debugMetadata    bool
 	capability       safety.Capability
 	shaping          responseShaping
+	gearCache        *gearListCache
 	coachModeEnabled bool
 	coachConfig      coach.Config
 }
@@ -55,6 +56,7 @@ func catalogTools() []Tool {
 		timezoneFallback: "UTC",
 		capability:       safety.NewCapability(safety.ModeFull),
 		shaping:          shaping,
+		gearCache:        newGearListCache(),
 		coachModeEnabled: true,
 	})
 	tools = append(tools, newListAdvancedCapabilitiesTool(tools, safety.ToolsetFull, shaping))
@@ -73,7 +75,7 @@ func registryBaseTools(client *intervals.Client, opts registryToolOptions) []Too
 		newUpdateSportSettingsTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, capability, opts.shaping),
 		newGetBestEffortsTool(client, opts.version, opts.debugMetadata, opts.shaping),
 		newGetPowerCurvesTool(client, opts.version, opts.debugMetadata, opts.shaping),
-		newGetActivitiesTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
+		newGetActivitiesToolWithGear(client, client, client, opts.gearCache, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newGetEventsTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newGetEventByIDTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newAddOrUpdateEventTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
@@ -93,7 +95,7 @@ func registryBaseTools(client *intervals.Client, opts registryToolOptions) []Too
 		newCreateCustomItemTool(client, client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newUpdateCustomItemTool(client, client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newDeleteCustomItemTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
-		newGetActivityDetailsTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
+		newGetActivityDetailsToolWithGear(client, client, client, opts.gearCache, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newDeleteActivityTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newGetActivityIntervalsTool(client, client, opts.version, opts.debugMetadata, opts.shaping),
 		newGetActivityStreamsTool(client, client, opts.version, opts.debugMetadata, opts.shaping),
@@ -101,6 +103,7 @@ func registryBaseTools(client *intervals.Client, opts registryToolOptions) []Too
 		newGetActivityMessagesTool(client, client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newAddActivityMessageTool(client, client, opts.version, opts.debugMetadata, opts.shaping),
 		newGetExtendedMetricsTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
+		newGetGearListTool(client, opts.gearCache, opts.version, opts.debugMetadata, opts.shaping),
 		newDeleteGearTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 	)
 	if opts.coachModeEnabled {
@@ -120,7 +123,7 @@ func sortToolDescriptors(descriptors []ToolDescriptor) {
 
 func toolCatalogGroup(name string) string {
 	switch name {
-	case getAthleteProfileName, updateSportSettingsName, deleteSportSettingsName, deleteGearName:
+	case getAthleteProfileName, updateSportSettingsName, deleteSportSettingsName, getGearListName, deleteGearName:
 		return "settings"
 	case getFitnessName, getTrainingSummaryName, getBestEffortsName, getPowerCurvesName:
 		return "fitness"
