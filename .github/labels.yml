@@ -110,6 +110,21 @@
 - name: "area: ci"
   color: "1d76db"
   description: GitHub Actions workflows.
+- name: "area: response-shaping"
+  color: "1d76db"
+  description: Terse/full shaping, _meta, scale labels, unit normalization.
+- name: "area: safety"
+  color: "1d76db"
+  description: Delete-mode resolution and registration-time gating.
+- name: "area: workout-doc"
+  color: "1d76db"
+  description: WorkoutDoc DSL parse/serialize.
+- name: "area: prompts"
+  color: "1d76db"
+  description: Curated MCP prompt registry.
+- name: "area: resources"
+  color: "1d76db"
+  description: MCP Resources (workout syntax, schemas, athlete profile).
 
 # --- MCP client tagging ------------------------------------------------------
 - name: "client: claude-desktop"
@@ -152,12 +167,6 @@
 - name: "dependencies"
   color: "0366d6"
   description: Updates a dependency.
-- name: "go"
-  color: "00add8"
-  description: Go-language related.
-- name: "ci"
-  color: "ededed"
-  description: Continuous integration changes.
 - name: "breaking-change"
   color: "b60205"
   description: Backwards-incompatible change.
