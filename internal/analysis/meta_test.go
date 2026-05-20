@@ -35,6 +35,14 @@ func TestNewAnalyzerMetaNormalizesDefaults(t *testing.T) {
 	}
 }
 
+func TestNewAnalyzerMetaHonorsExplicitInsufficientSample(t *testing.T) {
+	explicit := true
+	got := NewAnalyzerMeta(AnalyzerMetaInput{N: MinBaselineSamples, MinSamples: MinBaselineSamples, InsufficientSample: &explicit})
+	if !got.InsufficientSample {
+		t.Fatalf("InsufficientSample = false, want explicit true")
+	}
+}
+
 func TestInsufficientSample(t *testing.T) {
 	tests := []struct {
 		name string

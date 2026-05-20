@@ -118,23 +118,35 @@ func RequiredSegmentStreamKeys(stat string, metric string, axis string) ([]strin
 	return dedupeStrings(keys), nil
 }
 
-func ComputeActivitySegmentStats(input SegmentStatsInput) (SegmentStatsResult, error) {
+func ValidateSegmentStatsInput(input SegmentStatsInput) ([]string, error) {
 	stat := strings.TrimSpace(input.Stat)
 	metric := strings.TrimSpace(input.Metric)
 	bounds := input.Bounds
 	bounds.Axis = strings.TrimSpace(bounds.Axis)
 	keys, err := RequiredSegmentStreamKeys(stat, metric, bounds.Axis)
 	if err != nil {
-		return SegmentStatsResult{}, err
+		return nil, err
 	}
 	if err := validateBounds(bounds); err != nil {
-		return SegmentStatsResult{}, err
+		return nil, err
 	}
 	if stat == SegmentStatIF && (!finite(input.FTPWatts) || input.FTPWatts <= 0) {
-		return SegmentStatsResult{}, fmt.Errorf("%w: ftp_watts is required and must be positive for if", ErrInvalidSegmentStatsInput)
+		return nil, fmt.Errorf("%w: ftp_watts is required and must be positive for if", ErrInvalidSegmentStatsInput)
 	}
 	if stat != SegmentStatIF && input.FTPWatts != 0 {
-		return SegmentStatsResult{}, fmt.Errorf("%w: ftp_watts is accepted only for if", ErrInvalidSegmentStatsInput)
+		return nil, fmt.Errorf("%w: ftp_watts is accepted only for if", ErrInvalidSegmentStatsInput)
+	}
+	return keys, nil
+}
+
+func ComputeActivitySegmentStats(input SegmentStatsInput) (SegmentStatsResult, error) {
+	stat := strings.TrimSpace(input.Stat)
+	metric := strings.TrimSpace(input.Metric)
+	bounds := input.Bounds
+	bounds.Axis = strings.TrimSpace(bounds.Axis)
+	keys, err := ValidateSegmentStatsInput(SegmentStatsInput{Stat: stat, Metric: metric, Bounds: bounds, FTPWatts: input.FTPWatts})
+	if err != nil {
+		return SegmentStatsResult{}, err
 	}
 	streams, err := requiredStreams(input.Streams, keys)
 	if err != nil {
@@ -185,7 +197,7 @@ func computeScalarSegmentStat(result SegmentStatsResult, stat string, metric str
 	case SegmentStatP90:
 		value = nearestRankPercentile(finiteValues, 0.90)
 	}
-	result.Value = floatPtr(round(value, 6))
+	result.Value = floatPtr(round6(value))
 	result.Audit = map[string][]float64{metric: append([]float64(nil), finiteValues...)}
 	return result
 }
@@ -211,20 +223,15 @@ func computeDrift(result SegmentStatsResult, times []float64, heartRate []float6
 		return result
 	}
 	value := 100 * (secondAvg - firstAvg) / firstAvg
-	result.Value = floatPtr(round(value, 6))
-	result.Details = map[string]float64{"avg_hr_first_half": round(firstAvg, 6), "avg_hr_second_half": round(secondAvg, 6)}
+	result.Value = floatPtr(round6(value))
+	result.Details = map[string]float64{"avg_hr_first_half": round6(firstAvg), "avg_hr_second_half": round6(secondAvg)}
 	result.Audit = map[string][]float64{"heart_rate_first_half": first, "heart_rate_second_half": second}
 	return result
 }
 
 func computeDecoupling(result SegmentStatsResult, times []float64, heartRate []float64, watts []float64, indices []int) SegmentStatsResult {
-	first, second := splitHalfPairs(times, indices, func(idx int) (float64, bool) {
-		hr := heartRate[idx]
-		power := watts[idx]
-		if !finite(hr) || !finite(power) {
-			return 0, false
-		}
-		return float64(idx), true
+	first, second := splitHalfIndices(times, indices, func(idx int) bool {
+		return finite(heartRate[idx]) && finite(watts[idx])
 	})
 	result.N = len(first) + len(second)
 	result.MinSamples = minSplitHalfSamples * 2
@@ -248,8 +255,9 @@ func computeDecoupling(result SegmentStatsResult, times []float64, heartRate []f
 		return result
 	}
 	value := 100 * (firstRatio - secondRatio) / firstRatio
-	result.Value = floatPtr(round(value, 6))
-	result.Details = map[string]float64{"avg_hr_first_half": round(firstHR, 6), "avg_hr_second_half": round(secondHR, 6), "avg_power_first_half": round(firstPower, 6), "avg_power_second_half": round(secondPower, 6), "ratio_first": round(firstRatio, 6), "ratio_second": round(secondRatio, 6)}
+	result.Value = floatPtr(round6(value))
+	result.Details = map[string]float64{"avg_hr_first_half": round6(firstHR), "avg_hr_second_half": round6(secondHR), "avg_power_first_half": round6(firstPower), "avg_power_second_half": round6(secondPower), "ratio_first": round6(firstRatio), "ratio_second": round6(secondRatio)}
+	result.Audit = map[string][]float64{"heart_rate_first_half": valuesAt(first, heartRate), "heart_rate_second_half": valuesAt(second, heartRate), "watts_first_half": valuesAt(first, watts), "watts_second_half": valuesAt(second, watts)}
 	return result
 }
 
@@ -264,7 +272,7 @@ func computeNP(result SegmentStatsResult, times []float64, watts []float64, indi
 		return result
 	}
 	value := normalizedPower(windows)
-	result.Value = floatPtr(round(value, 6))
+	result.Value = floatPtr(round6(value))
 	result.Audit = map[string][]float64{"rolling_30s_avg_watts": windows}
 	return result
 }
@@ -278,9 +286,9 @@ func computeIF(result SegmentStatsResult, times []float64, watts []float64, indi
 		return result
 	}
 	np := *result.Value
-	result.Details = map[string]float64{"normalized_power_watts": round(np, 6), "ftp_watts": round(ftpWatts, 6)}
+	result.Details = map[string]float64{"normalized_power_watts": round6(np), "ftp_watts": round6(ftpWatts)}
 	value := np / ftpWatts
-	result.Value = floatPtr(round(value, 6))
+	result.Value = floatPtr(round6(value))
 	return result
 }
 
@@ -362,15 +370,44 @@ func splitHalfPairs(times []float64, indices []int, valueAt func(int) (float64, 
 	return first, second
 }
 
-func pairedMeans(encodedIndices []float64, heartRate []float64, watts []float64) (float64, float64) {
-	hrs := make([]float64, 0, len(encodedIndices))
-	powers := make([]float64, 0, len(encodedIndices))
-	for _, encoded := range encodedIndices {
-		idx := int(encoded)
+func splitHalfIndices(times []float64, indices []int, valid func(int) bool) ([]int, []int) {
+	if len(indices) == 0 {
+		return nil, nil
+	}
+	start := times[indices[0]]
+	end := times[indices[len(indices)-1]]
+	mid := start + (end-start)/2
+	first := []int{}
+	second := []int{}
+	for _, idx := range indices {
+		if !valid(idx) {
+			continue
+		}
+		if times[idx] < mid {
+			first = append(first, idx)
+		} else {
+			second = append(second, idx)
+		}
+	}
+	return first, second
+}
+
+func pairedMeans(indices []int, heartRate []float64, watts []float64) (float64, float64) {
+	hrs := make([]float64, 0, len(indices))
+	powers := make([]float64, 0, len(indices))
+	for _, idx := range indices {
 		hrs = append(hrs, heartRate[idx])
 		powers = append(powers, watts[idx])
 	}
 	return mean(hrs), mean(powers)
+}
+
+func valuesAt(indices []int, values []float64) []float64 {
+	out := make([]float64, 0, len(indices))
+	for _, idx := range indices {
+		out = append(out, values[idx])
+	}
+	return out
 }
 
 func rollingPowerWindows(times []float64, watts []float64, indices []int) []float64 {
@@ -490,7 +527,7 @@ func floatPtr(value float64) *float64 {
 	return &value
 }
 
-func round(value float64, precision int) float64 {
-	factor := math.Pow(10, float64(precision))
+func round6(value float64) float64 {
+	const factor = 1_000_000.0
 	return math.Round(value*factor) / factor
 }

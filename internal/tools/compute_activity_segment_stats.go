@@ -79,7 +79,7 @@ func computeActivitySegmentStatsHandler(client ActivityStreamsClient, version st
 			return Result{}, NewUserError(message, err)
 		}
 		result := activitySegmentStatsResult{ActivityID: args.ActivityID, Stat: computed.Stat, Metric: computed.Metric, Value: computed.Value, Unit: computed.Unit, Segment: computed.Segment, MinSamples: computed.MinSamples, InsufficientSample: computed.InsufficientSample, StreamsUsed: computed.StreamsUsed, Details: computed.Details}
-		return encodeAnalyzerResponse(analyzerResponseInput{Result: result, Series: computed.Audit, Meta: analysis.AnalyzerMetaInput{Method: computed.Method, SourceTools: []string{getActivityStreamsName}, N: computed.N, MinSamples: computed.MinSamples, FormulaRef: computed.FormulaRef}}, args.IncludeFull, version, debugMetadata, computeActivitySegmentStatsName, response.UnitSystemMetric, shapeCfg)
+		return encodeAnalyzerResponse(analyzerResponseInput{Result: result, Series: computed.Audit, Meta: analysis.AnalyzerMetaInput{Method: computed.Method, SourceTools: []string{getActivityStreamsName}, N: computed.N, MinSamples: computed.MinSamples, FormulaRef: computed.FormulaRef, InsufficientSample: &computed.InsufficientSample}}, args.IncludeFull, version, debugMetadata, computeActivitySegmentStatsName, response.UnitSystemMetric, shapeCfg)
 	}
 }
 
@@ -93,7 +93,7 @@ func activitySegmentStatsInput(args computeActivitySegmentStatsRequest) (analysi
 		ftpWatts = *args.FTPWatts
 	}
 	input := analysis.SegmentStatsInput{Stat: strings.TrimSpace(args.Stat), Metric: strings.TrimSpace(args.Metric), Bounds: bounds, FTPWatts: ftpWatts}
-	required, err := analysis.RequiredSegmentStreamKeys(input.Stat, input.Metric, input.Bounds.Axis)
+	required, err := analysis.ValidateSegmentStatsInput(input)
 	if err != nil {
 		return analysis.SegmentStatsInput{}, nil, err
 	}

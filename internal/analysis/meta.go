@@ -27,13 +27,14 @@ type AnalyzerMeta struct {
 
 // AnalyzerMetaInput describes analyzer metadata before normalization.
 type AnalyzerMetaInput struct {
-	Method        string
-	SourceTools   []string
-	N             int
-	MissingDays   int
-	MissingAction string
-	MinSamples    int
-	FormulaRef    string
+	Method             string
+	SourceTools        []string
+	N                  int
+	MissingDays        int
+	MissingAction      string
+	MinSamples         int
+	FormulaRef         string
+	InsufficientSample *bool
 }
 
 // NewAnalyzerMeta normalizes analyzer metadata while preserving mandatory fields.
@@ -50,13 +51,17 @@ func NewAnalyzerMeta(input AnalyzerMetaInput) AnalyzerMeta {
 	if missingAction == "" {
 		missingAction = MissingActionSkip
 	}
+	insufficientSample := InsufficientSample(n, input.MinSamples)
+	if input.InsufficientSample != nil {
+		insufficientSample = *input.InsufficientSample
+	}
 	return AnalyzerMeta{
 		Method:             strings.TrimSpace(input.Method),
 		SourceTools:        NormalizeSourceTools(input.SourceTools),
 		N:                  n,
 		MissingDays:        missingDays,
 		MissingAction:      missingAction,
-		InsufficientSample: InsufficientSample(n, input.MinSamples),
+		InsufficientSample: insufficientSample,
 		FormulaRef:         strings.TrimSpace(input.FormulaRef),
 	}
 }
