@@ -276,7 +276,7 @@
     "group": "wellness",
     "tier": "core",
     "safety": "read",
-    "summary": "Get daily wellness rows for a local date range with distinct sleepQuality, sleepScore, sleepSecs, custom fields, and native provider sidecars.",
+    "summary": "Get daily wellness rows for a local date range with distinct sleepQuality, sleepScore, sleepSecs, custom fields, native provider sidecars, and provider-native provenance scale labels for sleep/readiness.",
     "anchor": "get_wellness_data"
   },
   {

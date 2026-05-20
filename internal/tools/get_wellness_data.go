@@ -13,7 +13,7 @@ import (
 
 const (
 	getWellnessDataName                    = "get_wellness_data"
-	getWellnessDataDescription             = "Get daily wellness rows for a local date range with distinct sleepQuality, sleepScore, sleepSecs, custom fields, and native provider sidecars. Dates are athlete-local YYYY-MM-DD values."
+	getWellnessDataDescription             = "Get daily wellness rows for a local date range with distinct sleepQuality, sleepScore, sleepSecs, custom fields, native provider sidecars, and provider-native provenance scale labels for sleep/readiness. Dates are athlete-local YYYY-MM-DD values."
 	invalidGetWellnessDataArgumentsMessage = "invalid get_wellness_data arguments; provide oldest/newest dates as YYYY-MM-DD and optional include_full"
 	fetchWellnessDataMessage               = "could not fetch wellness data; check intervals.icu credentials, athlete ID, and date range"
 )
@@ -464,5 +464,5 @@ func wellnessDataInputSchema() map[string]any {
 }
 
 func getWellnessDataOutputSchema() map[string]any {
-	return map[string]any{"type": "object", "additionalProperties": true, "description": "Daily wellness rows with distinct sleepQuality (1-4), sleepScore (0-100), sleepSecs, custom fields, and _native provider fields."}
+	return map[string]any{"type": "object", "additionalProperties": true, "description": "Daily wellness rows with distinct sleepQuality (1-4), canonical sleepScore scale metadata, sleepSecs, custom fields, _native provider fields, and _meta.provenance.<field>.native_scale labels for Garmin, WHOOP, Oura, Polar, or unknown sources."}
 }
