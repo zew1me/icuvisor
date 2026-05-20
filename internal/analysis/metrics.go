@@ -92,9 +92,6 @@ func ParseMetric(input string) (Metric, error) {
 	if trimmed == "" {
 		return "", InvalidMetricError{Input: input, Hint: supportedMetricHint()}
 	}
-	if looksLikeExpression(trimmed) {
-		return "", InvalidMetricError{Input: input, Hint: "expressions are not supported; choose a supported metric"}
-	}
 	normalized := normalizeAliasKey(trimmed)
 	if metric, ok := aliasToMetric[normalized]; ok {
 		return metric, nil
