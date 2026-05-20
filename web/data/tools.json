@@ -88,6 +88,38 @@
     "anchor": "compute_activity_segment_stats"
   },
   {
+    "name": "compute_baseline",
+    "group": "analyzers",
+    "tier": "full",
+    "safety": "read",
+    "summary": "Use this when the user asks whether a metric is high, low, suppressed, elevated, or unusual versus a baseline window.",
+    "anchor": "compute_baseline"
+  },
+  {
+    "name": "compute_compliance_rate",
+    "group": "analyzers",
+    "tier": "full",
+    "safety": "read",
+    "summary": "Use this when the user asks how well completed activities matched scheduled workouts, targets, sport, or event type.",
+    "anchor": "compute_compliance_rate"
+  },
+  {
+    "name": "compute_load_balance",
+    "group": "analyzers",
+    "tier": "full",
+    "safety": "read",
+    "summary": "Use this when the user asks whether training distribution is polarized, pyramidal, threshold-heavy, or balanced across low/moderate/high intensity.",
+    "anchor": "compute_load_balance"
+  },
+  {
+    "name": "compute_zone_time",
+    "group": "analyzers",
+    "tier": "full",
+    "safety": "read",
+    "summary": "Use this when the user asks for time in power, heart-rate, or pace zones over a date window.",
+    "anchor": "compute_zone_time"
+  },
+  {
     "name": "list_athletes",
     "group": "coach",
     "tier": "core",

@@ -16,7 +16,7 @@ import (
 
 const (
 	computeBaselineName                    = "compute_baseline"
-	computeBaselineDescription             = "Compute a deterministic baseline z-score from existing read-tool outputs; do not fetch rows or streams and reduce manually. Returns wellness interpretation and explicit insufficient-data signals."
+	computeBaselineDescription             = "Use this when the user asks whether a metric is high, low, suppressed, elevated, or unusual versus a baseline window. Do not pull/fetch rows or streams and reduce manually; this tool computes z-scores from existing read outputs with wellness interpretation and explicit insufficient-data signals."
 	invalidComputeBaselineArgumentsMessage = "invalid compute_baseline arguments; provide metric, baseline/current date windows, optional sport, and min_samples >= 2"
 	fetchComputeBaselineMessage            = "could not compute baseline; check intervals.icu credentials, athlete ID, and date range"
 )

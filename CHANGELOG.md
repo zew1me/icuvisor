@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `compute_zone_time`, `compute_load_balance`, `compute_baseline`, and `compute_compliance_rate` are registered in the full toolset as deterministic analyzer-family compute tools using existing read outputs, mandatory analyzer `_meta`, explicit missing/insufficient signals, and activation hints that tell assistants not to roll their own row/stream reductions.
 - `get_activity_histogram` summarizes one activity's power, heart-rate, or pace distribution into terse bucketed seconds/percentages using configured zones when available and fixed-width stream buckets otherwise.
 - `compute_activity_segment_stats` is registered in the full toolset as the analyzer-family raw-stream exception, computing segment mean/median/p90, drift, Pw:HR decoupling, NP, and IF from canonical activity streams with mandatory analyzer `_meta`.
 - `get_fitness_projection` simulates deterministic CTL/ATL/TSB scenarios from current fitness with horizon, ramp, recovery-week, and optional planned-load assumptions documented in analyzer `_meta`.

@@ -11,6 +11,10 @@ const (
 	AddOrUpdateEvent                 = "add_or_update_event"
 	ApplyTrainingPlan                = "apply_training_plan"
 	ComputeActivitySegmentStats      = "compute_activity_segment_stats"
+	ComputeBaseline                  = "compute_baseline"
+	ComputeComplianceRate            = "compute_compliance_rate"
+	ComputeLoadBalance               = "compute_load_balance"
+	ComputeZoneTime                  = "compute_zone_time"
 	CreateCustomItem                 = "create_custom_item"
 	CreateWorkout                    = "create_workout"
 	DeleteActivity                   = "delete_activity"
@@ -60,6 +64,10 @@ var athleteScopedToolNames = []string{
 	AddOrUpdateEvent,
 	ApplyTrainingPlan,
 	ComputeActivitySegmentStats,
+	ComputeBaseline,
+	ComputeComplianceRate,
+	ComputeLoadBalance,
+	ComputeZoneTime,
 	CreateCustomItem,
 	CreateWorkout,
 	DeleteActivity,

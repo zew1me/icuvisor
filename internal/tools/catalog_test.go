@@ -91,10 +91,6 @@ func TestCatalogMatchesRegistryAndPRDRegisteredTools(t *testing.T) {
 		"analyze_distribution",
 		"analyze_correlation",
 		"analyze_efforts_delta",
-		"compute_zone_time",
-		"compute_load_balance",
-		"compute_baseline",
-		"compute_compliance_rate",
 	}
 	for _, name := range analyzerGhosts {
 		if _, exists := registeredNames[name]; exists {
@@ -106,19 +102,28 @@ func TestCatalogMatchesRegistryAndPRDRegisteredTools(t *testing.T) {
 	}
 }
 
-func TestCatalogIncludesActivitySegmentStatsAsFullAnalyzer(t *testing.T) {
+func TestCatalogIncludesFullAnalyzers(t *testing.T) {
 	t.Parallel()
 
 	descriptors := descriptorNameSet(Catalog())
-	descriptor, exists := descriptors[computeActivitySegmentStatsName]
-	if !exists {
-		t.Fatalf("Catalog() missing %q", computeActivitySegmentStatsName)
+	cases := map[string]string{
+		computeActivitySegmentStatsName: "raw-stream exception",
+		computeZoneTimeName:             "Use this when the user asks for time in power, heart-rate, or pace zones",
+		computeLoadBalanceName:          "Use this when the user asks whether training distribution is polarized",
+		computeBaselineName:             "Use this when the user asks whether a metric is high, low, suppressed, elevated, or unusual",
+		computeComplianceRateName:       "Use this when the user asks how well completed activities matched scheduled workouts",
 	}
-	if descriptor.Group != "analyzers" || descriptor.Tier != string(safety.ToolsetFull) {
-		t.Fatalf("descriptor = %#v, want analyzers/full", descriptor)
-	}
-	if !strings.Contains(descriptor.Summary, "raw-stream exception") {
-		t.Fatalf("summary = %q, want raw-stream exception", descriptor.Summary)
+	for name, summaryNeedle := range cases {
+		descriptor, exists := descriptors[name]
+		if !exists {
+			t.Fatalf("Catalog() missing %q", name)
+		}
+		if descriptor.Group != "analyzers" || descriptor.Tier != string(safety.ToolsetFull) {
+			t.Fatalf("descriptor = %#v, want analyzers/full", descriptor)
+		}
+		if !strings.Contains(descriptor.Summary, summaryNeedle) {
+			t.Fatalf("summary for %s = %q, want %q", name, descriptor.Summary, summaryNeedle)
+		}
 	}
 }
 

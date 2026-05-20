@@ -17,8 +17,8 @@ import (
 const (
 	computeZoneTimeName                = "compute_zone_time"
 	computeLoadBalanceName             = "compute_load_balance"
-	computeZoneTimeDescription         = "Compute deterministic zone time from upstream precomputed zone fields; do not fetch rows or streams and reduce manually. Returns polarization metadata and explicit missing/unavailable signals."
-	computeLoadBalanceDescription      = "Compute deterministic low/moderate/high load balance from upstream precomputed zone fields; do not fetch rows or streams and reduce manually. Returns polarization classification and explicit missing/unavailable signals."
+	computeZoneTimeDescription         = "Use this when the user asks for time in power, heart-rate, or pace zones over a date window. Do not pull/fetch rows or streams and reduce manually; this tool uses upstream precomputed zone fields and returns polarization metadata with explicit missing/unavailable signals."
+	computeLoadBalanceDescription      = "Use this when the user asks whether training distribution is polarized, pyramidal, threshold-heavy, or balanced across low/moderate/high intensity. Do not pull/fetch rows or streams and reduce manually; this tool uses upstream precomputed zone fields and returns classification with explicit missing/unavailable signals."
 	invalidComputeZoneArgumentsMessage = "invalid compute zone arguments; provide valid dates, optional sport, and zone_metric power/heart_rate/pace"
 	fetchComputeZoneMessage            = "could not compute zone aggregate; check intervals.icu credentials, athlete ID, and date range"
 	maxComputeActivityCandidates       = 500
