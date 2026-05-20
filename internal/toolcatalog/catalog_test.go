@@ -53,6 +53,9 @@ func TestToolSets(t *testing.T) {
 	if !IsAthleteScopedTool(GetAthleteProfile) {
 		t.Fatal("get_athlete_profile should be athlete-scoped")
 	}
+	if !IsAthleteScopedTool(GetGearList) {
+		t.Fatal("get_gear_list should be athlete-scoped")
+	}
 	if len(AllToolNames()) <= len(AthleteScopedToolNames()) {
 		t.Fatal("all tool names should include non-athlete-scoped control tools")
 	}

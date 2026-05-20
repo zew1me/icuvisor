@@ -1246,8 +1246,10 @@ func TestProtocolListAdvancedCapabilitiesVisibilityWithRealRegistry(t *testing.T
 			t.Fatalf("core tools/list = %v, missing %s", got, wantName)
 		}
 	}
-	if slices.Contains(got, "get_power_curves") {
-		t.Fatalf("core tools/list = %v, should hide get_power_curves", got)
+	for _, hiddenName := range []string{"get_power_curves", "get_gear_list"} {
+		if slices.Contains(got, hiddenName) {
+			t.Fatalf("core tools/list = %v, should hide %s", got, hiddenName)
+		}
 	}
 
 	fullRegistry := tools.NewRegistryWithOptions(newNoNetworkProtocolClient(t), tools.RegistryOptions{Version: "test", TimezoneFallback: "UTC", Toolset: safety.ToolsetFull})
@@ -1261,10 +1263,13 @@ func TestProtocolListAdvancedCapabilitiesVisibilityWithRealRegistry(t *testing.T
 	for _, tool := range fullResult.Tools {
 		fullNames = append(fullNames, tool.Name)
 	}
-	for _, wantName := range []string{"get_power_curves", "icuvisor_list_advanced_capabilities"} {
+	for _, wantName := range []string{"get_power_curves", "get_gear_list", "icuvisor_list_advanced_capabilities"} {
 		if !slices.Contains(fullNames, wantName) {
 			t.Fatalf("full tools/list = %v, missing %s", fullNames, wantName)
 		}
+	}
+	if slices.Contains(fullNames, "delete_gear") {
+		t.Fatalf("safe full tools/list = %v, should keep delete_gear hidden while get_gear_list remains visible", fullNames)
 	}
 }
 

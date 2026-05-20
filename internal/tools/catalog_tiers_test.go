@@ -46,6 +46,7 @@ func TestRegisteredToolTierMembership(t *testing.T) {
 		listAdvancedCapabilitiesName: safety.ToolsetCore,
 		getPowerCurvesName:           safety.ToolsetFull,
 		getExtendedMetricsName:       safety.ToolsetFull,
+		getGearListName:              safety.ToolsetFull,
 		getActivityStreamsName:       safety.ToolsetFull,
 		getTrainingPlanName:          safety.ToolsetFull,
 		applyTrainingPlanName:        safety.ToolsetFull,
