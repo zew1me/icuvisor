@@ -19,7 +19,7 @@ const (
 	maxActivitiesPageSize                = 200
 	maxActivityPageFetches               = 5
 	maxActivityFetchLimit                = 201
-	stravaWorkaround                     = "connect device directly to intervals.icu (Garmin, Wahoo, Coros, Suunto, Polar)"
+	stravaUnknownProviderWorkaround      = "Open the intervals.icu Connections page for the activity's original device provider and click Download old data so historical activities are re-imported directly from that provider instead of through Strava's restricted API."
 )
 
 var terseActivityFields = []string{
