@@ -202,7 +202,7 @@ Union of upstream tool sets, deduplicated, with names harmonized. Each tool ship
 - `get_activity_messages` — fetch comments/notes.
 - `add_activity_message` — post a comment (forum #99).
 - `link_activity_to_event` — pair a completed activity with its planned event so compliance/adherence is computed against the right target (forum #97). Where intervals.icu auto-pairs by date+type, this tool is a manual override for the cases auto-pairing misses.
-- `get_extended_metrics` — second-order metrics not exposed on the base activity payload. Target field set (subject to upstream availability per §7.4 #4): running dynamics (GCT, vertical oscillation, stride length, GCT balance), DFA α1, W' balance, core temp, cardiac decoupling (Pw:HR), HR drift %, aerobic decoupling, power-zone distribution, pace-zone time, cadence-by-zone, joules above FTP, intensity factor, variability index, polarization index, TRIMP, strain score, HR/pace/power load, left/right balance, RPE / feel / session-RPE, compliance %, device name (forum #62, #70).
+- `get_extended_metrics` — second-order metrics not exposed on the base activity payload. Target field set (subject to upstream availability per §7.4 #4): running dynamics (GCT, vertical oscillation, stride length, GCT balance), DFA α1, W' balance, core temp, cardiac decoupling (Pw:HR), HR drift %, aerobic decoupling, power-zone distribution, pace-zone time, cadence-by-zone, joules above FTP, intensity factor, variability index, polarization index, TRIMP, strain score (with its critical-power / W' / P-max strain-score model parameters), HR/pace/power load, left/right balance, RPE / feel / session-RPE, compliance %, device name (forum #62, #70).
 - `get_training_summary` — aggregated volume/TSS/zones.
 
 **Wellness**

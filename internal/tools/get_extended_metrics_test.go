@@ -227,6 +227,60 @@ func TestExtendedMetricsDropsUnavailableFieldsAndConvertsUnits(t *testing.T) {
 	}
 }
 
+func TestExtendedMetricsStrainScoreModelParameters(t *testing.T) {
+	t.Parallel()
+
+	t.Run("present and W' converted to kJ", func(t *testing.T) {
+		t.Parallel()
+
+		client := newFakeExtendedMetricsClient(t)
+		client.activity = decodeActivityFileFixture(t, "../../testdata/extended-metrics/activity-detail-extended.json")
+		client.intervalsErr = intervals.ErrNotFound
+		client.powerErr = intervals.ErrNotFound
+		tool := newGetExtendedMetricsTool(client, client, "test", "UTC", false)
+
+		result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"activity_id":"activity-redacted"}`)})
+		if err != nil {
+			t.Fatalf("Handler() error = %v", err)
+		}
+		metrics := resultMap(t, result)["metrics"].(map[string]any)
+		if metrics["strain_score_cp_watts"] != float64(265) {
+			t.Fatalf("strain_score_cp_watts = %v, want 265", metrics["strain_score_cp_watts"])
+		}
+		if metrics["strain_score_w_prime_kj"] != float64(19.5) {
+			t.Fatalf("strain_score_w_prime_kj = %v, want 19.5", metrics["strain_score_w_prime_kj"])
+		}
+		if metrics["strain_score_p_max_watts"] != float64(1100) {
+			t.Fatalf("strain_score_p_max_watts = %v, want 1100", metrics["strain_score_p_max_watts"])
+		}
+		units := resultMap(t, result)["_meta"].(map[string]any)["extended_metric_units"].(map[string]any)
+		if units["strain_score_cp_watts"] != "WATTS" || units["strain_score_w_prime_kj"] != "KJ" || units["strain_score_p_max_watts"] != "WATTS" {
+			t.Fatalf("extended_metric_units = %#v", units)
+		}
+	})
+
+	t.Run("omitted when upstream lacks the model fit", func(t *testing.T) {
+		t.Parallel()
+
+		client := newFakeExtendedMetricsClient(t)
+		client.activity = decodeExtendedMetricsActivity(t, `{"id":"activity-9","name":"Ride","strain_score":40,"ss_cp":null,"ss_w_prime":null,"ss_p_max":null}`)
+		client.intervalsErr = intervals.ErrNotFound
+		client.powerErr = intervals.ErrNotFound
+		tool := newGetExtendedMetricsTool(client, client, "test", "UTC", false)
+
+		result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"activity_id":"activity-9"}`)})
+		if err != nil {
+			t.Fatalf("Handler() error = %v", err)
+		}
+		metrics := resultMap(t, result)["metrics"].(map[string]any)
+		for _, key := range []string{"strain_score_cp_watts", "strain_score_w_prime_kj", "strain_score_p_max_watts"} {
+			if _, ok := metrics[key]; ok {
+				t.Fatalf("%s emitted despite null upstream value", key)
+			}
+		}
+	})
+}
+
 func TestExtendedMetricsRawHelpersHandleEdgeTypes(t *testing.T) {
 	t.Parallel()
 

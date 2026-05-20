@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `get_extended_metrics` now surfaces the strain-score power-duration model parameters when intervals.icu has fitted them: `strain_score_cp_watts` (critical power), `strain_score_w_prime_kj` (W', converted from upstream joules), and `strain_score_p_max_watts` (maximal power). Terse mode still drops them when upstream returns null.
 - Homebrew install path: releases now produce a `darwin_universal` tarball and publish a Homebrew formula to the [`ricardocabral/homebrew-icuvisor`](https://github.com/ricardocabral/homebrew-icuvisor) tap. Install with `brew install ricardocabral/icuvisor/icuvisor`. The macOS tarball binary is not yet codesigned independently of the DMG, so first run may require dismissing Gatekeeper; signing the tarball binary is tracked as a follow-up.
 
 ## [0.0.2] - 2026-05-19

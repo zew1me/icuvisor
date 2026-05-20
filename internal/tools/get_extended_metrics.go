@@ -54,6 +54,9 @@ type extendedActivityMetrics struct {
 	PolarizationIndex            *float64  `json:"polarization_index,omitempty"`
 	TRIMP                        *float64  `json:"trimp,omitempty"`
 	StrainScore                  *float64  `json:"strain_score,omitempty"`
+	StrainScoreCPWatts           *float64  `json:"strain_score_cp_watts,omitempty"`
+	StrainScoreWPrimeKJ          *float64  `json:"strain_score_w_prime_kj,omitempty"`
+	StrainScorePMaxWatts         *float64  `json:"strain_score_p_max_watts,omitempty"`
 	HRLoad                       *float64  `json:"hr_load,omitempty"`
 	PaceLoad                     *float64  `json:"pace_load,omitempty"`
 	PowerLoad                    *float64  `json:"power_load,omitempty"`
@@ -229,6 +232,9 @@ func extendedMetricsFromActivity(raw map[string]any, powerVsHR intervals.PowerVs
 	out.PolarizationIndex = rawNumberPtr(raw, "polarization_index")
 	out.TRIMP = rawNumberPtr(raw, "trimp")
 	out.StrainScore = rawNumberPtr(raw, "strain_score")
+	out.StrainScoreCPWatts = rawNumberPtr(raw, "ss_cp")
+	out.StrainScoreWPrimeKJ = rawJoulesKJPtr(raw, "ss_w_prime")
+	out.StrainScorePMaxWatts = rawNumberPtr(raw, "ss_p_max")
 	out.HRLoad = rawNumberPtr(raw, "hr_load")
 	out.PaceLoad = rawNumberPtr(raw, "pace_load")
 	out.PowerLoad = rawNumberPtr(raw, "power_load")
@@ -382,6 +388,9 @@ func extendedMetricUnits() map[string]string {
 		"joules_above_ftp_kj":             string(units.UnitKJ),
 		"w_prime_balance_start_kj":        string(units.UnitKJ),
 		"w_prime_balance_end_kj":          string(units.UnitKJ),
+		"strain_score_cp_watts":           string(units.UnitWatts),
+		"strain_score_w_prime_kj":         string(units.UnitKJ),
+		"strain_score_p_max_watts":        string(units.UnitWatts),
 		"left_right_balance_percent":      string(units.UnitPercent),
 		"rpe":                             string(units.UnitRPE),
 	}
