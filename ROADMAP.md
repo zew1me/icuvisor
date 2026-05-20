@@ -82,9 +82,10 @@ Living document. Phases are scoped and gated, not calendared. icuvisor will not 
 - [ ] Verify null-stripping rule applies to write-tool responses, not only reads: `add_or_update_event`, `update_wellness`, `update_sport_settings`, workout-library writes, and custom-item writes all echo back upstream payloads with many sparse fields. Lock golden-file tests so write responses are as terse as reads.
 - [ ] Per-source sleep-score scale labels in `_meta.provenance`: when the bridged source is one of Garmin / Whoop / Oura / Polar, the in-response `native_scale` must reflect that source's actual scale rather than a single canonical 0–100 label. Add fixture coverage for at least two divergent sources so the scale label is asserted, not assumed.
 - [ ] Upstream-signal regression pack from the 2026-05 upstream behavior review: Strava numeric/no-`i` empty stubs from Wahoo/MyWhoosh/TrainerRoad sync chains return structured unavailable markers; event detail 404-after-list remains `upstream_inconsistency`; NOTE creates keep accepting date-only tool input while sending upstream's required local datetime payload.
+- [ ] Strava-import `unavailable.workaround` text must name the concrete remedy, not a generic "data unavailable" message. Athletes recover blocked historical data by triggering "Download old data" for the native device provider (e.g. Garmin) on the intervals.icu Connections page — this re-imports past activities directly from the device platform, free of Strava's API redistribution restriction. The structured marker on Strava-sourced empty activities should return this actionable step verbatim, since users currently rediscover it only by trial and error. Keep the message provider-aware where the native source is known, and cover it with a fixture asserting the workaround string, not just the `reason`.
 - [ ] NOTE-event discoverability pass: add docs/examples showing `add_or_update_event` with `category: "NOTE"` for nutrition plans, travel logistics, daily reminders, and coach annotations, without adding a separate confusable `add_note` tool unless telemetry shows tool-selection failure.
-- [ ] macOS signed installer; manual Claude Desktop / Claude Code config documentation.
-- [ ] Onboarding flow (basic — full polish in v1.0): paste API key, autodetect athlete ID + timezone, "Test connection" via `get_athlete_profile`.
+- [x] macOS signed installer; manual Claude Desktop / Claude Code config documentation.
+- [x] Onboarding flow (basic — full polish in v1.0): paste API key, autodetect athlete ID + timezone, "Test connection" via `get_athlete_profile`.
 - [ ] Coach mode behind a feature flag, with per-athlete granular tool permissions.
 - [ ] Post-update notification that tells the user to start a new conversation in their AI client when tool schemas changed.
 - [ ] Dogfooded by 5–10 forum-recruited athletes, including at least one coach.
@@ -96,7 +97,9 @@ Living document. Phases are scoped and gated, not calendared. icuvisor will not 
 - [ ] `analysis_metric` closed enum + rejection-with-hint for unknown metrics. No free-form field arithmetic.
 - [ ] MCP Resource `icuvisor://analysis-formulas` — one paragraph per canonical formula (HR drift, Pw:HR decoupling, polarization index, EF, VI, z-score) with cited source. Responses link via `_meta.formula_ref`.
 - [ ] Analyzer skeleton: every tool emits `_meta.method`, `_meta.source_tools`, `_meta.n`, `_meta.missing_days`, `_meta.missing_action`, `_meta.insufficient_sample`. Golden-file locked.
+- [ ] Auto-lap disambiguation on `get_activity_intervals`: when a device's auto-lap (e.g. a lap every 1 km / 1 mi) is enabled, intervals.icu surfaces those uniform laps as "intervals", and the LLM mistakes them for structured-workout segments and reports execution quality against a structure the athlete never planned. Add `_meta.interval_source` (`structured_workout` / `device_laps` / `unknown`) plus `_meta.auto_lap_suspected: true` when intervals are near-uniform in distance or duration. Additive `_meta` only — no schema break on the stable v0.2 tool. Analyzers that consume interval data (`analyze_efforts_delta`, `compute_compliance_rate`, and any tool listing `get_activity_intervals` in `_meta.source_tools`) must propagate the signal and decline per-interval execution claims when `auto_lap_suspected` is true.
 - [ ] `analyze_trend`, `analyze_distribution`, `analyze_correlation`, `analyze_efforts_delta`.
+- [ ] `get_activity_histogram` — per-activity power / HR / pace distribution histogram for a single activity. Ships with the analyzer family because, without it, the LLM pulls `get_activity_streams` and bins per-second samples itself: token-expensive, and bucketing is a reduction LLMs do unreliably. Bucket edges follow the athlete's configured zones for the chosen metric where available, falling back to fixed-width buckets; record which was used in `_meta.bucket_method`. Terse-by-default: emit per-bucket time/percentage, not raw samples. Activation hint leads with the single-activity "how was my power/HR distributed in this workout" prompt shape plus the explicit "do not pull raw streams and bin them yourself" line. Distinct from `analyze_distribution`, which operates across multiple activities/days; this one is scoped to one activity.
 - [ ] `compute_zone_time`, `compute_load_balance`, `compute_baseline`, `compute_compliance_rate`.
 - [ ] `compute_activity_segment_stats` — the only analyzer that touches raw streams; gated behind the existing stream-key canonicalization tests.
 - [ ] `get_fitness_projection` (pulled up from v1.x — forum thread 123739 post #49) ships with the family so projection and analysis land together.
@@ -120,8 +123,8 @@ Living document. Phases are scoped and gated, not calendared. icuvisor will not 
 - [ ] Documented manual config for any MCP client.
 - [ ] Keychain-backed credential path exercised by signed installers and one-click onboarding on all platforms.
 - [ ] Opt-in anonymous telemetry (install success, tool call counts; no payloads).
-- [ ] Public website at `icuvisor.dev` with download, docs, troubleshooting, and a link to the intervals.icu forum thread.
-- [ ] Announcement on the intervals.icu forum thread.
+- [x] Public website at `icuvisor.dev` with download, docs, troubleshooting, and a link to the intervals.icu forum thread.
+- [x] Announcement on the intervals.icu forum thread.
 
 ## v1.x — Iterate
 
