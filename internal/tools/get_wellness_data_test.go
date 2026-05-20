@@ -58,6 +58,10 @@ func TestGetWellnessDataFixtures(t *testing.T) {
 				if prov["source"] != "polar" || prov["native_scale"] != "1-100 Polar sleep_score" {
 					t.Fatalf("sleepScore provenance = %+v", prov)
 				}
+				scales := meta["scales"].(map[string]any)
+				if scales["sleepScore"] != "0-100 (device-imported nightly score)" {
+					t.Fatalf("canonical sleepScore scale = %+v", scales["sleepScore"])
+				}
 			},
 		},
 		{

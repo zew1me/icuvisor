@@ -262,11 +262,17 @@ func wellnessProvenanceEntry(row intervals.Wellness, field string) (map[string]a
 func wellnessFieldSource(row intervals.Wellness, field string) string {
 	switch field {
 	case "sleepScore":
-		if hasNativeField(row, "polar", "sleep_score") {
-			return "polar"
+		if hasNativeField(row, "garmin", "sleep_score") {
+			return "garmin"
 		}
 		if hasNativeField(row, "oura", "sleep_score") {
 			return "oura"
+		}
+		if hasNativeField(row, "polar", "sleep_score") {
+			return "polar"
+		}
+		if hasNativeField(row, "whoop", "sleep_performance_percentage") {
+			return "whoop"
 		}
 	case "readiness":
 		if hasNativeField(row, "polar", "nightly_recharge_status") || hasNativeField(row, "polar", "ans_charge") {
@@ -275,12 +281,18 @@ func wellnessFieldSource(row intervals.Wellness, field string) string {
 		if hasNativeField(row, "garmin", "body_battery_min") || hasNativeField(row, "garmin", "body_battery_max") {
 			return "garmin"
 		}
+		if hasNativeField(row, "oura", "readiness_score") {
+			return "oura"
+		}
+		if hasNativeField(row, "whoop", "recovery_score") {
+			return "whoop"
+		}
 	}
 	return wellnessProviderEvidence(row)
 }
 
 func wellnessProviderEvidence(row intervals.Wellness) string {
-	for _, source := range []string{"polar", "garmin", "oura"} {
+	for _, source := range []string{"polar", "garmin", "oura", "whoop"} {
 		if len(row.Native[source]) > 0 {
 			return source
 		}
