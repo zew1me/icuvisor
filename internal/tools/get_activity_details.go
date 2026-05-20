@@ -211,7 +211,7 @@ func shapeActivityIntervalsDTO(activityID string, dto intervals.IntervalsDTO, in
 }
 
 func stravaUnavailableIntervalsResponse(activityID string, includeFull bool, version string, raw map[string]any) getActivityIntervalsUnavailableResponse {
-	out := getActivityIntervalsUnavailableResponse{ActivityID: activityID, StravaImported: true, Unavailable: &unavailableReason{Reason: "strava_blocked", Workaround: stravaWorkaround}, Meta: activityReadMeta{ServerVersion: normalizeVersion(version), IncludeFull: includeFull}}
+	out := getActivityIntervalsUnavailableResponse{ActivityID: activityID, StravaImported: true, Unavailable: &unavailableReason{Reason: "strava_blocked", Workaround: stravaBlockedWorkaround(raw)}, Meta: activityReadMeta{ServerVersion: normalizeVersion(version), IncludeFull: includeFull}}
 	if includeFull {
 		out.Full = raw
 	}

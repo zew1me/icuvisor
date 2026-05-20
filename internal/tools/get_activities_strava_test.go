@@ -9,7 +9,11 @@ import (
 	"github.com/ricardocabral/icuvisor/internal/intervals"
 )
 
-const stravaSyncChainFixture = "../intervals/testdata/activities/strava_sync_chain_empty_stubs.json"
+const (
+	stravaSyncChainFixture      = "../intervals/testdata/activities/strava_sync_chain_empty_stubs.json"
+	wantWahooStravaWorkaround   = "Open the intervals.icu Connections page, choose Wahoo, and click Download old data so historical activities are re-imported directly from Wahoo instead of through Strava's restricted API."
+	wantUnknownStravaWorkaround = "Open the intervals.icu Connections page for the activity's original device provider and click Download old data so historical activities are re-imported directly from that provider instead of through Strava's restricted API."
+)
 
 func TestIsStravaBlockedGoldenBranches(t *testing.T) {
 	t.Parallel()
@@ -61,6 +65,28 @@ func TestIsStravaBlockedGoldenBranches(t *testing.T) {
 			t.Parallel()
 			if got := isStravaBlocked(tc.activity); got != tc.want {
 				t.Fatalf("isStravaBlocked() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestStravaBlockedWorkaroundInfersAllowedProviderFromExplicitEvidence(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		raw  map[string]any
+		want string
+	}{
+		{name: "wahoo external id", raw: map[string]any{"external_id": "wahoo-synthetic-12345"}, want: wantWahooStravaWorkaround},
+		{name: "unallowlisted sync chain", raw: map[string]any{"external_id": "mywhoosh-synthetic-23456", "source": "Strava"}, want: wantUnknownStravaWorkaround},
+		{name: "missing provider evidence", raw: map[string]any{"source": "Strava", "_note": "hidden"}, want: wantUnknownStravaWorkaround},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := stravaBlockedWorkaround(tc.raw); got != tc.want {
+				t.Fatalf("stravaBlockedWorkaround() = %q, want %q", got, tc.want)
 			}
 		})
 	}
