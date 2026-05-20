@@ -196,7 +196,7 @@ func collectSummaryBaseline(ctx context.Context, args computeBaselineRequest, me
 	seenB, seenC := map[string]bool{}, map[string]bool{}
 	weeklyB, weeklyC := map[string]float64{}, map[string]float64{}
 	for _, row := range rows {
-		value, ok := summaryMetricValueForSport(row, metric, unitSystem, args.Sport)
+		value, ok := summaryMetricValueForSport(row, metric, unitSystem, source.Field, args.Sport)
 		date := row.Date
 		window := sampleWindow(date, args)
 		if window == "" {
@@ -247,6 +247,9 @@ func collectWellnessBaseline(ctx context.Context, args computeBaselineRequest, m
 			continue
 		}
 		value, ok := wellnessMetricValue(row, metric)
+		if !ok {
+			value, ok = rawNumber(row.Raw, source.Field)
+		}
 		if ok {
 			addBaselineSample(&out, window, date, "", value, source.Tool)
 			if window == "baseline" {
@@ -289,6 +292,9 @@ func collectActivityBaseline(ctx context.Context, args computeBaselineRequest, m
 			continue
 		}
 		value, ok := activityMetricValue(activity, metric, unitSystem)
+		if !ok {
+			value, ok = rawNumber(activity.Raw, source.Field)
+		}
 		if !ok && source.Tool == getExtendedMetricsName && extendedClient != nil && activity.ID != "" {
 			detail, derr := extendedClient.GetActivity(ctx, activity.ID)
 			if derr == nil {
@@ -330,9 +336,13 @@ func sampleWindow(date string, args computeBaselineRequest) string {
 	return ""
 }
 
-func summaryMetricValueForSport(row intervals.SummaryWithCats, metric analysis.Metric, unitSystem response.UnitSystem, sport string) (float64, bool) {
+func summaryMetricValueForSport(row intervals.SummaryWithCats, metric analysis.Metric, unitSystem response.UnitSystem, field string, sport string) (float64, bool) {
 	if strings.TrimSpace(sport) == "" {
-		return summaryMetricValue(row, metric, unitSystem)
+		value, ok := summaryMetricValue(row, metric, unitSystem)
+		if ok {
+			return value, true
+		}
+		return rawNumber(row.Raw, field)
 	}
 	for _, category := range row.ByCategory {
 		if !sameFold(sport, category.Category) {

@@ -116,7 +116,7 @@
     "group": "analyzers",
     "tier": "full",
     "safety": "read",
-    "summary": "Use when the prompt asks for an average, maximum, normalized power, or zone-time statistic over one explicit activity segment; do not fetch get_activity_streams samples and reduce them in chat.",
+    "summary": "Use when the prompt asks for an average, maximum, normalized power, or zone-time statistic over one explicit activity segment as the analyzer-family raw-stream exception; do not fetch get_activity_streams samples and reduce them in chat.",
     "anchor": "compute_activity_segment_stats"
   },
   {
