@@ -182,9 +182,9 @@ func ComputeActivitySegmentStats(input SegmentStatsInput) (SegmentStatsResult, e
 	case SegmentStatDecoupling:
 		return computeDecoupling(result, streams[SegmentAxisTimeSeconds], streams[SegmentMetricHeartRate], streams[SegmentMetricWatts], indices, bounds), nil
 	case SegmentStatNP:
-		return computeNP(result, streams[SegmentAxisTimeSeconds], streams[SegmentMetricWatts], indices), nil
+		return computeNP(result, streams[SegmentAxisTimeSeconds], streams[SegmentMetricWatts], indices, bounds), nil
 	case SegmentStatIF:
-		return computeIF(result, streams[SegmentAxisTimeSeconds], streams[SegmentMetricWatts], indices, input.FTPWatts), nil
+		return computeIF(result, streams[SegmentAxisTimeSeconds], streams[SegmentMetricWatts], indices, input.FTPWatts, bounds), nil
 	default:
 		return SegmentStatsResult{}, fmt.Errorf("%w: unsupported segment stat %q", ErrInvalidSegmentStatsInput, stat)
 	}
@@ -278,8 +278,8 @@ func computeDecoupling(result SegmentStatsResult, times []float64, heartRate []f
 	return result
 }
 
-func computeNP(result SegmentStatsResult, times []float64, watts []float64, indices []int) SegmentStatsResult {
-	windows := rollingPowerWindows(times, watts, indices)
+func computeNP(result SegmentStatsResult, times []float64, watts []float64, indices []int, bounds SegmentBounds) SegmentStatsResult {
+	windows := rollingPowerWindows(times, watts, indices, bounds)
 	result.N = len(windows)
 	result.MinSamples = 1
 	result.Unit = "W"
@@ -294,8 +294,8 @@ func computeNP(result SegmentStatsResult, times []float64, watts []float64, indi
 	return result
 }
 
-func computeIF(result SegmentStatsResult, times []float64, watts []float64, indices []int, ftpWatts float64) SegmentStatsResult {
-	result = computeNP(result, times, watts, indices)
+func computeIF(result SegmentStatsResult, times []float64, watts []float64, indices []int, ftpWatts float64, bounds SegmentBounds) SegmentStatsResult {
+	result = computeNP(result, times, watts, indices, bounds)
 	result.Stat = SegmentStatIF
 	result.Unit = "unitless"
 	result.Method = "normalized_power / ftp_watts, where normalized_power is fourth root of mean fourth power of simple 30-second elapsed-time rolling average watts"
@@ -370,9 +370,15 @@ func splitHalfPairs(times []float64, indices []int, bounds SegmentBounds, valueA
 	}
 	start, end := splitHalfTimeEndpoints(times, indices, bounds)
 	mid := start + (end-start)/2
+	if !finite(mid) {
+		return nil, nil
+	}
 	first := []float64{}
 	second := []float64{}
 	for _, idx := range indices {
+		if !finite(times[idx]) {
+			continue
+		}
 		value, ok := valueAt(idx)
 		if !ok {
 			continue
@@ -392,10 +398,13 @@ func splitHalfIndices(times []float64, indices []int, bounds SegmentBounds, vali
 	}
 	start, end := splitHalfTimeEndpoints(times, indices, bounds)
 	mid := start + (end-start)/2
+	if !finite(mid) {
+		return nil, nil
+	}
 	first := []int{}
 	second := []int{}
 	for _, idx := range indices {
-		if !valid(idx) {
+		if !finite(times[idx]) || !valid(idx) {
 			continue
 		}
 		if times[idx] < mid {
@@ -411,7 +420,18 @@ func splitHalfTimeEndpoints(times []float64, indices []int, bounds SegmentBounds
 	if bounds.Axis == SegmentAxisTimeSeconds {
 		return bounds.Start, bounds.End
 	}
-	return times[indices[0]], times[indices[len(indices)-1]]
+	start := math.NaN()
+	end := math.NaN()
+	for _, idx := range indices {
+		if !finite(times[idx]) {
+			continue
+		}
+		if math.IsNaN(start) {
+			start = times[idx]
+		}
+		end = times[idx]
+	}
+	return start, end
 }
 
 func pairedMeans(indices []int, heartRate []float64, watts []float64) (float64, float64) {
@@ -432,20 +452,24 @@ func valuesAt(indices []int, values []float64) []float64 {
 	return out
 }
 
-func rollingPowerWindows(times []float64, watts []float64, indices []int) []float64 {
+func rollingPowerWindows(times []float64, watts []float64, indices []int, bounds SegmentBounds) []float64 {
 	windows := []float64{}
 	if len(indices) == 0 {
 		return windows
 	}
+	segmentStart := rollingWindowSegmentStart(times, indices, bounds)
+	if !finite(segmentStart) {
+		return windows
+	}
 	for _, endIdx := range indices {
 		endTime := times[endIdx]
-		if !finite(endTime) || endTime-times[indices[0]] < minNPWindowSeconds {
+		if !finite(endTime) || endTime-segmentStart < minNPWindowSeconds {
 			continue
 		}
 		values := []float64{}
 		for _, idx := range indices {
 			t := times[idx]
-			if t <= endTime-minNPWindowSeconds || t > endTime {
+			if !finite(t) || t <= endTime-minNPWindowSeconds || t > endTime {
 				continue
 			}
 			power := watts[idx]
@@ -458,6 +482,18 @@ func rollingPowerWindows(times []float64, watts []float64, indices []int) []floa
 		}
 	}
 	return windows
+}
+
+func rollingWindowSegmentStart(times []float64, indices []int, bounds SegmentBounds) float64 {
+	if bounds.Axis == SegmentAxisTimeSeconds {
+		return bounds.Start
+	}
+	for _, idx := range indices {
+		if finite(times[idx]) {
+			return times[idx]
+		}
+	}
+	return math.NaN()
 }
 
 func normalizedPower(windows []float64) float64 {

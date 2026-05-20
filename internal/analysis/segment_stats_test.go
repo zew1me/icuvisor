@@ -2,6 +2,7 @@ package analysis
 
 import (
 	"errors"
+	"math"
 	"testing"
 
 	"github.com/ricardocabral/icuvisor/internal/resources"
@@ -174,6 +175,41 @@ func TestComputeActivitySegmentStatsDecoupling(t *testing.T) {
 	}
 	if got.FormulaRef != resources.AnalysisFormulaRefPwHRDecoupling || got.N != 6 {
 		t.Fatalf("formula/n = %q/%d, want Pw:HR ref/6", got.FormulaRef, got.N)
+	}
+}
+
+func TestComputeActivitySegmentStatsNPAnchorsWindowToRequestedStart(t *testing.T) {
+	got, err := ComputeActivitySegmentStats(SegmentStatsInput{
+		Stat:   SegmentStatNP,
+		Bounds: SegmentBounds{Axis: SegmentAxisTimeSeconds, Start: 5, End: 60},
+		Streams: map[string][]float64{
+			SegmentAxisTimeSeconds: {0, 40, 60, 70},
+			SegmentMetricWatts:     {100, 200, 300, 400},
+		},
+	})
+	if err != nil {
+		t.Fatalf("ComputeActivitySegmentStats() error = %v", err)
+	}
+	if got.N != 2 || got.InsufficientSample || got.Value == nil {
+		t.Fatalf("result = %#v, want requested-start anchored NP windows", got)
+	}
+}
+
+func TestComputeActivitySegmentStatsDistanceDerivedSkipsNonFiniteTimes(t *testing.T) {
+	got, err := ComputeActivitySegmentStats(SegmentStatsInput{
+		Stat:   SegmentStatDrift,
+		Bounds: SegmentBounds{Axis: SegmentAxisDistanceMeter, Start: 0, End: 400},
+		Streams: map[string][]float64{
+			SegmentAxisDistanceMeter: {0, 100, 200, 300, 400},
+			SegmentAxisTimeSeconds:   {0, 10, math.NaN(), 30, 40},
+			SegmentMetricHeartRate:   {100, 100, 200, 200, 200},
+		},
+	})
+	if err != nil {
+		t.Fatalf("ComputeActivitySegmentStats() error = %v", err)
+	}
+	if got.N != 4 || got.Value == nil || *got.Value != 100 {
+		t.Fatalf("result = %#v, want non-finite time skipped with four paired samples", got)
 	}
 }
 
