@@ -36,6 +36,18 @@ func TestComputeActivitySegmentStatsHandlerScalarDistanceOmitsTimeFetch(t *testi
 	}
 }
 
+func TestComputeActivitySegmentStatsHandlerRejectsFTPForNonIFWithoutFetch(t *testing.T) {
+	client := &segmentStatsStreamsClient{}
+	handler := computeActivitySegmentStatsHandler(client, "test", false, responseShaping{})
+	_, err := handler(context.Background(), Request{Arguments: json.RawMessage(`{"activity_id":"a1","stat":"mean","metric":"watts","start_seconds":0,"end_seconds":10,"ftp_watts":0}`)})
+	if err == nil || !strings.Contains(err.Error(), invalidActivitySegmentStatsMessage) {
+		t.Fatalf("handler error = %v, want invalid arguments", err)
+	}
+	if client.called {
+		t.Fatalf("GetActivityStreams called for ftp_watts on non-IF stat")
+	}
+}
+
 func TestComputeActivitySegmentStatsHandlerDoesNotFetchInvalidArgs(t *testing.T) {
 	client := &segmentStatsStreamsClient{}
 	handler := computeActivitySegmentStatsHandler(client, "test", false, responseShaping{})
@@ -45,6 +57,18 @@ func TestComputeActivitySegmentStatsHandlerDoesNotFetchInvalidArgs(t *testing.T)
 	}
 	if client.called {
 		t.Fatalf("GetActivityStreams called for locally invalid arguments")
+	}
+}
+
+func TestComputeActivitySegmentStatsHandlerOutOfRangeMessage(t *testing.T) {
+	client := &segmentStatsStreamsClient{rows: []intervals.ActivityStream{
+		{Type: "time", Data: []float64{0, 10, 20}},
+		{Type: "watts", Data: []float64{100, 200, 300}},
+	}}
+	handler := computeActivitySegmentStatsHandler(client, "test", false, responseShaping{})
+	_, err := handler(context.Background(), Request{Arguments: json.RawMessage(`{"activity_id":"a1","stat":"mean","metric":"watts","start_seconds":0,"end_seconds":30}`)})
+	if err == nil || !strings.Contains(err.Error(), "activity segment range is outside available stream coverage") {
+		t.Fatalf("handler error = %v, want out-of-coverage message", err)
 	}
 }
 

@@ -76,7 +76,9 @@ func computeActivitySegmentStatsHandler(client ActivityStreamsClient, version st
 		computed, err := analysis.ComputeActivitySegmentStats(input)
 		if err != nil {
 			message := computeActivitySegmentStatsMessage
-			if errors.Is(err, analysis.ErrInvalidSegmentStatsInput) || errors.Is(err, analysis.ErrSegmentOutOfRange) || errors.Is(err, analysis.ErrMissingSegmentStream) {
+			if errors.Is(err, analysis.ErrSegmentOutOfRange) {
+				message = "activity segment range is outside available stream coverage"
+			} else if errors.Is(err, analysis.ErrInvalidSegmentStatsInput) || errors.Is(err, analysis.ErrMissingSegmentStream) {
 				message = invalidActivitySegmentStatsMessage
 			}
 			return Result{}, NewUserError(message, err)
@@ -91,11 +93,18 @@ func activitySegmentStatsInput(args computeActivitySegmentStatsRequest) (analysi
 	if err != nil {
 		return analysis.SegmentStatsInput{}, nil, err
 	}
+	stat := strings.TrimSpace(args.Stat)
+	if stat == analysis.SegmentStatIF && args.FTPWatts == nil {
+		return analysis.SegmentStatsInput{}, nil, fmt.Errorf("%w: ftp_watts is required for if", analysis.ErrInvalidSegmentStatsInput)
+	}
+	if stat != analysis.SegmentStatIF && args.FTPWatts != nil {
+		return analysis.SegmentStatsInput{}, nil, fmt.Errorf("%w: ftp_watts is accepted only for if", analysis.ErrInvalidSegmentStatsInput)
+	}
 	ftpWatts := 0.0
 	if args.FTPWatts != nil {
 		ftpWatts = *args.FTPWatts
 	}
-	input := analysis.SegmentStatsInput{Stat: strings.TrimSpace(args.Stat), Metric: strings.TrimSpace(args.Metric), Bounds: bounds, FTPWatts: ftpWatts}
+	input := analysis.SegmentStatsInput{Stat: stat, Metric: strings.TrimSpace(args.Metric), Bounds: bounds, FTPWatts: ftpWatts}
 	required, err := analysis.ValidateSegmentStatsInput(input)
 	if err != nil {
 		return analysis.SegmentStatsInput{}, nil, err
