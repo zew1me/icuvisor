@@ -93,9 +93,7 @@ func TestGetActivityDetailsShapesTerseFullAndStravaUnavailable(t *testing.T) {
 	if activityMap["timezone"] != "America/Sao_Paulo" {
 		t.Fatalf("timezone = %v, want profile timezone", activityMap["timezone"])
 	}
-	if unavailable := activityMap["unavailable"].(map[string]any); unavailable["reason"] != "strava_tos" {
-		t.Fatalf("unavailable = %#v, want strava_tos", unavailable)
-	}
+	assertUnavailableReasonAndWorkaround(t, activityMap, "strava_tos", wantUnknownStravaWorkaround)
 	full := activityMap["full"].(map[string]any)
 	if value, ok := full["name"]; !ok || value != nil {
 		t.Fatalf("full name = %#v present %v, want preserved nil", value, ok)
@@ -105,6 +103,11 @@ func TestGetActivityDetailsShapesTerseFullAndStravaUnavailable(t *testing.T) {
 func TestGetActivityDetailsMarksSyncChainStubsUnavailable(t *testing.T) {
 	t.Parallel()
 
+	wantWorkarounds := map[string]string{
+		"1234567890": wantWahooStravaWorkaround,
+		"2345678901": wantUnknownStravaWorkaround,
+		"3456789012": wantUnknownStravaWorkaround,
+	}
 	for _, activity := range loadActivityFixtureFile(t, stravaSyncChainFixture) {
 		t.Run(activity.ID, func(t *testing.T) {
 			t.Parallel()
@@ -119,10 +122,7 @@ func TestGetActivityDetailsMarksSyncChainStubsUnavailable(t *testing.T) {
 			if activityMap["strava_imported"] != true {
 				t.Fatalf("activity = %#v, want strava_imported marker", activityMap)
 			}
-			unavailable := activityMap["unavailable"].(map[string]any)
-			if unavailable["reason"] != "strava_tos" || strings.TrimSpace(unavailable["workaround"].(string)) == "" {
-				t.Fatalf("unavailable = %#v, want strava_tos with workaround", unavailable)
-			}
+			assertUnavailableReasonAndWorkaround(t, activityMap, "strava_tos", wantWorkarounds[activity.ID])
 		})
 	}
 }
@@ -220,9 +220,7 @@ func TestGetActivityIntervalsUnavailableForHiddenSuccessPayload(t *testing.T) {
 		t.Fatalf("Handler() error = %v", err)
 	}
 	payload := resultMap(t, result)
-	if payload["strava_imported"] != true || payload["unavailable"].(map[string]any)["reason"] != "strava_blocked" {
-		t.Fatalf("payload = %#v, want Strava unavailable", payload)
-	}
+	assertUnavailableReasonAndWorkaround(t, payload, "strava_blocked", wantUnknownStravaWorkaround)
 }
 
 func TestGetActivityIntervalsFallbacksToDetailsForBlockedError(t *testing.T) {
@@ -236,9 +234,7 @@ func TestGetActivityIntervalsFallbacksToDetailsForBlockedError(t *testing.T) {
 		t.Fatalf("Handler() error = %v", err)
 	}
 	payload := resultMap(t, result)
-	if payload["strava_imported"] != true || payload["unavailable"].(map[string]any)["reason"] != "strava_blocked" {
-		t.Fatalf("payload = %#v, want Strava unavailable fallback", payload)
-	}
+	assertUnavailableReasonAndWorkaround(t, payload, "strava_blocked", wantUnknownStravaWorkaround)
 }
 
 type activityReadUnavailableCase struct {
@@ -270,6 +266,15 @@ func activityFixture(raw string) intervals.Activity {
 
 func assertUnavailableReason(t *testing.T, payload map[string]any, reason string) {
 	t.Helper()
+	if reason == "strava_blocked" {
+		assertUnavailableReasonAndWorkaround(t, payload, reason, wantUnknownStravaWorkaround)
+	} else {
+		assertUnavailableReasonAndWorkaround(t, payload, reason, "")
+	}
+}
+
+func assertUnavailableReasonAndWorkaround(t *testing.T, payload map[string]any, reason string, wantWorkaround string) {
+	t.Helper()
 	unavailable, ok := payload["unavailable"].(map[string]any)
 	if !ok {
 		t.Fatalf("payload = %#v, want unavailable object", payload)
@@ -277,10 +282,9 @@ func assertUnavailableReason(t *testing.T, payload map[string]any, reason string
 	if unavailable["reason"] != reason {
 		t.Fatalf("unavailable = %#v, want reason %q", unavailable, reason)
 	}
-	if reason == "strava_blocked" {
-		workaround, ok := unavailable["workaround"].(string)
-		if !ok || strings.TrimSpace(workaround) == "" {
-			t.Fatalf("unavailable = %#v, want non-empty workaround for Strava-blocked activity", unavailable)
+	if wantWorkaround != "" {
+		if unavailable["workaround"] != wantWorkaround {
+			t.Fatalf("unavailable = %#v, want workaround %q", unavailable, wantWorkaround)
 		}
 		if payload["strava_imported"] != true {
 			t.Fatalf("payload = %#v, want strava_imported true for Strava-blocked activity", payload)

@@ -604,6 +604,7 @@ func TestGetActivitiesDetectsDocumentedStravaStubShapes(t *testing.T) {
 	t.Parallel()
 
 	client := newFakeActivitiesClient(t, []string{
+		`{"id":"stub-wahoo","icu_athlete_id":"i12345","start_date_local":"2026-01-03T07:00:00","external_id":"wahoo:12345"}`,
 		`{}`,
 		`{"id":"stub1","icu_athlete_id":"i12345","start_date_local":"2026-01-02T07:00:00"}`,
 		`{"id":"stub2","icu_athlete_id":"i12345","start_date_local":"2026-01-01T07:00:00","name":null}`,
@@ -615,14 +616,19 @@ func TestGetActivitiesDetectsDocumentedStravaStubShapes(t *testing.T) {
 		t.Fatalf("Handler() error = %v", err)
 	}
 	rows := resultMap(t, result)["activities"].([]any)
-	if len(rows) != 3 {
+	if len(rows) != 4 {
 		t.Fatalf("activities = %#v, want all documented Strava stubs surfaced", rows)
+	}
+	wantWorkarounds := map[string]string{
+		"stub-wahoo": wantWahooStravaWorkaround,
+		"":           wantUnknownStravaWorkaround,
+		"stub1":      wantUnknownStravaWorkaround,
+		"stub2":      wantUnknownStravaWorkaround,
 	}
 	for _, rawRow := range rows {
 		row := rawRow.(map[string]any)
-		if row["unavailable"].(map[string]any)["reason"] != "strava_tos" {
-			t.Fatalf("row = %#v, want Strava unavailable marker", row)
-		}
+		activityID, _ := row["activity_id"].(string)
+		assertUnavailableReasonAndWorkaround(t, row, "strava_tos", wantWorkarounds[activityID])
 	}
 }
 
@@ -644,9 +650,10 @@ func TestGetActivitiesKeepsStravaRowsWhenUnnamedFilteringIsDefault(t *testing.T)
 		t.Fatalf("activities = %#v, want only Strava unavailable row", rows)
 	}
 	row := rows[0].(map[string]any)
-	if row["activity_id"] != "hidden1" || row["unavailable"].(map[string]any)["reason"] != "strava_tos" {
+	if row["activity_id"] != "hidden1" {
 		t.Fatalf("row = %#v, want visible Strava unavailable marker", row)
 	}
+	assertUnavailableReasonAndWorkaround(t, row, "strava_tos", wantUnknownStravaWorkaround)
 }
 
 func TestGetActivitiesDoesNotEmitPaceForCycling(t *testing.T) {
@@ -699,10 +706,7 @@ func TestGetActivitiesShapesStravaFullAndUnits(t *testing.T) {
 		t.Fatalf("full name_null = %#v present %v, want preserved nil", value, ok)
 	}
 	hidden := rows[1].(map[string]any)
-	unavailable := hidden["unavailable"].(map[string]any)
-	if unavailable["reason"] != "strava_tos" || hidden["strava_imported"] != true {
-		t.Fatalf("hidden row = %#v, want Strava unavailable", hidden)
-	}
+	assertUnavailableReasonAndWorkaround(t, hidden, "strava_tos", wantUnknownStravaWorkaround)
 }
 
 func newFakeActivitiesClient(t *testing.T, rawActivities []string, preferredUnits string) *fakeActivitiesProfileClient {
