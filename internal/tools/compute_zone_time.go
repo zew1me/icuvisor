@@ -33,14 +33,15 @@ type computeZoneRequest struct {
 }
 
 type zoneAggregate struct {
-	Zones          []float64
-	Rows           []zoneSeriesRow
-	SourceTools    []string
-	MissingSources []string
-	MissingDays    int
-	N              int
-	Truncated      bool
-	UsedSummary    bool
+	Zones             []float64
+	Rows              []zoneSeriesRow
+	SourceTools       []string
+	MissingSources    []string
+	MissingDays       int
+	N                 int
+	Truncated         bool
+	UsedSummary       bool
+	TrainingLoadTotal float64
 }
 
 type zoneSeriesRow struct {
@@ -197,6 +198,7 @@ func collectZoneAggregate(ctx context.Context, args computeZoneRequest, fitnessC
 					continue
 				}
 				agg.Zones = addZoneSlices(agg.Zones, row.TimeInZones)
+				agg.TrainingLoadTotal += float64(row.TrainingLoad)
 				agg.N++
 				seenDates[row.Date] = true
 				agg.UsedSummary = true
@@ -247,6 +249,11 @@ func collectZoneAggregate(ctx context.Context, args computeZoneRequest, fitnessC
 			continue
 		}
 		agg.Zones = addZoneSlices(agg.Zones, zones)
+		if activity.TrainingLoad != nil {
+			agg.TrainingLoadTotal += float64(*activity.TrainingLoad)
+		} else if value, ok := rawNumber(activity.Raw, "icu_training_load"); ok {
+			agg.TrainingLoadTotal += value
+		}
 		agg.N++
 		if date != "" {
 			seenDates[date] = true
@@ -292,7 +299,11 @@ func zoneTimeResult(args computeZoneRequest, agg zoneAggregate, balance analysis
 
 func loadBalanceResult(args computeZoneRequest, agg zoneAggregate, balance analysis.ZoneBalance) computeLoadBalanceResult {
 	status, reason := aggregateStatus(agg, balance)
-	return computeLoadBalanceResult{Status: status, ZoneMetric: args.ZoneMetric, Sport: args.Sport, Buckets: []loadBucketRow{{Bucket: "low", Seconds: round(balance.LowSeconds, 3), Share: round(balance.LowShare, 4)}, {Bucket: "moderate", Seconds: round(balance.ModerateSeconds, 3), Share: round(balance.ModerateShare, 4)}, {Bucket: "high", Seconds: round(balance.HighSeconds, 3), Share: round(balance.HighShare, 4)}}, PolarizationIndex: roundOptional(balance.Index), PolarizationState: balance.State, Classification: balance.Classification, MissingSources: agg.MissingSources, TruncatedActivityCandidates: agg.Truncated, InsufficientReason: reason}
+	result := computeLoadBalanceResult{Status: status, ZoneMetric: args.ZoneMetric, Sport: args.Sport, Buckets: []loadBucketRow{{Bucket: "low", Seconds: round(balance.LowSeconds, 3), Share: round(balance.LowShare, 4)}, {Bucket: "moderate", Seconds: round(balance.ModerateSeconds, 3), Share: round(balance.ModerateShare, 4)}, {Bucket: "high", Seconds: round(balance.HighSeconds, 3), Share: round(balance.HighShare, 4)}}, PolarizationIndex: roundOptional(balance.Index), PolarizationState: balance.State, Classification: balance.Classification, MissingSources: agg.MissingSources, TruncatedActivityCandidates: agg.Truncated, InsufficientReason: reason}
+	if agg.TrainingLoadTotal > 0 {
+		result.TrainingLoadTotal = roundPtr(agg.TrainingLoadTotal)
+	}
+	return result
 }
 
 func aggregateStatus(agg zoneAggregate, balance analysis.ZoneBalance) (string, string) {

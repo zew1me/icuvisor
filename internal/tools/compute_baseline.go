@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/ricardocabral/icuvisor/internal/analysis"
 	"github.com/ricardocabral/icuvisor/internal/intervals"
@@ -182,23 +184,39 @@ func collectSummaryBaseline(ctx context.Context, args computeBaselineRequest, me
 	}
 	out := baselineCollected{Source: source, SourceTools: []string{source.Tool}}
 	seenB, seenC := map[string]bool{}, map[string]bool{}
+	weeklyB, weeklyC := map[string]float64{}, map[string]float64{}
 	for _, row := range rows {
-		value, ok := summaryMetricValue(row, metric, source.Field)
+		value, ok := summaryMetricValueForSport(row, metric, source.Field, args.Sport)
 		date := row.Date
 		window := sampleWindow(date, args)
 		if window == "" {
 			continue
 		}
-		if ok {
-			addBaselineSample(&out, window, date, "", value, source.Tool)
+		if !ok {
+			out.Series = append(out.Series, baselineSample{Date: date, Window: window, SourceTool: source.Tool, MissingReason: "missing_metric"})
+			continue
+		}
+		if source.Family == analysis.SourceDerivedWeekly {
+			key := isoWeekKey(date)
 			if window == "baseline" {
+				weeklyB[key] += value
 				seenB[date] = true
 			} else {
+				weeklyC[key] += value
 				seenC[date] = true
 			}
-		} else {
-			out.Series = append(out.Series, baselineSample{Date: date, Window: window, SourceTool: source.Tool, MissingReason: "missing_metric"})
+			continue
 		}
+		addBaselineSample(&out, window, date, "", value, source.Tool)
+		if window == "baseline" {
+			seenB[date] = true
+		} else {
+			seenC[date] = true
+		}
+	}
+	if source.Family == analysis.SourceDerivedWeekly {
+		appendWeeklySamples(&out, "baseline", weeklyB, source.Tool)
+		appendWeeklySamples(&out, "current", weeklyC, source.Tool)
 	}
 	out.MissingBaselineDays = dateCount(args.BaselineStartDate, args.BaselineEndDate) - len(seenB)
 	out.MissingCurrentDays = dateCount(args.CurrentStartDate, args.CurrentEndDate) - len(seenC)
@@ -300,6 +318,52 @@ func sampleWindow(date string, args computeBaselineRequest) string {
 		return "current"
 	}
 	return ""
+}
+
+func summaryMetricValueForSport(row intervals.SummaryWithCats, metric analysis.Metric, field string, sport string) (float64, bool) {
+	if strings.TrimSpace(sport) == "" {
+		return summaryMetricValue(row, metric, field)
+	}
+	for _, category := range row.ByCategory {
+		if !sameFold(sport, category.Category) {
+			continue
+		}
+		switch metric {
+		case "weekly_tss", "training_load":
+			return float64(category.TrainingLoad), category.TrainingLoad != 0
+		case "weekly_hours":
+			return float64(category.Time) / 3600, category.Time != 0
+		case "moving_time_seconds":
+			return float64(category.MovingTime), category.MovingTime != 0
+		case "elapsed_time_seconds", "time_seconds":
+			return float64(category.ElapsedTime), category.ElapsedTime != 0
+		case "calories_burned":
+			return float64(category.Calories), category.Calories != 0
+		case "elevation_gain_m":
+			return category.TotalElevationGain, category.TotalElevationGain != 0
+		}
+	}
+	return 0, false
+}
+
+func appendWeeklySamples(out *baselineCollected, window string, values map[string]float64, tool string) {
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		addBaselineSample(out, window, key, "", values[key], tool)
+	}
+}
+
+func isoWeekKey(date string) string {
+	parsed, err := time.Parse(time.DateOnly, date)
+	if err != nil {
+		return date
+	}
+	year, week := parsed.ISOWeek()
+	return fmt.Sprintf("%04d-W%02d", year, week)
 }
 
 func summaryMetricValue(row intervals.SummaryWithCats, metric analysis.Metric, field string) (float64, bool) {
