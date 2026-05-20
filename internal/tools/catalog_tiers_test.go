@@ -45,6 +45,8 @@ func TestRegisteredToolTierMembership(t *testing.T) {
 		linkActivityToEventName:      safety.ToolsetCore,
 		listAdvancedCapabilitiesName: safety.ToolsetCore,
 		getPowerCurvesName:           safety.ToolsetFull,
+		getHRCurvesName:              safety.ToolsetFull,
+		getPaceCurvesName:            safety.ToolsetFull,
 		getExtendedMetricsName:       safety.ToolsetFull,
 		getGearListName:              safety.ToolsetFull,
 		getActivityStreamsName:       safety.ToolsetFull,

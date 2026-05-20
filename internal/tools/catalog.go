@@ -65,7 +65,7 @@ func catalogTools() []Tool {
 
 func registryBaseTools(client *intervals.Client, opts registryToolOptions) []Tool {
 	capability := capabilityOrSafe(opts.capability)
-	tools := make([]Tool, 0, 39)
+	tools := make([]Tool, 0, 41)
 	tools = append(tools,
 		newGetAthleteProfileTool(client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newGetFitnessTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
@@ -75,6 +75,8 @@ func registryBaseTools(client *intervals.Client, opts registryToolOptions) []Too
 		newUpdateSportSettingsTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, capability, opts.shaping),
 		newGetBestEffortsTool(client, opts.version, opts.debugMetadata, opts.shaping),
 		newGetPowerCurvesTool(client, opts.version, opts.debugMetadata, opts.shaping),
+		newGetHRCurvesTool(client, opts.version, opts.debugMetadata, opts.shaping),
+		newGetPaceCurvesTool(client, client, opts.version, opts.debugMetadata, opts.shaping),
 		newGetActivitiesToolWithGear(client, client, client, opts.gearCache, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newGetEventsTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newGetEventByIDTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
@@ -125,7 +127,7 @@ func toolCatalogGroup(name string) string {
 	switch name {
 	case getAthleteProfileName, updateSportSettingsName, deleteSportSettingsName, getGearListName, deleteGearName:
 		return "settings"
-	case getFitnessName, getTrainingSummaryName, getBestEffortsName, getPowerCurvesName:
+	case getFitnessName, getTrainingSummaryName, getBestEffortsName, getPowerCurvesName, getHRCurvesName, getPaceCurvesName:
 		return "fitness"
 	case getWellnessDataName, updateWellnessName:
 		return "wellness"
