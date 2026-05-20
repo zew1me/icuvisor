@@ -54,6 +54,13 @@ func TestListAdvancedCapabilitiesOutputFromCatalog(t *testing.T) {
 	if _, ok := rows[getPowerCurvesName]; !ok {
 		t.Fatalf("advanced capabilities missing %s: %#v", getPowerCurvesName, rows)
 	}
+	segmentStats, ok := rows[computeActivitySegmentStatsName]
+	if !ok {
+		t.Fatalf("advanced capabilities missing %s: %#v", computeActivitySegmentStatsName, rows)
+	}
+	if !strings.Contains(segmentStats.Summary, "raw-stream exception") {
+		t.Fatalf("%s summary = %q, want raw-stream exception", computeActivitySegmentStatsName, segmentStats.Summary)
+	}
 	if rows[getPowerCurvesName].Requirement != string(RequirementRead) {
 		t.Fatalf("%s requirement = %q, want read", getPowerCurvesName, rows[getPowerCurvesName].Requirement)
 	}
