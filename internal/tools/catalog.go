@@ -103,6 +103,7 @@ func registryBaseTools(client *intervals.Client, opts registryToolOptions) []Too
 		newGetActivityStreamsTool(client, client, opts.version, opts.debugMetadata, opts.shaping),
 		newComputeActivitySegmentStatsTool(client, opts.version, opts.debugMetadata, opts.shaping),
 		newGetActivitySplitsTool(client, client, client, client, opts.version, opts.debugMetadata, opts.shaping),
+		newGetActivityHistogramTool(client, client, client, opts.version, opts.debugMetadata, opts.shaping),
 		newGetActivityMessagesTool(client, client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newAddActivityMessageTool(client, client, opts.version, opts.debugMetadata, opts.shaping),
 		newGetExtendedMetricsTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
@@ -132,7 +133,7 @@ func toolCatalogGroup(name string) string {
 		return "fitness"
 	case getWellnessDataName, updateWellnessName:
 		return "wellness"
-	case getActivitiesName, getActivityDetailsName, getActivityIntervalsName, getActivityStreamsName, getActivitySplitsName, getActivityMessagesName, addActivityMessageName, getExtendedMetricsName, deleteActivityName:
+	case getActivitiesName, getActivityDetailsName, getActivityIntervalsName, getActivityStreamsName, getActivitySplitsName, getActivityHistogramName, getActivityMessagesName, addActivityMessageName, getExtendedMetricsName, deleteActivityName:
 		return "activities"
 	case computeActivitySegmentStatsName:
 		return "analyzers"

@@ -32,6 +32,14 @@
     "anchor": "get_activity_details"
   },
   {
+    "name": "get_activity_histogram",
+    "group": "activities",
+    "tier": "full",
+    "safety": "read",
+    "summary": "Summarize a single activity's power, heart-rate, or pace distribution into terse time-in-bucket histogram rows.",
+    "anchor": "get_activity_histogram"
+  },
+  {
     "name": "get_activity_intervals",
     "group": "activities",
     "tier": "core",

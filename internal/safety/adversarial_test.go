@@ -36,6 +36,7 @@ var v03ToolCatalog = []catalogToolSpec{
 	{name: "delete_workout", requirement: tools.RequirementDelete},
 	{name: "get_activities", requirement: tools.RequirementRead},
 	{name: "get_activity_details", requirement: tools.RequirementRead},
+	{name: "get_activity_histogram", requirement: tools.RequirementRead},
 	{name: "get_activity_intervals", requirement: tools.RequirementRead},
 	{name: "get_activity_messages", requirement: tools.RequirementRead},
 	{name: "get_activity_splits", requirement: tools.RequirementRead},
