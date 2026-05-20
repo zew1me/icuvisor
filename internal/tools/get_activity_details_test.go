@@ -102,6 +102,32 @@ func TestGetActivityDetailsShapesTerseFullAndStravaUnavailable(t *testing.T) {
 	}
 }
 
+func TestGetActivityDetailsMarksSyncChainStubsUnavailable(t *testing.T) {
+	t.Parallel()
+
+	for _, activity := range loadActivityFixtureFile(t, stravaSyncChainFixture) {
+		activity := activity
+		t.Run(activity.ID, func(t *testing.T) {
+			t.Parallel()
+			client := &fakeActivityReadClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}}, activity: activity}
+			tool := newGetActivityDetailsTool(client, client, "test", "UTC", false)
+
+			result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"activity_id":"` + activity.ID + `"}`)})
+			if err != nil {
+				t.Fatalf("Handler() error = %v", err)
+			}
+			activityMap := resultMap(t, result)["activity"].(map[string]any)
+			if activityMap["strava_imported"] != true {
+				t.Fatalf("activity = %#v, want strava_imported marker", activityMap)
+			}
+			unavailable := activityMap["unavailable"].(map[string]any)
+			if unavailable["reason"] != "strava_tos" || strings.TrimSpace(unavailable["workaround"].(string)) == "" {
+				t.Fatalf("unavailable = %#v, want strava_tos with workaround", unavailable)
+			}
+		})
+	}
+}
+
 func TestGetActivityDetailsResolvesGear(t *testing.T) {
 	t.Parallel()
 
