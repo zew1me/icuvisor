@@ -9,12 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `icuvisor://analysis-formulas` MCP Resource documents canonical analyzer formula refs for HR drift, Pw:HR decoupling, polarization index, EF, VI, and z-score.
+- `get_hr_curves` and `get_pace_curves` expose upstream-computed heart-rate and pace curves as full-toolset siblings to `get_power_curves`, with terse/default buckets, raw `include_full` payloads, and athlete-preferred pace units.
 - `get_gear_list` lists intervals.icu gear IDs/names in the full toolset with a manual refresh path for the per-athlete gear cache.
 - Activity reads now surface `gear_id`, resolved `gear_name`, and explicit `gear_resolution` statuses when upstream exposes gear IDs.
 - Homebrew install path: releases now produce a `darwin_universal` tarball and publish a Homebrew formula to the [`ricardocabral/homebrew-icuvisor`](https://github.com/ricardocabral/homebrew-icuvisor) tap. Install with `brew install ricardocabral/icuvisor/icuvisor`. The macOS tarball binary is not yet codesigned independently of the DMG, so first run may require dismissing Gatekeeper; signing the tarball binary is tracked as a follow-up.
 
 ### Changed
 
+- `get_wellness_data` provenance now reports provider-native sleep/readiness `native_scale` labels for Garmin, WHOOP, Oura, and Polar, while unresolved sources report `unknown` instead of a guessed device scale.
 - `icuvisor setup` now writes a non-secret `credential_ref` to generated config files so users and docs can see the OS keychain service/account while the API key remains outside JSON. Setup stores and verifies the keychain credential before writing the config file, so keychain failures do not leave a fresh onboarding config behind.
 
 ## [0.0.2] - 2026-05-19

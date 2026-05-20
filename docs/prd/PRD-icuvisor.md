@@ -226,10 +226,10 @@ Union of upstream tool sets, deduplicated, with names harmonized. Each tool ship
 
 **Wellness provenance + freshness** (forum thread 123739, posts #56–#58): intervals.icu collapses upstream-bridged wellness fields (notably `Readiness`) across providers with different native scales — Polar's 1–6 readiness, Garmin's body battery, Oura's readiness — under one field name with no provenance flag, and Polar-bridged values only refresh when the athlete visits intervals.icu's home page in a browser (so an MCP read can return data hours or days stale). icuvisor surfaces both signals so the LLM does not silently compare incompatible scales or reason over stale numbers:
 
-- Every bridged wellness field carries `_meta.provenance` per field: `{ "readiness": { "source": "polar", "native_scale": "1-6", "fetched_at": "<RFC3339>" } }`. `source` is one of `polar | garmin | oura | whoop | apple_health | manual | unknown`.
-- Where the upstream exposes raw native sub-fields (Polar's `ans_charge` -10..+10, `sleep_charge`, `nightly_recharge_status` 1–6; Garmin's body-battery min/max; Oura's raw `sleep_score` 1–100), surface them under `_native.<source>.<field>` so the LLM can choose between the normalized and the raw view.
+- Every bridged wellness field carries `_meta.provenance` per field: `{ "readiness": { "source": "polar", "native_scale": "1-6 Polar nightly_recharge_status", "fetched_at": "<RFC3339>" } }`. `source` is one of `polar | garmin | oura | whoop | apple_health | manual | unknown`; `native_scale` names the provider-native metric/scale for supported sleep/readiness providers (Garmin, WHOOP, Oura, Polar) and remains separate from canonical `_meta.scales.sleepScore`.
+- Where the upstream exposes raw native sub-fields (Polar's `ans_charge` -10..+10, `sleep_charge`, `nightly_recharge_status` 1–6; Garmin's body-battery min/max and sleep score; Oura's raw `sleep_score`/readiness score; WHOOP's sleep performance percentage/recovery score), surface them under `_native.<source>.<field>` so the LLM can choose between the normalized and the raw view.
 - A wellness row whose `fetched_at` is more than 24h older than the wellness `date` (i.e. the bridge has not refreshed) gets `_meta.stale: true` with a one-line `_meta.stale_reason` (`"polar bridge refresh requires user to open intervals.icu"`).
-- When provenance cannot be determined, emit `_meta.provenance.<field>.source: "unknown"` rather than omitting the marker — silence reads as "trusted" to a model.
+- When provenance cannot be determined, emit `_meta.provenance.<field>.source: "unknown"` and `_meta.provenance.<field>.native_scale: "unknown"` rather than omitting or guessing the marker — silence reads as "trusted" to a model.
 
 **Events & workouts**
 

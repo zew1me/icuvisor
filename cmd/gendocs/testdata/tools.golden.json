@@ -192,6 +192,22 @@
     "anchor": "get_fitness"
   },
   {
+    "name": "get_hr_curves",
+    "group": "fitness",
+    "tier": "full",
+    "safety": "read",
+    "summary": "Get upstream-computed heart-rate best-effort curves for a date range.",
+    "anchor": "get_hr_curves"
+  },
+  {
+    "name": "get_pace_curves",
+    "group": "fitness",
+    "tier": "full",
+    "safety": "read",
+    "summary": "Get upstream-computed pace best-effort curves for a date range.",
+    "anchor": "get_pace_curves"
+  },
+  {
     "name": "get_power_curves",
     "group": "fitness",
     "tier": "full",
@@ -260,7 +276,7 @@
     "group": "wellness",
     "tier": "core",
     "safety": "read",
-    "summary": "Get daily wellness rows for a local date range with distinct sleepQuality, sleepScore, sleepSecs, custom fields, and native provider sidecars.",
+    "summary": "Get daily wellness rows for a local date range with distinct sleepQuality, sleepScore, sleepSecs, custom fields, native provider sidecars, and provider-native provenance scale labels for sleep/readiness.",
     "anchor": "get_wellness_data"
   },
   {

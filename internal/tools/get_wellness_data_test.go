@@ -58,6 +58,10 @@ func TestGetWellnessDataFixtures(t *testing.T) {
 				if prov["source"] != "polar" || prov["native_scale"] != "1-100 Polar sleep_score" {
 					t.Fatalf("sleepScore provenance = %+v", prov)
 				}
+				scales := meta["scales"].(map[string]any)
+				if scales["sleepScore"] != "0-100 (device-imported nightly score)" {
+					t.Fatalf("canonical sleepScore scale = %+v", scales["sleepScore"])
+				}
 			},
 		},
 		{
@@ -69,8 +73,26 @@ func TestGetWellnessDataFixtures(t *testing.T) {
 					t.Fatalf("garmin native = %+v", native)
 				}
 				prov := provenanceFor(t, row, "readiness")
-				if prov["source"] != "garmin" {
+				if prov["source"] != "garmin" || prov["native_scale"] != "0-100 Garmin Body Battery" {
 					t.Fatalf("readiness provenance = %+v", prov)
+				}
+			},
+		},
+		{
+			name: "whoop sleep performance and recovery native fields",
+			file: "whoop_sleep_recovery.json",
+			assert: func(t *testing.T, row map[string]any) {
+				native := nestedMap(t, row, "_native", "whoop")
+				if native["sleep_performance_percentage"] != float64(87) || native["recovery_score"] != float64(66) {
+					t.Fatalf("whoop native = %+v", native)
+				}
+				sleep := provenanceFor(t, row, "sleepScore")
+				if sleep["source"] != "whoop" || sleep["native_scale"] != "0-100 WHOOP sleep performance percentage" {
+					t.Fatalf("sleepScore provenance = %+v", sleep)
+				}
+				readiness := provenanceFor(t, row, "readiness")
+				if readiness["source"] != "whoop" || readiness["native_scale"] != "0-100 WHOOP recovery score" {
+					t.Fatalf("readiness provenance = %+v", readiness)
 				}
 			},
 		},
@@ -116,7 +138,7 @@ func TestGetWellnessDataFixtures(t *testing.T) {
 					t.Fatalf("missing_fields = %+v", meta["missing_fields"])
 				}
 				prov := provenanceFor(t, row, "sleepScore")
-				if prov["source"] != "unknown" || prov["native_scale"] != "0-100 device nightly score" {
+				if prov["source"] != "unknown" || prov["native_scale"] != "unknown" {
 					t.Fatalf("unknown source provenance = %+v", prov)
 				}
 			},
