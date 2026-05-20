@@ -11,7 +11,7 @@ import (
 
 const (
 	getActivitiesName                    = "get_activities"
-	getActivitiesDescription             = "List activities for a date range with terse unit-disambiguated rows, Strava-unavailable detection, and opaque pagination. Use this before details, intervals, streams, splits, or messages when a prompt asks about recent training."
+	getActivitiesDescription             = "List activities for a date range with terse unit-disambiguated rows, calories_burned as active/exercise calories, Strava-unavailable detection, and opaque pagination. Use this before details, intervals, streams, splits, or messages when a prompt asks about recent training."
 	invalidGetActivitiesArgumentsMessage = "invalid get_activities arguments; provide oldest/newest dates or a valid next_page_token"
 	fetchActivitiesMessage               = "could not fetch activities; check intervals.icu credentials, athlete ID, and date range"
 	activitiesPaginationBoundaryMessage  = "activity pagination hit too many same-timestamp filtered rows; narrow the date range or set include_unnamed true"
@@ -75,7 +75,7 @@ type getActivitiesRow struct {
 	AverageHeartRateBPM int                `json:"average_heart_rate_bpm,omitempty"`
 	MaxHeartRateBPM     int                `json:"max_heart_rate_bpm,omitempty"`
 	AverageCadenceRPM   *float64           `json:"average_cadence_rpm,omitempty"`
-	CaloriesBurned      int                `json:"calories_burned,omitempty"`
+	CaloriesBurned      *int               `json:"calories_burned,omitempty"`
 	DeviceName          string             `json:"device_name,omitempty"`
 	GearID              string             `json:"gear_id,omitempty"`
 	GearName            string             `json:"gear_name,omitempty"`
@@ -92,10 +92,11 @@ type unavailableReason struct {
 }
 
 type getActivitiesMeta struct {
-	PageSize      int    `json:"page_size"`
-	NextPageToken string `json:"next_page_token,omitempty"`
-	MoreAvailable bool   `json:"more_available"`
-	IncludeFull   bool   `json:"include_full"`
+	PageSize       int               `json:"page_size"`
+	NextPageToken  string            `json:"next_page_token,omitempty"`
+	MoreAvailable  bool              `json:"more_available"`
+	IncludeFull    bool              `json:"include_full"`
+	FieldSemantics map[string]string `json:"field_semantics,omitempty"`
 }
 
 var errActivitiesPaginationBoundary = errors.New("activity pagination boundary exceeded")
@@ -177,5 +178,5 @@ func getActivitiesInputSchema() map[string]any {
 }
 
 func getActivitiesOutputSchema() map[string]any {
-	return map[string]any{"type": "object", "additionalProperties": true, "description": "Paginated activities with unit-disambiguated terse rows, Strava unavailable markers, gear_id/gear_name when upstream permits, and gear_resolution values resolved/name_missing/unresolved/lookup_unavailable so unresolved IDs are never guessed."}
+	return map[string]any{"type": "object", "additionalProperties": true, "description": "Paginated activities with unit-disambiguated terse rows, calories_burned for active/exercise calories, Strava unavailable markers, gear_id/gear_name when upstream permits, and gear_resolution values resolved/name_missing/unresolved/lookup_unavailable so unresolved IDs are never guessed."}
 }

@@ -53,6 +53,31 @@ func TestActivityReadToolsRegistration(t *testing.T) {
 	findTool(t, registrar.tools, getActivityMessagesName)
 }
 
+func TestGetActivityDetailsCaloriesBurnedSemantics(t *testing.T) {
+	t.Parallel()
+
+	activity := decodeActivityFixture(t, `{"id":"a1","icu_athlete_id":"i12345","name":"Ride","type":"Ride","start_date_local":"2026-01-02T07:00:00","calories":450}`)
+	client := &fakeActivityReadClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}}, activity: activity}
+	tool := newGetActivityDetailsTool(client, client, "test", "UTC", false)
+
+	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"activity_id":"a1"}`)})
+	if err != nil {
+		t.Fatalf("Handler() error = %v", err)
+	}
+	payload := resultMap(t, result)
+	activityMap := payload["activity"].(map[string]any)
+	if activityMap["calories_burned"] != float64(450) {
+		t.Fatalf("activity = %#v, want calories_burned", activityMap)
+	}
+	if _, ok := activityMap["calories"]; ok {
+		t.Fatalf("activity = %#v, want no ambiguous calories key", activityMap)
+	}
+	semantics := payload["_meta"].(map[string]any)["field_semantics"].(map[string]any)
+	if !strings.Contains(semantics["calories_burned"].(string), "Active/exercise calories") {
+		t.Fatalf("field_semantics = %#v, want active calories label", semantics)
+	}
+}
+
 func TestGetActivityDetailsShapesTerseFullAndStravaUnavailable(t *testing.T) {
 	t.Parallel()
 
@@ -74,6 +99,31 @@ func TestGetActivityDetailsShapesTerseFullAndStravaUnavailable(t *testing.T) {
 	full := activityMap["full"].(map[string]any)
 	if value, ok := full["name"]; !ok || value != nil {
 		t.Fatalf("full name = %#v present %v, want preserved nil", value, ok)
+	}
+}
+
+func TestGetActivityDetailsMarksSyncChainStubsUnavailable(t *testing.T) {
+	t.Parallel()
+
+	for _, activity := range loadActivityFixtureFile(t, stravaSyncChainFixture) {
+		t.Run(activity.ID, func(t *testing.T) {
+			t.Parallel()
+			client := &fakeActivityReadClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}}, activity: activity}
+			tool := newGetActivityDetailsTool(client, client, "test", "UTC", false)
+
+			result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"activity_id":"` + activity.ID + `"}`)})
+			if err != nil {
+				t.Fatalf("Handler() error = %v", err)
+			}
+			activityMap := resultMap(t, result)["activity"].(map[string]any)
+			if activityMap["strava_imported"] != true {
+				t.Fatalf("activity = %#v, want strava_imported marker", activityMap)
+			}
+			unavailable := activityMap["unavailable"].(map[string]any)
+			if unavailable["reason"] != "strava_tos" || strings.TrimSpace(unavailable["workaround"].(string)) == "" {
+				t.Fatalf("unavailable = %#v, want strava_tos with workaround", unavailable)
+			}
+		})
 	}
 }
 

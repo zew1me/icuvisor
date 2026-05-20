@@ -13,7 +13,7 @@ import (
 
 const (
 	getWellnessDataName                    = "get_wellness_data"
-	getWellnessDataDescription             = "Get daily wellness rows for a local date range with distinct sleepQuality, sleepScore, sleepSecs, custom fields, native provider sidecars, and provider-native provenance scale labels for sleep/readiness. Dates are athlete-local YYYY-MM-DD values."
+	getWellnessDataDescription             = "Get daily wellness rows for a local date range with distinct sleepQuality, sleepScore, sleepSecs, nutrition keys calories_intake/carbs_g/protein_g/fat_g when present, custom fields, native provider sidecars, and provider-native provenance scale labels for sleep/readiness. Dates are athlete-local YYYY-MM-DD values."
 	invalidGetWellnessDataArgumentsMessage = "invalid get_wellness_data arguments; provide oldest/newest dates as YYYY-MM-DD and optional include_full"
 	fetchWellnessDataMessage               = "could not fetch wellness data; check intervals.icu credentials, athlete ID, and date range"
 )
@@ -140,7 +140,8 @@ func wellnessRow(row intervals.Wellness, includeFull bool) map[string]any {
 	setWellnessField(out, "hrvSDNN", row.HRVSDNN)
 	setWellnessField(out, "menstrualPhase", row.MenstrualPhase)
 	setWellnessField(out, "menstrualPhasePredicted", row.MenstrualPhasePredicted)
-	setWellnessField(out, "kcalConsumed", row.KcalConsumed)
+	deleteLegacyWellnessNutritionKeys(out)
+	setWellnessField(out, "calories_intake", row.KcalConsumed)
 	setWellnessField(out, "sleepSecs", row.SleepSecs)
 	setWellnessField(out, "sleepScore", row.SleepScore)
 	setWellnessField(out, "sleepQuality", row.SleepQuality)
@@ -169,9 +170,9 @@ func wellnessRow(row intervals.Wellness, includeFull bool) map[string]any {
 	setWellnessField(out, "comments", row.Comments)
 	setWellnessField(out, "steps", row.Steps)
 	setWellnessField(out, "respiration", row.Respiration)
-	setWellnessField(out, "carbohydrates", row.Carbohydrates)
-	setWellnessField(out, "protein", row.Protein)
-	setWellnessField(out, "fatTotal", row.FatTotal)
+	setWellnessField(out, "carbs_g", row.Carbohydrates)
+	setWellnessField(out, "protein_g", row.Protein)
+	setWellnessField(out, "fat_g", row.FatTotal)
 	setWellnessField(out, "locked", row.Locked)
 	setWellnessField(out, "tempWeight", row.TempWeight)
 	setWellnessField(out, "tempRestingHR", row.TempRestingHR)
@@ -179,6 +180,7 @@ func wellnessRow(row intervals.Wellness, includeFull bool) map[string]any {
 		out["_native"] = cloneNestedJSONMap(row.Native)
 	}
 	addWellnessMeta(out, row)
+	addWellnessNutritionFieldSemantics(out)
 	if includeFull {
 		out["full"] = cloneJSONMap(row.Raw)
 	}
@@ -189,6 +191,39 @@ func setWellnessField[T any](out map[string]any, key string, value *T) {
 	if value != nil {
 		out[key] = *value
 	}
+}
+
+func deleteLegacyWellnessNutritionKeys(out map[string]any) {
+	for _, key := range []string{"kcalConsumed", "carbohydrates", "protein", "fatTotal"} {
+		delete(out, key)
+	}
+}
+
+func addWellnessNutritionFieldSemantics(out map[string]any) {
+	semantics := map[string]string{}
+	for _, field := range []string{"calories_intake", "carbs_g", "protein_g", "fat_g"} {
+		if _, ok := out[field]; ok {
+			semantics[field] = wellnessNutritionFieldSemantics[field]
+		}
+	}
+	if len(semantics) == 0 {
+		return
+	}
+	meta := map[string]any{}
+	if existing, ok := out["_meta"].(map[string]any); ok {
+		for key, value := range existing {
+			meta[key] = value
+		}
+	}
+	meta["field_semantics"] = semantics
+	out["_meta"] = meta
+}
+
+var wellnessNutritionFieldSemantics = map[string]string{
+	"calories_intake": "Consumed calories from upstream wellness kcalConsumed.",
+	"carbs_g":         "Carbohydrates consumed in grams from upstream wellness carbohydrates.",
+	"protein_g":       "Protein consumed in grams from upstream wellness protein.",
+	"fat_g":           "Fat consumed in grams from upstream wellness fatTotal.",
 }
 
 func addWellnessMeta(out map[string]any, row intervals.Wellness) {
@@ -464,5 +499,5 @@ func wellnessDataInputSchema() map[string]any {
 }
 
 func getWellnessDataOutputSchema() map[string]any {
-	return map[string]any{"type": "object", "additionalProperties": true, "description": "Daily wellness rows with distinct sleepQuality (1-4), canonical sleepScore scale metadata, sleepSecs, custom fields, _native provider fields, and _meta.provenance.<field>.native_scale labels for Garmin, WHOOP, Oura, Polar, or unknown sources."}
+	return map[string]any{"type": "object", "additionalProperties": true, "description": "Daily wellness rows with distinct sleepQuality (1-4), sleepScore (0-100 plus provider-native scale metadata), sleepSecs, nutrition keys calories_intake/carbs_g/protein_g/fat_g when present, custom fields, _native provider fields, and _meta.provenance.<field>.native_scale labels for Garmin, WHOOP, Oura, Polar, or unknown sources."}
 }

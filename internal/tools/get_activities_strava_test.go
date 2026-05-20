@@ -1,10 +1,15 @@
 package tools
 
 import (
+	"encoding/json"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/ricardocabral/icuvisor/internal/intervals"
 )
+
+const stravaSyncChainFixture = "../intervals/testdata/activities/strava_sync_chain_empty_stubs.json"
 
 func TestIsStravaBlockedGoldenBranches(t *testing.T) {
 	t.Parallel()
@@ -59,4 +64,37 @@ func TestIsStravaBlockedGoldenBranches(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestIsStravaBlockedNumericSyncChainStubs(t *testing.T) {
+	t.Parallel()
+
+	activities := loadActivityFixtureFile(t, stravaSyncChainFixture)
+	if len(activities) != 3 {
+		t.Fatalf("fixture activities = %d, want Wahoo/MyWhoosh/TrainerRoad cases", len(activities))
+	}
+	for _, activity := range activities {
+		t.Run(activity.ID, func(t *testing.T) {
+			t.Parallel()
+			if strings.HasPrefix(activity.ID, "i") {
+				t.Fatalf("activity id = %q, want numeric/no-i stub id", activity.ID)
+			}
+			if !isStravaBlocked(activity) {
+				t.Fatalf("isStravaBlocked(%#v) = false, want true for numeric sync-chain empty stub", activity.Raw)
+			}
+		})
+	}
+}
+
+func loadActivityFixtureFile(t *testing.T, path string) []intervals.Activity {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read activity fixture %s: %v", path, err)
+	}
+	var activities []intervals.Activity
+	if err := json.Unmarshal(data, &activities); err != nil {
+		t.Fatalf("decode activity fixture %s: %v", path, err)
+	}
+	return activities
 }

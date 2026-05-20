@@ -30,12 +30,15 @@ func TestActivityGearIDDecodesFromListAndDetailFixtures(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(t, server.URL, server.Client(), RetryConfig{})
-	activities, err := client.ListActivities(context.Background(), ListActivitiesParams{Oldest: "2026-05-20", Fields: []string{"id", "gear_id"}})
+	activities, err := client.ListActivities(context.Background(), ListActivitiesParams{Oldest: "2026-05-20", Fields: []string{"id", "gear_id", "calories"}})
 	if err != nil {
 		t.Fatalf("ListActivities() error = %v", err)
 	}
 	if len(activities) != 2 || activities[0].GearID != "123" || activities[1].GearID != "shoe-7" {
 		t.Fatalf("activities = %#v, want gear_id decoded from list fixture", activities)
+	}
+	if activities[0].Calories == nil || *activities[0].Calories != 650 {
+		t.Fatalf("activities[0].Calories = %#v, want 650 from list fixture", activities[0].Calories)
 	}
 
 	activity, err := client.GetActivity(context.Background(), "a-bike")
@@ -44,5 +47,8 @@ func TestActivityGearIDDecodesFromListAndDetailFixtures(t *testing.T) {
 	}
 	if activity.GearID != "123" {
 		t.Fatalf("activity.GearID = %q, want 123 from detail fixture", activity.GearID)
+	}
+	if activity.Calories == nil || *activity.Calories != 650 {
+		t.Fatalf("activity.Calories = %#v, want 650 from detail fixture", activity.Calories)
 	}
 }

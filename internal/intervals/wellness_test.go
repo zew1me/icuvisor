@@ -44,6 +44,34 @@ func TestWellnessUnmarshalExtractsNativeProviders(t *testing.T) {
 	}
 }
 
+func TestWellnessNutritionFixtureDecodesTypedFields(t *testing.T) {
+	t.Parallel()
+
+	data, err := os.ReadFile("testdata/wellness/manual_only.json")
+	if err != nil {
+		t.Fatalf("read manual fixture: %v", err)
+	}
+	var got Wellness
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatalf("UnmarshalJSON() error = %v", err)
+	}
+	if got.KcalConsumed == nil || *got.KcalConsumed != 2400 {
+		t.Fatalf("KcalConsumed = %#v, want 2400", got.KcalConsumed)
+	}
+	for name, tc := range map[string]struct {
+		got  *float64
+		want float64
+	}{
+		"carbohydrates": {got: got.Carbohydrates, want: 320.5},
+		"protein":       {got: got.Protein, want: 132.25},
+		"fatTotal":      {got: got.FatTotal, want: 78.75},
+	} {
+		if tc.got == nil || *tc.got != tc.want {
+			t.Fatalf("%s = %#v, want %v", name, tc.got, tc.want)
+		}
+	}
+}
+
 func TestExtractWellnessNativeEmptyWhenNoProviderFields(t *testing.T) {
 	t.Parallel()
 
