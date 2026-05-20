@@ -47,4 +47,21 @@ Common NOTE use cases:
 }
 ```
 
+## Activity interval source metadata
+
+`get_activity_intervals` includes additive response metadata to help clients distinguish structured workout segments from generic device laps:
+
+- `_meta.interval_source`: `structured_workout`, `device_laps`, or `unknown`.
+- `_meta.auto_lap_suspected`: `true` when generic near-uniform 1 km / 1 mi (or supported duration) rows look like device auto-laps.
+
+When auto-laps are suspected, analyzer-style clients should avoid claiming the athlete hit or missed individual structured workout steps from those rows; they are device splits, not necessarily planned workout segments.
+
+## Fitness projection assumptions
+
+`get_fitness_projection` is deterministic scenario modeling, not predictive certainty. It seeds CTL, ATL, and TSB from the athlete-local `start_date` returned by `get_fitness`, then simulates forward with a closed `deterministic_ctl_atl_tsb` model. Free-form physiology models are rejected.
+
+The tool documents its scenario in `_meta.assumptions`, including horizon length, weekly ramp percentage, recovery-week cadence, recovery-week load percentage, explicit planned-load count, and the CTL/ATL time constants. `_meta.boundaries` records the main limits: horizon capped at 180 days, no hidden upstream periodization fields are read, and explicit `planned_daily_loads` replace the modeled ramp only for matching dates.
+
+By default the response returns only the summary. Set `include_full:true` to include the daily projected CTL/ATL/TSB curve.
+
 {{< tool-catalog >}}

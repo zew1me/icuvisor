@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -191,6 +193,39 @@ func TestGetActivityIntervalsCanonicalizesUnitsAndFullPayload(t *testing.T) {
 	}
 }
 
+func TestGetActivityIntervalsSourceMetadata(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		fixture       string
+		wantSource    string
+		wantSuspected bool
+	}{
+		{name: "structured group", fixture: "structured.json", wantSource: "structured_workout"},
+		{name: "one kilometer device laps", fixture: "auto_laps_1km.json", wantSource: "device_laps", wantSuspected: true},
+		{name: "one mile device laps", fixture: "auto_laps_1mi.json", wantSource: "device_laps", wantSuspected: true},
+		{name: "unknown source", fixture: "unknown.json", wantSource: "unknown"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			client := &fakeActivityReadClient{intervals: decodeActivityIntervalsFileFixture(t, tc.fixture)}
+			tool := newGetActivityIntervalsTool(client, client, "test", false)
+
+			result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"activity_id":"a123"}`)})
+			if err != nil {
+				t.Fatalf("Handler() error = %v", err)
+			}
+			meta := resultMap(t, result)["_meta"].(map[string]any)
+			if meta["interval_source"] != tc.wantSource || meta["auto_lap_suspected"] != tc.wantSuspected {
+				t.Fatalf("_meta = %#v, want source %q suspected %v", meta, tc.wantSource, tc.wantSuspected)
+			}
+		})
+	}
+}
+
 func TestGetActivityIntervalsUnavailableReasons(t *testing.T) {
 	t.Parallel()
 
@@ -322,4 +357,14 @@ func decodeIntervalsFixture(t *testing.T, raw string) intervals.IntervalsDTO {
 		t.Fatalf("decode intervals fixture: %v", err)
 	}
 	return dto
+}
+
+func decodeActivityIntervalsFileFixture(t *testing.T, name string) intervals.IntervalsDTO {
+	t.Helper()
+	path := filepath.Join("testdata", "activity_intervals", name)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read intervals fixture %s: %v", path, err)
+	}
+	return decodeIntervalsFixture(t, string(data))
 }

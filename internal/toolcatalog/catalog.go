@@ -35,6 +35,7 @@ const (
 	GetEvents                        = "get_events"
 	GetExtendedMetrics               = "get_extended_metrics"
 	GetFitness                       = "get_fitness"
+	GetFitnessProjection             = "get_fitness_projection"
 	GetGearList                      = "get_gear_list"
 	GetHRCurves                      = "get_hr_curves"
 	GetPaceCurves                    = "get_pace_curves"
@@ -83,6 +84,7 @@ var athleteScopedToolNames = []string{
 	GetEvents,
 	GetExtendedMetrics,
 	GetFitness,
+	GetFitnessProjection,
 	GetGearList,
 	GetHRCurves,
 	GetPaceCurves,

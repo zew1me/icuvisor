@@ -43,6 +43,41 @@ func TestNewAnalyzerMetaHonorsExplicitInsufficientSample(t *testing.T) {
 	}
 }
 
+func TestApplyIntervalSourceEvidence(t *testing.T) {
+	input := AnalyzerMetaInput{SourceTools: []string{"get_activity_intervals", "get_wellness_data"}}
+	withEvidence := ApplyIntervalSourceEvidence(input, IntervalSourceResult{Source: IntervalSourceDeviceLaps, AutoLapSuspected: true})
+	meta := NewAnalyzerMeta(withEvidence)
+
+	if !reflect.DeepEqual(meta.SourceTools, []string{"get_activity_intervals", "get_wellness_data"}) {
+		t.Fatalf("SourceTools = %#v, want deduplicated interval source tools", meta.SourceTools)
+	}
+	if meta.IntervalSource != IntervalSourceDeviceLaps {
+		t.Fatalf("IntervalSource = %q, want %q", meta.IntervalSource, IntervalSourceDeviceLaps)
+	}
+	if meta.AutoLapSuspected == nil || *meta.AutoLapSuspected != true {
+		t.Fatalf("AutoLapSuspected = %#v, want true pointer", meta.AutoLapSuspected)
+	}
+}
+
+func TestIntervalExecutionClaimPolicy(t *testing.T) {
+	tests := []struct {
+		name string
+		in   IntervalSourceResult
+		want IntervalExecutionClaimDecision
+	}{
+		{name: "auto lap suspected declines", in: IntervalSourceResult{Source: IntervalSourceDeviceLaps, AutoLapSuspected: true}, want: IntervalExecutionClaimDecision{Decline: true, Reason: IntervalExecutionDeclineAutoLapSuspected}},
+		{name: "structured workout does not decline", in: IntervalSourceResult{Source: IntervalSourceStructuredWorkout}, want: IntervalExecutionClaimDecision{}},
+		{name: "unknown without suspicion does not decline", in: IntervalSourceResult{Source: IntervalSourceUnknown}, want: IntervalExecutionClaimDecision{}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := IntervalExecutionClaimPolicy(tc.in); got != tc.want {
+				t.Fatalf("IntervalExecutionClaimPolicy() = %#v, want %#v", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestInsufficientSample(t *testing.T) {
 	tests := []struct {
 		name string

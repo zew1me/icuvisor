@@ -95,7 +95,6 @@ func TestCatalogMatchesRegistryAndPRDRegisteredTools(t *testing.T) {
 		"compute_load_balance",
 		"compute_baseline",
 		"compute_compliance_rate",
-		"get_fitness_projection",
 	}
 	for _, name := range analyzerGhosts {
 		if _, exists := registeredNames[name]; exists {
