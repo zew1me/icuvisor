@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `get_fitness_projection` simulates deterministic CTL/ATL/TSB scenarios from current fitness with horizon, ramp, recovery-week, and optional planned-load assumptions documented in analyzer `_meta`.
 - `get_activity_intervals` now emits additive `_meta.interval_source` and `_meta.auto_lap_suspected` signals so generic device auto-laps are not confused with structured workout segments.
 - Added shared analyzer response scaffolding so planned analyzer tools consistently emit mandatory `_meta.method`, `_meta.source_tools`, `_meta.n`, `_meta.missing_days`, `_meta.missing_action`, and `_meta.insufficient_sample` fields.
 - Claude Desktop Extension (`.mcpb`) packaging for the macOS universal release artifact, including a binary-server manifest, secure Desktop-managed `api_key` configuration, local pack/validate tooling, and extension-first install docs.

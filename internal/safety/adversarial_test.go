@@ -47,6 +47,7 @@ var v03ToolCatalog = []catalogToolSpec{
 	{name: "get_events", requirement: tools.RequirementRead},
 	{name: "get_extended_metrics", requirement: tools.RequirementRead},
 	{name: "get_fitness", requirement: tools.RequirementRead},
+	{name: "get_fitness_projection", requirement: tools.RequirementRead},
 	{name: "get_gear_list", requirement: tools.RequirementRead},
 	{name: "get_hr_curves", requirement: tools.RequirementRead},
 	{name: "get_pace_curves", requirement: tools.RequirementRead},

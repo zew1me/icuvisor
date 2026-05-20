@@ -56,4 +56,12 @@ Common NOTE use cases:
 
 When auto-laps are suspected, analyzer-style clients should avoid claiming the athlete hit or missed individual structured workout steps from those rows; they are device splits, not necessarily planned workout segments.
 
+## Fitness projection assumptions
+
+`get_fitness_projection` is deterministic scenario modeling, not predictive certainty. It seeds CTL, ATL, and TSB from the athlete-local `start_date` returned by `get_fitness`, then simulates forward with a closed `deterministic_ctl_atl_tsb` model. Free-form physiology models are rejected.
+
+The tool documents its scenario in `_meta.assumptions`, including horizon length, weekly ramp percentage, recovery-week cadence, recovery-week load percentage, explicit planned-load count, and the CTL/ATL time constants. `_meta.boundaries` records the main limits: horizon capped at 180 days, no hidden upstream periodization fields are read, and explicit `planned_daily_loads` replace the modeled ramp only for matching dates.
+
+By default the response returns only the summary. Set `include_full:true` to include the daily projected CTL/ATL/TSB curve.
+
 {{< tool-catalog >}}
