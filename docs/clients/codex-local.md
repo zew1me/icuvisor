@@ -58,7 +58,7 @@ git status --short .env
 
 Codex supports MCP servers under `mcp_servers.<name>` in TOML config. For validation, prefer per-command overrides instead of `codex mcp add`, so no MCP server entry or secret is written to `~/.codex/config.toml`.
 
-Use `env_vars` to pass variable names through from the Codex process environment when using the headless fallback. This avoids placing credential values in command-line arguments or Codex config files. If you ran `icuvisor setup`, only non-secret variables such as `INTERVALS_ICU_ATHLETE_ID` and `ICUVISOR_TIMEZONE` need to be passed through; the API key is read from the keychain by the local icuvisor process.
+Use `env_vars` to pass non-secret variable names through from the Codex process environment. After `icuvisor setup`, pass only values such as `INTERVALS_ICU_ATHLETE_ID` and `ICUVISOR_TIMEZONE`; the API key is read from the OS keychain by the local icuvisor process. Include `INTERVALS_ICU_API_KEY` in `env_vars` only for the deliberate headless fallback described above, and never paste the key value into Codex config or prompts.
 
 ```bash
 CODEX=/Users/YOU/Library/pnpm/codex
@@ -74,7 +74,7 @@ REPO=/absolute/path/to/icuvisor
   -c 'sandbox_mode="danger-full-access"' \
   -c "mcp_servers.icuvisor.command=\"$ICUVISOR\"" \
   -c "mcp_servers.icuvisor.cwd=\"$REPO\"" \
-  -c 'mcp_servers.icuvisor.env_vars=["INTERVALS_ICU_ATHLETE_ID","INTERVALS_ICU_API_KEY","ICUVISOR_TIMEZONE"]' \
+  -c 'mcp_servers.icuvisor.env_vars=["INTERVALS_ICU_ATHLETE_ID","ICUVISOR_TIMEZONE"]' \
   'List the icuvisor MCP tools by name only. Do not print environment variables.'
 ```
 
@@ -100,7 +100,7 @@ Ask Codex to list the icuvisor tools:
   -c 'sandbox_mode="danger-full-access"' \
   -c "mcp_servers.icuvisor.command=\"$ICUVISOR\"" \
   -c "mcp_servers.icuvisor.cwd=\"$REPO\"" \
-  -c 'mcp_servers.icuvisor.env_vars=["INTERVALS_ICU_ATHLETE_ID","INTERVALS_ICU_API_KEY","ICUVISOR_TIMEZONE"]' \
+  -c 'mcp_servers.icuvisor.env_vars=["INTERVALS_ICU_ATHLETE_ID","ICUVISOR_TIMEZONE"]' \
   'List the MCP tools available from the icuvisor MCP server by name only. Do not run shell commands.'
 ```
 
@@ -114,7 +114,7 @@ Start a fresh Codex session after rebuilding icuvisor or changing tool schemas. 
 
 ## Exercise `get_athlete_profile`
 
-With real credentials in the process environment, run:
+After running `icuvisor setup` and keeping the API key in the OS keychain, run:
 
 ```bash
 "$CODEX" exec \
@@ -126,7 +126,7 @@ With real credentials in the process environment, run:
   -c 'sandbox_mode="danger-full-access"' \
   -c "mcp_servers.icuvisor.command=\"$ICUVISOR\"" \
   -c "mcp_servers.icuvisor.cwd=\"$REPO\"" \
-  -c 'mcp_servers.icuvisor.env_vars=["INTERVALS_ICU_ATHLETE_ID","INTERVALS_ICU_API_KEY","ICUVISOR_TIMEZONE"]' \
+  -c 'mcp_servers.icuvisor.env_vars=["INTERVALS_ICU_ATHLETE_ID","ICUVISOR_TIMEZONE"]' \
   'Use icuvisor to fetch my intervals.icu athlete profile. Summarize only non-sensitive fields and the response shape; do not include raw athlete IDs, API keys, or detailed training values.'
 ```
 
