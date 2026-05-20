@@ -74,7 +74,6 @@ func TestIsStravaBlockedNumericSyncChainStubs(t *testing.T) {
 		t.Fatalf("fixture activities = %d, want Wahoo/MyWhoosh/TrainerRoad cases", len(activities))
 	}
 	for _, activity := range activities {
-		activity := activity
 		t.Run(activity.ID, func(t *testing.T) {
 			t.Parallel()
 			if strings.HasPrefix(activity.ID, "i") {

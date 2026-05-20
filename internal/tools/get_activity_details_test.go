@@ -106,7 +106,6 @@ func TestGetActivityDetailsMarksSyncChainStubsUnavailable(t *testing.T) {
 	t.Parallel()
 
 	for _, activity := range loadActivityFixtureFile(t, stravaSyncChainFixture) {
-		activity := activity
 		t.Run(activity.ID, func(t *testing.T) {
 			t.Parallel()
 			client := &fakeActivityReadClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}}, activity: activity}
