@@ -580,8 +580,7 @@ func wellnessFixture(date string, raw map[string]any) intervals.Wellness {
 	return intervals.Wellness{Raw: raw}
 }
 
-func ptrString(value string) *string    { return &value }
-func ptrFloat64(value float64) *float64 { return &value }
+func ptrString(value string) *string { return &value }
 
 func assertFloatEqual(t *testing.T, got any, want float64) {
 	t.Helper()
