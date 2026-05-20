@@ -25,7 +25,7 @@ hugo server -D
 cd web
 hugo --minify --gc
 npx --yes pagefind --site public
-python3 -m http.server --directory public 1313
+python3 -m http.server --bind 127.0.0.1 --directory public 1313
 ```
 
 Open <http://localhost:1313> after the static server starts.
