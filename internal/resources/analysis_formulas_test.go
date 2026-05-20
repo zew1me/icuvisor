@@ -31,37 +31,37 @@ func TestAnalysisFormulasMarkdownPinsRequiredFormulaRefs(t *testing.T) {
 		citation string
 	}{
 		{
-			ref:      AnalysisFormulasURI + "#hr_drift",
+			ref:      AnalysisFormulaRefHRDrift,
 			formula:  "100 * (avg_hr_second_half - avg_hr_first_half) / avg_hr_first_half",
 			boundary: "external load is stable",
 			citation: "Joe Friel",
 		},
 		{
-			ref:      AnalysisFormulasURI + "#pw_hr_decoupling",
+			ref:      AnalysisFormulaRefPwHRDecoupling,
 			formula:  "100 * (ratio_first - ratio_second) / ratio_first",
 			boundary: "power and HR in both halves",
 			citation: "TrainingPeaks/WKO",
 		},
 		{
-			ref:      AnalysisFormulasURI + "#polarization_index",
+			ref:      AnalysisFormulaRefPolarization,
 			formula:  "log10((low_share / moderate_share) * (high_share / moderate_share) * 100)",
 			boundary: "high share is zero",
 			citation: "Seiler",
 		},
 		{
-			ref:      AnalysisFormulasURI + "#efficiency_factor",
+			ref:      AnalysisFormulaRefEfficiencyFactor,
 			formula:  "normalized_power / avg_hr",
 			boundary: "missing normalized power",
 			citation: "Coggan",
 		},
 		{
-			ref:      AnalysisFormulasURI + "#variability_index",
+			ref:      AnalysisFormulaRefVariabilityIndex,
 			formula:  "normalized_power / avg_power",
 			boundary: "sport lacks power data",
 			citation: "Variability Index",
 		},
 		{
-			ref:      AnalysisFormulasURI + "#z_score",
+			ref:      AnalysisFormulaRefZScore,
 			formula:  "(current_value - baseline_mean) / sample_standard_deviation",
 			boundary: "standard deviation is zero",
 			citation: "NIST/SEMATECH",
