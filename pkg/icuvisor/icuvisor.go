@@ -123,6 +123,12 @@ func NewBearerClient(opts BearerClientOptions) (*Client, error) {
 // Registry is an opaque MCP tool registry.
 type Registry struct {
 	inner tools.Registry
+	core  *coreRegistrySpec
+}
+
+type coreRegistrySpec struct {
+	client *Client
+	opts   RegistryOptions
 }
 
 // RegistryOptions configures the default core tool registry.
@@ -140,31 +146,25 @@ type RegistryOptions struct {
 
 // NewCoreRegistry creates the default core tool registry with optional host policy extensions.
 func NewCoreRegistry(client *Client, opts RegistryOptions) Registry {
-	var innerClient *intervals.Client
-	if client != nil {
-		innerClient = client.inner
-	}
-	filter := internalToolFilter(opts.ToolFilter)
-	deleteMode := effectiveDeleteMode(opts.DeleteMode, opts.Config.DeleteMode)
-	toolset := effectiveToolset(opts.Toolset, opts.Config.Toolset)
-	base := tools.NewRegistryWithOptions(innerClient, tools.RegistryOptions{Version: opts.Version, TimezoneFallback: opts.TimezoneFallback, DebugMetadata: opts.DebugMetadata, Capability: safety.NewCapability(deleteMode.toInternal()), Toolset: toolset.toInternal(), CatalogFilter: filter, CatalogHash: opts.CatalogHash, ExtraTools: internalTools(opts.ExtraTools)})
-	return Registry{inner: base}
+	base := buildCoreRegistry(client, opts, Config{})
+	return Registry{inner: base, core: &coreRegistrySpec{client: client, opts: opts}}
 }
 
 // NewResourceRegistry creates the default MCP resource registry.
 func NewResourceRegistry(client *Client, opts ResourceRegistryOptions) ResourceRegistry {
-	var profileClient *intervals.Client
-	if client != nil {
-		profileClient = client.inner
-	}
-	deleteMode := effectiveDeleteMode(opts.DeleteMode, opts.Config.DeleteMode)
-	toolset := effectiveToolset(opts.Toolset, opts.Config.Toolset)
-	return ResourceRegistry{inner: resources.NewRegistryWithOptions(profileClient, resources.ResourceOptions{Version: opts.Version, TimezoneFallback: opts.TimezoneFallback, DebugMetadata: opts.DebugMetadata, DeleteMode: deleteMode.toInternal(), Toolset: toolset.toInternal(), CatalogHash: opts.CatalogHash, AthleteProfileTTL: opts.AthleteProfileTTL, DisableAthleteProfile: opts.DisableAthleteProfile, Now: opts.Now})}
+	inner := buildResourceRegistry(client, opts, Config{})
+	return ResourceRegistry{inner: inner, core: &resourceRegistrySpec{client: client, opts: opts}}
 }
 
 // ResourceRegistry is an opaque MCP resource registry.
 type ResourceRegistry struct {
 	inner resources.Registry
+	core  *resourceRegistrySpec
+}
+
+type resourceRegistrySpec struct {
+	client *Client
+	opts   ResourceRegistryOptions
 }
 
 // ResourceRegistryOptions configures default MCP resources.
@@ -218,7 +218,7 @@ func NewServer(ctx context.Context, opts ServerOptions) (*Server, error) {
 	}
 	deleteMode := effectiveDeleteMode(opts.DeleteMode, opts.Config.DeleteMode)
 	toolset := effectiveToolset(opts.Toolset, opts.Config.Toolset)
-	server, err := internalmcp.NewServer(ctx, internalmcp.Options{Config: cfg, Version: opts.Version, Logger: opts.Logger, Registry: opts.Registry.inner, ResourceRegistry: opts.ResourceRegistry.inner, PromptRegistry: opts.PromptRegistry.inner, Capability: safety.NewCapability(deleteMode.toInternal()), Toolset: toolset.toInternal(), Transport: opts.Transport, SkipRuntimeCatalogMetadata: opts.SkipRuntimeCatalogMetadata})
+	server, err := internalmcp.NewServer(ctx, internalmcp.Options{Config: cfg, Version: opts.Version, Logger: opts.Logger, Registry: registryForConfig(opts.Registry, opts.Config), ResourceRegistry: resourceRegistryForConfig(opts.ResourceRegistry, opts.Config), PromptRegistry: opts.PromptRegistry.inner, Capability: safety.NewCapability(deleteMode.toInternal()), Toolset: toolset.toInternal(), Transport: opts.Transport, SkipRuntimeCatalogMetadata: opts.SkipRuntimeCatalogMetadata})
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +265,7 @@ func CollectToolCatalog(ctx context.Context, opts CatalogOptions) ([]ToolInfo, e
 	}
 	deleteMode := effectiveDeleteMode(opts.Mode, opts.Config.DeleteMode)
 	toolset := effectiveToolset(opts.Toolset, opts.Config.Toolset)
-	catalog, err := internalmcp.CollectToolCatalog(ctx, internalmcp.CatalogHashOptions{Config: cfg, Registry: opts.Registry.inner, Capability: safety.NewCapability(deleteMode.toInternal()), Toolset: toolset.toInternal(), Logger: opts.Logger})
+	catalog, err := internalmcp.CollectToolCatalog(ctx, internalmcp.CatalogHashOptions{Config: cfg, Registry: registryForConfig(opts.Registry, opts.Config), Capability: safety.NewCapability(deleteMode.toInternal()), Toolset: toolset.toInternal(), Logger: opts.Logger})
 	if err != nil {
 		return nil, err
 	}
@@ -284,7 +284,7 @@ func ComputeToolCatalogHash(ctx context.Context, opts CatalogOptions) (string, e
 	}
 	deleteMode := effectiveDeleteMode(opts.Mode, opts.Config.DeleteMode)
 	toolset := effectiveToolset(opts.Toolset, opts.Config.Toolset)
-	return internalmcp.ComputeToolCatalogHash(ctx, internalmcp.CatalogHashOptions{Config: cfg, Registry: opts.Registry.inner, Capability: safety.NewCapability(deleteMode.toInternal()), Toolset: toolset.toInternal(), Logger: opts.Logger})
+	return internalmcp.ComputeToolCatalogHash(ctx, internalmcp.CatalogHashOptions{Config: cfg, Registry: registryForConfig(opts.Registry, opts.Config), Capability: safety.NewCapability(deleteMode.toInternal()), Toolset: toolset.toInternal(), Logger: opts.Logger})
 }
 
 // ToolInfo is public non-secret metadata about a registered tool.
@@ -427,22 +427,61 @@ func requirementFromInternal(tool tools.Tool) Requirement {
 	return RequirementRead
 }
 
-func effectiveDeleteMode(option DeleteMode, cfg DeleteMode) DeleteMode {
+func buildCoreRegistry(client *Client, opts RegistryOptions, boundary Config) tools.Registry {
+	var innerClient *intervals.Client
+	if client != nil {
+		innerClient = client.inner
+	}
+	filter := internalToolFilter(opts.ToolFilter)
+	deleteMode := effectiveDeleteMode(opts.DeleteMode, opts.Config.DeleteMode, boundary.DeleteMode)
+	toolset := effectiveToolset(opts.Toolset, opts.Config.Toolset, boundary.Toolset)
+	return tools.NewRegistryWithOptions(innerClient, tools.RegistryOptions{Version: opts.Version, TimezoneFallback: opts.TimezoneFallback, DebugMetadata: opts.DebugMetadata, Capability: safety.NewCapability(deleteMode.toInternal()), Toolset: toolset.toInternal(), CatalogFilter: filter, CatalogHash: opts.CatalogHash, ExtraTools: internalTools(opts.ExtraTools)})
+}
+
+func registryForConfig(reg Registry, cfg Config) tools.Registry {
+	if reg.core != nil {
+		return buildCoreRegistry(reg.core.client, reg.core.opts, cfg)
+	}
+	return reg.inner
+}
+
+func buildResourceRegistry(client *Client, opts ResourceRegistryOptions, boundary Config) resources.Registry {
+	var profileClient *intervals.Client
+	if client != nil {
+		profileClient = client.inner
+	}
+	deleteMode := effectiveDeleteMode(opts.DeleteMode, opts.Config.DeleteMode, boundary.DeleteMode)
+	toolset := effectiveToolset(opts.Toolset, opts.Config.Toolset, boundary.Toolset)
+	return resources.NewRegistryWithOptions(profileClient, resources.ResourceOptions{Version: opts.Version, TimezoneFallback: opts.TimezoneFallback, DebugMetadata: opts.DebugMetadata, DeleteMode: deleteMode.toInternal(), Toolset: toolset.toInternal(), CatalogHash: opts.CatalogHash, AthleteProfileTTL: opts.AthleteProfileTTL, DisableAthleteProfile: opts.DisableAthleteProfile, Now: opts.Now})
+}
+
+func resourceRegistryForConfig(reg ResourceRegistry, cfg Config) resources.Registry {
+	if reg.core != nil {
+		return buildResourceRegistry(reg.core.client, reg.core.opts, cfg)
+	}
+	return reg.inner
+}
+
+func effectiveDeleteMode(option DeleteMode, cfgs ...DeleteMode) DeleteMode {
 	if option != "" {
 		return option
 	}
-	if cfg != "" {
-		return cfg
+	for _, cfg := range cfgs {
+		if cfg != "" {
+			return cfg
+		}
 	}
 	return DeleteModeSafe
 }
 
-func effectiveToolset(option Toolset, cfg Toolset) Toolset {
+func effectiveToolset(option Toolset, cfgs ...Toolset) Toolset {
 	if option != "" {
 		return option
 	}
-	if cfg != "" {
-		return cfg
+	for _, cfg := range cfgs {
+		if cfg != "" {
+			return cfg
+		}
 	}
 	return ToolsetCore
 }

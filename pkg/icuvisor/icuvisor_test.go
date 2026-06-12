@@ -2,6 +2,7 @@ package icuvisor
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	internalresources "github.com/ricardocabral/icuvisor/internal/resources"
 	"github.com/ricardocabral/icuvisor/internal/response"
 )
 
@@ -165,28 +167,62 @@ func TestFacadeUsesConfigDeleteModeAndToolsetDefaults(t *testing.T) {
 	t.Parallel()
 
 	cfg := facadeTestConfig()
-	cfg.DeleteMode = DeleteModeNone
+	cfg.DeleteMode = DeleteModeFull
 	cfg.Toolset = ToolsetFull
 	extra := facadeExtraTool("Full default extra.", "")
-	registry := NewCoreRegistry(newFacadeTestClient(t), RegistryOptions{Config: cfg, Version: "v-public", ExtraTools: []Tool{extra}})
+	registry := NewCoreRegistry(newFacadeTestClient(t), RegistryOptions{Version: "v-public", ExtraTools: []Tool{extra}})
 	catalog, err := CollectToolCatalog(context.Background(), CatalogOptions{Config: cfg, Registry: registry})
 	if err != nil {
 		t.Fatalf("CollectToolCatalog() error = %v", err)
 	}
-	if hasTool(catalog, "update_wellness") {
-		t.Fatal("catalog includes write tool update_wellness with Config.DeleteModeNone")
+	if !hasTool(catalog, "delete_event") {
+		t.Fatal("catalog missing delete_event with Config.DeleteModeFull")
 	}
 	if !hasTool(catalog, "hosted_setup_status") {
 		t.Fatal("catalog missing full-only extra tool with Config.ToolsetFull")
 	}
+	checkVersion := findToolInfo(t, catalog, "icuvisor_check_server_version")
+	if !strings.Contains(checkVersion.Description, "description_toolset=full") || !strings.Contains(checkVersion.Description, "description_delete_mode=full") {
+		t.Fatalf("check-server-version description = %q, want Config policy defaults", checkVersion.Description)
+	}
 
-	resourceRegistry := NewResourceRegistry(newFacadeTestClient(t), ResourceRegistryOptions{Config: cfg, Version: "v-public"})
+	resourceRegistry := NewResourceRegistry(newFacadeTestClient(t), ResourceRegistryOptions{Version: "v-public"})
 	server, err := NewServer(context.Background(), ServerOptions{Config: cfg, Version: "v-public", Registry: registry, ResourceRegistry: resourceRegistry, DeleteMode: "", Toolset: "", SkipRuntimeCatalogMetadata: true})
 	if err != nil {
 		t.Fatalf("NewServer() error = %v", err)
 	}
 	if server.CatalogHash() == "" {
 		t.Fatal("server catalog hash is empty")
+	}
+
+	profileResource := facadeAthleteProfileResourceWithBoundaryConfig(t, cfg)
+	result, err := profileResource.Handler(context.Background(), internalresources.Request{URI: internalresources.AthleteProfileURI})
+	if err != nil {
+		t.Fatalf("athlete profile resource handler error = %v", err)
+	}
+	var shaped map[string]any
+	if err := json.Unmarshal([]byte(result.Text), &shaped); err != nil {
+		t.Fatalf("json.Unmarshal(resource) error = %v", err)
+	}
+	meta := shaped["_meta"].(map[string]any)
+	if meta["delete_mode"] != "full" || meta["toolset"] != "full" {
+		t.Fatalf("resource _meta = %#v, want Config policy defaults", meta)
+	}
+}
+
+func TestFacadeConfigDeleteModeNoneDisablesWriteTools(t *testing.T) {
+	t.Parallel()
+
+	cfg := facadeTestConfig()
+	cfg.DeleteMode = DeleteModeNone
+	cfg.Toolset = ToolsetFull
+	registry := NewCoreRegistry(newFacadeTestClient(t), RegistryOptions{Version: "v-public"})
+	catalog, err := CollectToolCatalog(context.Background(), CatalogOptions{Config: cfg, Registry: registry})
+	if err != nil {
+		t.Fatalf("CollectToolCatalog() error = %v", err)
+	}
+	if hasTool(catalog, "update_wellness") {
+		t.Fatal("catalog includes write tool update_wellness with Config.DeleteModeNone")
 	}
 }
 
@@ -302,6 +338,57 @@ func newFacadeTestClient(t *testing.T) *Client {
 
 func facadeTestConfig() Config {
 	return Config{APIKey: "x", AthleteID: "i12345", Timezone: "UTC", APIBaseURL: "https://intervals.icu/api/v1", HTTPTimeout: time.Second, DeleteMode: DeleteModeSafe, Toolset: ToolsetCore}
+}
+
+func findToolInfo(t *testing.T, catalog []ToolInfo, name string) ToolInfo {
+	t.Helper()
+	for _, tool := range catalog {
+		if tool.Name == name {
+			return tool
+		}
+	}
+	t.Fatalf("catalog missing %s", name)
+	return ToolInfo{}
+}
+
+func facadeAthleteProfileResourceWithBoundaryConfig(t *testing.T, cfg Config) internalresources.Resource {
+	t.Helper()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got, want := r.URL.Path, "/athlete/i12345"; got != want {
+			t.Fatalf("path = %q, want %q", got, want)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":"i12345","name":"Resource Athlete","timezone":"UTC","sportSettings":[]}`))
+	}))
+	t.Cleanup(server.Close)
+	clientCfg := cfg
+	clientCfg.APIBaseURL = server.URL
+	client, err := NewAPIKeyClient(APIKeyClientOptions{Config: clientCfg, Version: "v-public", HTTPClient: server.Client()})
+	if err != nil {
+		t.Fatalf("NewAPIKeyClient() error = %v", err)
+	}
+	registry := NewResourceRegistry(client, ResourceRegistryOptions{Version: "v-public"})
+	inner := resourceRegistryForConfig(registry, cfg)
+	registrar := &collectingResourceRegistrar{}
+	if err := inner.Register(context.Background(), registrar); err != nil {
+		t.Fatalf("resource registry Register() error = %v", err)
+	}
+	for _, resource := range registrar.resources {
+		if resource.URI == internalresources.AthleteProfileURI {
+			return resource
+		}
+	}
+	t.Fatal("resource registry missing athlete profile")
+	return internalresources.Resource{}
+}
+
+type collectingResourceRegistrar struct {
+	resources []internalresources.Resource
+}
+
+func (r *collectingResourceRegistrar) AddResource(resource internalresources.Resource) error {
+	r.resources = append(r.resources, resource)
+	return nil
 }
 
 func hasTool(catalog []ToolInfo, name string) bool {
