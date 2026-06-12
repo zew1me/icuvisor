@@ -95,6 +95,7 @@ func Shape(profile intervals.AthleteWithSportSettings, version string, timezoneF
 	if len(shaping) > 0 {
 		opts.DeleteMode = shaping[0].DeleteMode
 		opts.Toolset = shaping[0].Toolset
+		opts.CatalogHash = shaping[0].CatalogHash
 	}
 	return response.Shape(profileResponse, opts)
 }

@@ -15,6 +15,7 @@ type ResourceOptions struct {
 	DebugMetadata         bool
 	DeleteMode            safety.Mode
 	Toolset               safety.Toolset
+	CatalogHash           string
 	AthleteProfileTTL     time.Duration
 	DisableAthleteProfile bool
 	Now                   func() time.Time

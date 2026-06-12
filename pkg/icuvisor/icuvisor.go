@@ -154,7 +154,7 @@ func NewResourceRegistry(client *Client, opts ResourceRegistryOptions) ResourceR
 	if client != nil {
 		profileClient = client.inner
 	}
-	return ResourceRegistry{inner: resources.NewRegistryWithOptions(profileClient, resources.ResourceOptions{Version: opts.Version, TimezoneFallback: opts.TimezoneFallback, DebugMetadata: opts.DebugMetadata, DeleteMode: opts.DeleteMode.toInternal(), Toolset: opts.Toolset.toInternal(), AthleteProfileTTL: opts.AthleteProfileTTL, DisableAthleteProfile: opts.DisableAthleteProfile, Now: opts.Now})}
+	return ResourceRegistry{inner: resources.NewRegistryWithOptions(profileClient, resources.ResourceOptions{Version: opts.Version, TimezoneFallback: opts.TimezoneFallback, DebugMetadata: opts.DebugMetadata, DeleteMode: opts.DeleteMode.toInternal(), Toolset: opts.Toolset.toInternal(), CatalogHash: opts.CatalogHash, AthleteProfileTTL: opts.AthleteProfileTTL, DisableAthleteProfile: opts.DisableAthleteProfile, Now: opts.Now})}
 }
 
 // ResourceRegistry is an opaque MCP resource registry.
@@ -169,6 +169,7 @@ type ResourceRegistryOptions struct {
 	DebugMetadata         bool
 	DeleteMode            DeleteMode
 	Toolset               Toolset
+	CatalogHash           string
 	AthleteProfileTTL     time.Duration
 	DisableAthleteProfile bool
 	Now                   func() time.Time

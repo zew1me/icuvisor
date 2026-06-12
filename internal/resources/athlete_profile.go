@@ -27,6 +27,7 @@ type athleteProfileOptions struct {
 	debugMetadata    bool
 	deleteMode       safety.Mode
 	toolset          safety.Toolset
+	catalogHash      string
 	ttl              time.Duration
 	now              func() time.Time
 }
@@ -38,6 +39,7 @@ type athleteProfileReader struct {
 	debugMetadata    bool
 	deleteMode       safety.Mode
 	toolset          safety.Toolset
+	catalogHash      string
 	ttl              time.Duration
 	now              func() time.Time
 
@@ -63,6 +65,7 @@ func AthleteProfileResource(client clients.ProfileClient, opts ResourceOptions) 
 		debugMetadata:    opts.DebugMetadata,
 		deleteMode:       safety.ParseMode(opts.DeleteMode.String()),
 		toolset:          safety.ParseToolset(opts.Toolset.String()),
+		catalogHash:      opts.CatalogHash,
 		ttl:              opts.AthleteProfileTTL,
 		now:              opts.Now,
 	})
@@ -92,6 +95,7 @@ func newAthleteProfileReader(opts athleteProfileOptions) *athleteProfileReader {
 		debugMetadata:    opts.debugMetadata,
 		deleteMode:       safety.ParseMode(opts.deleteMode.String()),
 		toolset:          safety.ParseToolset(opts.toolset.String()),
+		catalogHash:      opts.catalogHash,
 		ttl:              ttl,
 		now:              now,
 	}
@@ -155,7 +159,7 @@ func (r *athleteProfileReader) refreshProfile(ctx context.Context) (Result, erro
 		}
 		return Result{}, fmt.Errorf("could not fetch athlete profile; check intervals.icu credentials and athlete ID: %w", err)
 	}
-	shaped, err := athleteprofile.Shape(profile, r.version, r.timezoneFallback, false, r.debugMetadata, response.Options{DeleteMode: r.deleteMode, Toolset: r.toolset})
+	shaped, err := athleteprofile.Shape(profile, r.version, r.timezoneFallback, false, r.debugMetadata, response.Options{DeleteMode: r.deleteMode, Toolset: r.toolset, CatalogHash: r.catalogHash})
 	if err != nil {
 		return Result{}, fmt.Errorf("shaping athlete profile resource: %w", err)
 	}

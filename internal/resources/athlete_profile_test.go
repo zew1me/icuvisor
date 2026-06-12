@@ -11,6 +11,7 @@ import (
 
 	"github.com/ricardocabral/icuvisor/internal/athleteprofile"
 	"github.com/ricardocabral/icuvisor/internal/intervals"
+	"github.com/ricardocabral/icuvisor/internal/response"
 )
 
 type fakeAthleteProfileClient struct {
@@ -58,6 +59,34 @@ func TestAthleteProfileResourceReturnsSharedShapedProfile(t *testing.T) {
 	}
 	if result.URI != AthleteProfileURI || result.MIMEType != AthleteProfileMIMEType || result.Text != string(wantText) {
 		t.Fatalf("resource result = %#v, want URI/MIME/shared shaped JSON %s", result, wantText)
+	}
+}
+
+func TestAthleteProfileResourceUsesRequestCatalogHash(t *testing.T) {
+	response.SetRuntimeCatalogMetadata("global-version", "global-hash")
+	t.Cleanup(func() { response.SetRuntimeCatalogMetadata("dev", "dev-catalog-hash") })
+
+	profile := resourceTestProfile("i12345", "Example Athlete")
+	client := &fakeAthleteProfileClient{profiles: []intervals.AthleteWithSportSettings{profile}}
+	resource := AthleteProfileResource(client, ResourceOptions{Version: "request-version", TimezoneFallback: "UTC", CatalogHash: "request-catalog-hash"})
+
+	result, err := resource.Handler(context.Background(), Request{URI: AthleteProfileURI})
+	if err != nil {
+		t.Fatalf("resource handler error = %v", err)
+	}
+	var shaped map[string]any
+	if err := json.Unmarshal([]byte(result.Text), &shaped); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	meta, ok := shaped["_meta"].(map[string]any)
+	if !ok {
+		t.Fatalf("_meta = %#v, want object", shaped["_meta"])
+	}
+	if got := meta["catalog_hash"]; got != "request-catalog-hash" {
+		t.Fatalf("_meta.catalog_hash = %#v, want request-catalog-hash", got)
+	}
+	if runtime := response.RuntimeCatalogMetadata(); runtime.Version != "global-version" || runtime.CatalogHash != "global-hash" {
+		t.Fatalf("global runtime metadata = %+v, want unchanged", runtime)
 	}
 }
 
