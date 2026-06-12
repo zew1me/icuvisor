@@ -216,9 +216,21 @@ func NewServer(ctx context.Context, opts ServerOptions) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	deleteMode := effectiveDeleteMode(opts.DeleteMode, opts.Config.DeleteMode)
-	toolset := effectiveToolset(opts.Toolset, opts.Config.Toolset)
-	server, err := internalmcp.NewServer(ctx, internalmcp.Options{Config: cfg, Version: opts.Version, Logger: opts.Logger, Registry: registryForConfig(opts.Registry, opts.Config), ResourceRegistry: resourceRegistryForConfig(opts.ResourceRegistry, opts.Config), PromptRegistry: opts.PromptRegistry.inner, Capability: safety.NewCapability(deleteMode.toInternal()), Toolset: toolset.toInternal(), Transport: opts.Transport, SkipRuntimeCatalogMetadata: opts.SkipRuntimeCatalogMetadata})
+	deleteMode, toolset, err := effectivePolicy(opts.DeleteMode, opts.Toolset, opts.Config)
+	if err != nil {
+		return nil, err
+	}
+	registry := registryForConfig(opts.Registry, opts.Config)
+	resourceRegistry := resourceRegistryForConfig(opts.ResourceRegistry, opts.Config)
+	if opts.SkipRuntimeCatalogMetadata {
+		catalogHash, err := internalmcp.ComputeToolCatalogHash(ctx, internalmcp.CatalogHashOptions{Config: cfg, Registry: registry, Capability: safety.NewCapability(deleteMode.toInternal()), Toolset: toolset.toInternal(), Logger: opts.Logger})
+		if err != nil {
+			return nil, err
+		}
+		registry = registryForConfigWithCatalogHash(opts.Registry, opts.Config, catalogHash)
+		resourceRegistry = resourceRegistryForConfigWithCatalogHash(opts.ResourceRegistry, opts.Config, catalogHash)
+	}
+	server, err := internalmcp.NewServer(ctx, internalmcp.Options{Config: cfg, Version: opts.Version, Logger: opts.Logger, Registry: registry, ResourceRegistry: resourceRegistry, PromptRegistry: opts.PromptRegistry.inner, Capability: safety.NewCapability(deleteMode.toInternal()), Toolset: toolset.toInternal(), Transport: opts.Transport, SkipRuntimeCatalogMetadata: opts.SkipRuntimeCatalogMetadata})
 	if err != nil {
 		return nil, err
 	}
@@ -263,8 +275,10 @@ func CollectToolCatalog(ctx context.Context, opts CatalogOptions) ([]ToolInfo, e
 	if err != nil {
 		return nil, err
 	}
-	deleteMode := effectiveDeleteMode(opts.Mode, opts.Config.DeleteMode)
-	toolset := effectiveToolset(opts.Toolset, opts.Config.Toolset)
+	deleteMode, toolset, err := effectivePolicy(opts.Mode, opts.Toolset, opts.Config)
+	if err != nil {
+		return nil, err
+	}
 	catalog, err := internalmcp.CollectToolCatalog(ctx, internalmcp.CatalogHashOptions{Config: cfg, Registry: registryForConfig(opts.Registry, opts.Config), Capability: safety.NewCapability(deleteMode.toInternal()), Toolset: toolset.toInternal(), Logger: opts.Logger})
 	if err != nil {
 		return nil, err
@@ -282,8 +296,10 @@ func ComputeToolCatalogHash(ctx context.Context, opts CatalogOptions) (string, e
 	if err != nil {
 		return "", err
 	}
-	deleteMode := effectiveDeleteMode(opts.Mode, opts.Config.DeleteMode)
-	toolset := effectiveToolset(opts.Toolset, opts.Config.Toolset)
+	deleteMode, toolset, err := effectivePolicy(opts.Mode, opts.Toolset, opts.Config)
+	if err != nil {
+		return "", err
+	}
 	return internalmcp.ComputeToolCatalogHash(ctx, internalmcp.CatalogHashOptions{Config: cfg, Registry: registryForConfig(opts.Registry, opts.Config), Capability: safety.NewCapability(deleteMode.toInternal()), Toolset: toolset.toInternal(), Logger: opts.Logger})
 }
 
@@ -427,20 +443,46 @@ func requirementFromInternal(tool tools.Tool) Requirement {
 	return RequirementRead
 }
 
+type errorToolRegistry struct {
+	err error
+}
+
+func (r errorToolRegistry) Register(context.Context, tools.Registrar) error {
+	return r.err
+}
+
+type errorResourceRegistry struct {
+	err error
+}
+
+func (r errorResourceRegistry) Register(context.Context, resources.Registrar) error {
+	return r.err
+}
+
 func buildCoreRegistry(client *Client, opts RegistryOptions, boundary Config) tools.Registry {
 	var innerClient *intervals.Client
 	if client != nil {
 		innerClient = client.inner
 	}
 	filter := internalToolFilter(opts.ToolFilter)
-	deleteMode := effectiveDeleteMode(opts.DeleteMode, opts.Config.DeleteMode, boundary.DeleteMode)
-	toolset := effectiveToolset(opts.Toolset, opts.Config.Toolset, boundary.Toolset)
+	deleteMode, toolset, err := effectivePolicy(opts.DeleteMode, opts.Toolset, opts.Config, boundary)
+	if err != nil {
+		return errorToolRegistry{err: err}
+	}
 	return tools.NewRegistryWithOptions(innerClient, tools.RegistryOptions{Version: opts.Version, TimezoneFallback: opts.TimezoneFallback, DebugMetadata: opts.DebugMetadata, Capability: safety.NewCapability(deleteMode.toInternal()), Toolset: toolset.toInternal(), CatalogFilter: filter, CatalogHash: opts.CatalogHash, ExtraTools: internalTools(opts.ExtraTools)})
 }
 
 func registryForConfig(reg Registry, cfg Config) tools.Registry {
+	return registryForConfigWithCatalogHash(reg, cfg, "")
+}
+
+func registryForConfigWithCatalogHash(reg Registry, cfg Config, catalogHash string) tools.Registry {
 	if reg.core != nil {
-		return buildCoreRegistry(reg.core.client, reg.core.opts, cfg)
+		opts := reg.core.opts
+		if opts.CatalogHash == "" {
+			opts.CatalogHash = catalogHash
+		}
+		return buildCoreRegistry(reg.core.client, opts, cfg)
 	}
 	return reg.inner
 }
@@ -450,16 +492,70 @@ func buildResourceRegistry(client *Client, opts ResourceRegistryOptions, boundar
 	if client != nil {
 		profileClient = client.inner
 	}
-	deleteMode := effectiveDeleteMode(opts.DeleteMode, opts.Config.DeleteMode, boundary.DeleteMode)
-	toolset := effectiveToolset(opts.Toolset, opts.Config.Toolset, boundary.Toolset)
+	deleteMode, toolset, err := effectivePolicy(opts.DeleteMode, opts.Toolset, opts.Config, boundary)
+	if err != nil {
+		return errorResourceRegistry{err: err}
+	}
 	return resources.NewRegistryWithOptions(profileClient, resources.ResourceOptions{Version: opts.Version, TimezoneFallback: opts.TimezoneFallback, DebugMetadata: opts.DebugMetadata, DeleteMode: deleteMode.toInternal(), Toolset: toolset.toInternal(), CatalogHash: opts.CatalogHash, AthleteProfileTTL: opts.AthleteProfileTTL, DisableAthleteProfile: opts.DisableAthleteProfile, Now: opts.Now})
 }
 
 func resourceRegistryForConfig(reg ResourceRegistry, cfg Config) resources.Registry {
+	return resourceRegistryForConfigWithCatalogHash(reg, cfg, "")
+}
+
+func resourceRegistryForConfigWithCatalogHash(reg ResourceRegistry, cfg Config, catalogHash string) resources.Registry {
 	if reg.core != nil {
-		return buildResourceRegistry(reg.core.client, reg.core.opts, cfg)
+		opts := reg.core.opts
+		if opts.CatalogHash == "" {
+			opts.CatalogHash = catalogHash
+		}
+		return buildResourceRegistry(reg.core.client, opts, cfg)
 	}
 	return reg.inner
+}
+
+func effectivePolicy(optionMode DeleteMode, optionToolset Toolset, configs ...Config) (DeleteMode, Toolset, error) {
+	if err := validateDeleteMode(optionMode); err != nil {
+		return "", "", err
+	}
+	if err := validateToolset(optionToolset); err != nil {
+		return "", "", err
+	}
+	modes := make([]DeleteMode, 0, len(configs))
+	toolsets := make([]Toolset, 0, len(configs))
+	for _, cfg := range configs {
+		if err := validateConfigPolicy(cfg); err != nil {
+			return "", "", err
+		}
+		modes = append(modes, cfg.DeleteMode)
+		toolsets = append(toolsets, cfg.Toolset)
+	}
+	return effectiveDeleteMode(optionMode, modes...), effectiveToolset(optionToolset, toolsets...), nil
+}
+
+func validateConfigPolicy(cfg Config) error {
+	if err := validateDeleteMode(cfg.DeleteMode); err != nil {
+		return err
+	}
+	return validateToolset(cfg.Toolset)
+}
+
+func validateDeleteMode(mode DeleteMode) error {
+	switch mode {
+	case "", DeleteModeSafe, DeleteModeFull, DeleteModeNone:
+		return nil
+	default:
+		return fmt.Errorf("invalid delete mode %q", mode)
+	}
+}
+
+func validateToolset(toolset Toolset) error {
+	switch toolset {
+	case "", ToolsetCore, ToolsetFull:
+		return nil
+	default:
+		return fmt.Errorf("invalid toolset %q", toolset)
+	}
 }
 
 func effectiveDeleteMode(option DeleteMode, cfgs ...DeleteMode) DeleteMode {
@@ -487,6 +583,9 @@ func effectiveToolset(option Toolset, cfgs ...Toolset) Toolset {
 }
 
 func (cfg Config) toInternalValidated() (config.Config, error) {
+	if err := validateConfigPolicy(cfg); err != nil {
+		return config.Config{}, err
+	}
 	out := cfg.toInternal()
 	normalizedAthleteID, err := config.NormalizeAthleteID(out.AthleteID)
 	if err != nil {

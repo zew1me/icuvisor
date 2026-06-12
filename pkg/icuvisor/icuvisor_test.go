@@ -10,8 +10,11 @@ import (
 	"testing"
 	"time"
 
+	internalmcp "github.com/ricardocabral/icuvisor/internal/mcp"
 	internalresources "github.com/ricardocabral/icuvisor/internal/resources"
 	"github.com/ricardocabral/icuvisor/internal/response"
+	"github.com/ricardocabral/icuvisor/internal/safety"
+	internaltools "github.com/ricardocabral/icuvisor/internal/tools"
 )
 
 func TestBearerClientFacadeUsesBearerAuth(t *testing.T) {
@@ -226,6 +229,91 @@ func TestFacadeConfigDeleteModeNoneDisablesWriteTools(t *testing.T) {
 	}
 }
 
+func TestSkipRuntimeCatalogMetadataInjectsServerHashIntoHandlers(t *testing.T) {
+	response.SetRuntimeCatalogMetadata("global-version", "global-hash")
+	t.Cleanup(func() { response.SetRuntimeCatalogMetadata("dev", "dev-catalog-hash") })
+
+	cfg := facadeTestConfig()
+	cfg.DeleteMode = DeleteModeFull
+	cfg.Toolset = ToolsetFull
+	client := newHTTPFacadeTestClient(t, cfg)
+	registry := NewCoreRegistry(client, RegistryOptions{Version: "v-public"})
+	resourceRegistry := NewResourceRegistry(client, ResourceRegistryOptions{Version: "v-public"})
+	server, err := NewServer(context.Background(), ServerOptions{Config: cfg, Version: "v-public", Registry: registry, ResourceRegistry: resourceRegistry, SkipRuntimeCatalogMetadata: true})
+	if err != nil {
+		t.Fatalf("NewServer() error = %v", err)
+	}
+
+	internalCfg, err := cfg.toInternalValidated()
+	if err != nil {
+		t.Fatalf("toInternalValidated() error = %v", err)
+	}
+	catalog, err := internalmcp.CollectToolCatalog(context.Background(), internalmcp.CatalogHashOptions{Config: internalCfg, Registry: registryForConfigWithCatalogHash(registry, cfg, server.CatalogHash()), Capability: safety.NewCapability(safety.ModeFull), Toolset: safety.ToolsetFull})
+	if err != nil {
+		t.Fatalf("internal CollectToolCatalog() error = %v", err)
+	}
+	var checkTool internaltools.Tool
+	for _, tool := range catalog {
+		if tool.Name == "icuvisor_check_server_version" {
+			checkTool = tool
+			break
+		}
+	}
+	if checkTool.Handler == nil {
+		t.Fatal("catalog missing icuvisor_check_server_version handler")
+	}
+	checkResult, err := checkTool.Handler(context.Background(), internaltools.Request{Name: checkTool.Name, Arguments: json.RawMessage(`{}`)})
+	if err != nil {
+		t.Fatalf("check-server-version handler error = %v", err)
+	}
+	var checkPayload map[string]any
+	if err := json.Unmarshal([]byte(checkResult.Content[0].Text), &checkPayload); err != nil {
+		t.Fatalf("json.Unmarshal(check) error = %v", err)
+	}
+	if checkPayload["catalog_hash"] != server.CatalogHash() {
+		t.Fatalf("check catalog_hash = %#v, want server hash %q", checkPayload["catalog_hash"], server.CatalogHash())
+	}
+
+	profileResource := facadeAthleteProfileResourceWithBoundaryConfigAndHash(t, cfg, server.CatalogHash())
+	resourceResult, err := profileResource.Handler(context.Background(), internalresources.Request{URI: internalresources.AthleteProfileURI})
+	if err != nil {
+		t.Fatalf("athlete profile resource handler error = %v", err)
+	}
+	var shaped map[string]any
+	if err := json.Unmarshal([]byte(resourceResult.Text), &shaped); err != nil {
+		t.Fatalf("json.Unmarshal(resource) error = %v", err)
+	}
+	meta := shaped["_meta"].(map[string]any)
+	if meta["catalog_hash"] != server.CatalogHash() {
+		t.Fatalf("resource catalog_hash = %#v, want server hash %q", meta["catalog_hash"], server.CatalogHash())
+	}
+	if runtime := response.RuntimeCatalogMetadata(); runtime.Version != "global-version" || runtime.CatalogHash != "global-hash" {
+		t.Fatalf("global runtime metadata = %+v, want unchanged", runtime)
+	}
+}
+
+func TestInvalidPublicPolicyValuesFailClosed(t *testing.T) {
+	t.Parallel()
+
+	cfg := facadeTestConfig()
+	cfg.DeleteMode = DeleteMode("nonee")
+	registry := NewCoreRegistry(newFacadeTestClient(t), RegistryOptions{Version: "v-public"})
+	if _, err := CollectToolCatalog(context.Background(), CatalogOptions{Config: cfg, Registry: registry}); err == nil {
+		t.Fatal("CollectToolCatalog() error = nil, want invalid delete mode error")
+	}
+
+	cfg = facadeTestConfig()
+	cfg.Toolset = Toolset("fulll")
+	if _, err := NewServer(context.Background(), ServerOptions{Config: cfg, Registry: registry, SkipRuntimeCatalogMetadata: true}); err == nil {
+		t.Fatal("NewServer() error = nil, want invalid toolset error")
+	}
+
+	registry = NewCoreRegistry(newFacadeTestClient(t), RegistryOptions{Version: "v-public", DeleteMode: DeleteMode("safee")})
+	if _, err := CollectToolCatalog(context.Background(), CatalogOptions{Config: facadeTestConfig(), Registry: registry}); err == nil {
+		t.Fatal("CollectToolCatalog() error = nil, want invalid registry delete mode error")
+	}
+}
+
 func TestConfigValidationNormalizesAthleteIDForServerRouting(t *testing.T) {
 	t.Parallel()
 
@@ -327,6 +415,25 @@ func TestStreamableHTTPHandlerFacadeDefaultsToPublicFactoryError(t *testing.T) {
 	}
 }
 
+func newHTTPFacadeTestClient(t *testing.T, cfg Config) *Client {
+	t.Helper()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got, want := r.URL.Path, "/athlete/i12345"; got != want {
+			t.Fatalf("path = %q, want %q", got, want)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":"i12345","name":"Resource Athlete","timezone":"UTC","sportSettings":[]}`))
+	}))
+	t.Cleanup(server.Close)
+	clientCfg := cfg
+	clientCfg.APIBaseURL = server.URL
+	client, err := NewAPIKeyClient(APIKeyClientOptions{Config: clientCfg, Version: "v-public", HTTPClient: server.Client()})
+	if err != nil {
+		t.Fatalf("NewAPIKeyClient() error = %v", err)
+	}
+	return client
+}
+
 func newFacadeTestClient(t *testing.T) *Client {
 	t.Helper()
 	client, err := NewAPIKeyClient(APIKeyClientOptions{Config: facadeTestConfig(), Version: "v-public"})
@@ -353,22 +460,14 @@ func findToolInfo(t *testing.T, catalog []ToolInfo, name string) ToolInfo {
 
 func facadeAthleteProfileResourceWithBoundaryConfig(t *testing.T, cfg Config) internalresources.Resource {
 	t.Helper()
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if got, want := r.URL.Path, "/athlete/i12345"; got != want {
-			t.Fatalf("path = %q, want %q", got, want)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"id":"i12345","name":"Resource Athlete","timezone":"UTC","sportSettings":[]}`))
-	}))
-	t.Cleanup(server.Close)
-	clientCfg := cfg
-	clientCfg.APIBaseURL = server.URL
-	client, err := NewAPIKeyClient(APIKeyClientOptions{Config: clientCfg, Version: "v-public", HTTPClient: server.Client()})
-	if err != nil {
-		t.Fatalf("NewAPIKeyClient() error = %v", err)
-	}
+	return facadeAthleteProfileResourceWithBoundaryConfigAndHash(t, cfg, "")
+}
+
+func facadeAthleteProfileResourceWithBoundaryConfigAndHash(t *testing.T, cfg Config, catalogHash string) internalresources.Resource {
+	t.Helper()
+	client := newHTTPFacadeTestClient(t, cfg)
 	registry := NewResourceRegistry(client, ResourceRegistryOptions{Version: "v-public"})
-	inner := resourceRegistryForConfig(registry, cfg)
+	inner := resourceRegistryForConfigWithCatalogHash(registry, cfg, catalogHash)
 	registrar := &collectingResourceRegistrar{}
 	if err := inner.Register(context.Background(), registrar); err != nil {
 		t.Fatalf("resource registry Register() error = %v", err)
