@@ -161,6 +161,35 @@ func TestServerFacadeCatalogHashAndSkipRuntimeMetadata(t *testing.T) {
 	}
 }
 
+func TestFacadeUsesConfigDeleteModeAndToolsetDefaults(t *testing.T) {
+	t.Parallel()
+
+	cfg := facadeTestConfig()
+	cfg.DeleteMode = DeleteModeNone
+	cfg.Toolset = ToolsetFull
+	extra := facadeExtraTool("Full default extra.", "")
+	registry := NewCoreRegistry(newFacadeTestClient(t), RegistryOptions{Config: cfg, Version: "v-public", ExtraTools: []Tool{extra}})
+	catalog, err := CollectToolCatalog(context.Background(), CatalogOptions{Config: cfg, Registry: registry})
+	if err != nil {
+		t.Fatalf("CollectToolCatalog() error = %v", err)
+	}
+	if hasTool(catalog, "update_wellness") {
+		t.Fatal("catalog includes write tool update_wellness with Config.DeleteModeNone")
+	}
+	if !hasTool(catalog, "hosted_setup_status") {
+		t.Fatal("catalog missing full-only extra tool with Config.ToolsetFull")
+	}
+
+	resourceRegistry := NewResourceRegistry(newFacadeTestClient(t), ResourceRegistryOptions{Config: cfg, Version: "v-public"})
+	server, err := NewServer(context.Background(), ServerOptions{Config: cfg, Version: "v-public", Registry: registry, ResourceRegistry: resourceRegistry, DeleteMode: "", Toolset: "", SkipRuntimeCatalogMetadata: true})
+	if err != nil {
+		t.Fatalf("NewServer() error = %v", err)
+	}
+	if server.CatalogHash() == "" {
+		t.Fatal("server catalog hash is empty")
+	}
+}
+
 func TestConfigValidationNormalizesAthleteIDForServerRouting(t *testing.T) {
 	t.Parallel()
 

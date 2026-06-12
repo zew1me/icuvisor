@@ -127,6 +127,7 @@ type Registry struct {
 
 // RegistryOptions configures the default core tool registry.
 type RegistryOptions struct {
+	Config           Config
 	Version          string
 	TimezoneFallback string
 	DebugMetadata    bool
@@ -144,7 +145,9 @@ func NewCoreRegistry(client *Client, opts RegistryOptions) Registry {
 		innerClient = client.inner
 	}
 	filter := internalToolFilter(opts.ToolFilter)
-	base := tools.NewRegistryWithOptions(innerClient, tools.RegistryOptions{Version: opts.Version, TimezoneFallback: opts.TimezoneFallback, DebugMetadata: opts.DebugMetadata, Capability: safety.NewCapability(opts.DeleteMode.toInternal()), Toolset: opts.Toolset.toInternal(), CatalogFilter: filter, CatalogHash: opts.CatalogHash, ExtraTools: internalTools(opts.ExtraTools)})
+	deleteMode := effectiveDeleteMode(opts.DeleteMode, opts.Config.DeleteMode)
+	toolset := effectiveToolset(opts.Toolset, opts.Config.Toolset)
+	base := tools.NewRegistryWithOptions(innerClient, tools.RegistryOptions{Version: opts.Version, TimezoneFallback: opts.TimezoneFallback, DebugMetadata: opts.DebugMetadata, Capability: safety.NewCapability(deleteMode.toInternal()), Toolset: toolset.toInternal(), CatalogFilter: filter, CatalogHash: opts.CatalogHash, ExtraTools: internalTools(opts.ExtraTools)})
 	return Registry{inner: base}
 }
 
@@ -154,7 +157,9 @@ func NewResourceRegistry(client *Client, opts ResourceRegistryOptions) ResourceR
 	if client != nil {
 		profileClient = client.inner
 	}
-	return ResourceRegistry{inner: resources.NewRegistryWithOptions(profileClient, resources.ResourceOptions{Version: opts.Version, TimezoneFallback: opts.TimezoneFallback, DebugMetadata: opts.DebugMetadata, DeleteMode: opts.DeleteMode.toInternal(), Toolset: opts.Toolset.toInternal(), CatalogHash: opts.CatalogHash, AthleteProfileTTL: opts.AthleteProfileTTL, DisableAthleteProfile: opts.DisableAthleteProfile, Now: opts.Now})}
+	deleteMode := effectiveDeleteMode(opts.DeleteMode, opts.Config.DeleteMode)
+	toolset := effectiveToolset(opts.Toolset, opts.Config.Toolset)
+	return ResourceRegistry{inner: resources.NewRegistryWithOptions(profileClient, resources.ResourceOptions{Version: opts.Version, TimezoneFallback: opts.TimezoneFallback, DebugMetadata: opts.DebugMetadata, DeleteMode: deleteMode.toInternal(), Toolset: toolset.toInternal(), CatalogHash: opts.CatalogHash, AthleteProfileTTL: opts.AthleteProfileTTL, DisableAthleteProfile: opts.DisableAthleteProfile, Now: opts.Now})}
 }
 
 // ResourceRegistry is an opaque MCP resource registry.
@@ -164,6 +169,7 @@ type ResourceRegistry struct {
 
 // ResourceRegistryOptions configures default MCP resources.
 type ResourceRegistryOptions struct {
+	Config                Config
 	Version               string
 	TimezoneFallback      string
 	DebugMetadata         bool
@@ -210,7 +216,9 @@ func NewServer(ctx context.Context, opts ServerOptions) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	server, err := internalmcp.NewServer(ctx, internalmcp.Options{Config: cfg, Version: opts.Version, Logger: opts.Logger, Registry: opts.Registry.inner, ResourceRegistry: opts.ResourceRegistry.inner, PromptRegistry: opts.PromptRegistry.inner, Capability: safety.NewCapability(opts.DeleteMode.toInternal()), Toolset: opts.Toolset.toInternal(), Transport: opts.Transport, SkipRuntimeCatalogMetadata: opts.SkipRuntimeCatalogMetadata})
+	deleteMode := effectiveDeleteMode(opts.DeleteMode, opts.Config.DeleteMode)
+	toolset := effectiveToolset(opts.Toolset, opts.Config.Toolset)
+	server, err := internalmcp.NewServer(ctx, internalmcp.Options{Config: cfg, Version: opts.Version, Logger: opts.Logger, Registry: opts.Registry.inner, ResourceRegistry: opts.ResourceRegistry.inner, PromptRegistry: opts.PromptRegistry.inner, Capability: safety.NewCapability(deleteMode.toInternal()), Toolset: toolset.toInternal(), Transport: opts.Transport, SkipRuntimeCatalogMetadata: opts.SkipRuntimeCatalogMetadata})
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +263,9 @@ func CollectToolCatalog(ctx context.Context, opts CatalogOptions) ([]ToolInfo, e
 	if err != nil {
 		return nil, err
 	}
-	catalog, err := internalmcp.CollectToolCatalog(ctx, internalmcp.CatalogHashOptions{Config: cfg, Registry: opts.Registry.inner, Capability: safety.NewCapability(opts.Mode.toInternal()), Toolset: opts.Toolset.toInternal(), Logger: opts.Logger})
+	deleteMode := effectiveDeleteMode(opts.Mode, opts.Config.DeleteMode)
+	toolset := effectiveToolset(opts.Toolset, opts.Config.Toolset)
+	catalog, err := internalmcp.CollectToolCatalog(ctx, internalmcp.CatalogHashOptions{Config: cfg, Registry: opts.Registry.inner, Capability: safety.NewCapability(deleteMode.toInternal()), Toolset: toolset.toInternal(), Logger: opts.Logger})
 	if err != nil {
 		return nil, err
 	}
@@ -272,7 +282,9 @@ func ComputeToolCatalogHash(ctx context.Context, opts CatalogOptions) (string, e
 	if err != nil {
 		return "", err
 	}
-	return internalmcp.ComputeToolCatalogHash(ctx, internalmcp.CatalogHashOptions{Config: cfg, Registry: opts.Registry.inner, Capability: safety.NewCapability(opts.Mode.toInternal()), Toolset: opts.Toolset.toInternal(), Logger: opts.Logger})
+	deleteMode := effectiveDeleteMode(opts.Mode, opts.Config.DeleteMode)
+	toolset := effectiveToolset(opts.Toolset, opts.Config.Toolset)
+	return internalmcp.ComputeToolCatalogHash(ctx, internalmcp.CatalogHashOptions{Config: cfg, Registry: opts.Registry.inner, Capability: safety.NewCapability(deleteMode.toInternal()), Toolset: toolset.toInternal(), Logger: opts.Logger})
 }
 
 // ToolInfo is public non-secret metadata about a registered tool.
@@ -413,6 +425,26 @@ func requirementFromInternal(tool tools.Tool) Requirement {
 		return RequirementWrite
 	}
 	return RequirementRead
+}
+
+func effectiveDeleteMode(option DeleteMode, cfg DeleteMode) DeleteMode {
+	if option != "" {
+		return option
+	}
+	if cfg != "" {
+		return cfg
+	}
+	return DeleteModeSafe
+}
+
+func effectiveToolset(option Toolset, cfg Toolset) Toolset {
+	if option != "" {
+		return option
+	}
+	if cfg != "" {
+		return cfg
+	}
+	return ToolsetCore
 }
 
 func (cfg Config) toInternalValidated() (config.Config, error) {
