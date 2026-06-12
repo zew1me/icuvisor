@@ -69,7 +69,8 @@ The facade owns several safety behaviors required by stateless hosted MCP server
 - `icuvisor-host` must not copy core packages such as `internal/tools`, `internal/mcp`, `internal/intervals`, `internal/response`, `internal/resources`, or `internal/prompts`.
 - `icuvisor-host` must not import `github.com/ricardocabral/icuvisor/internal/...`; Go's `internal` visibility rules make that invalid across modules.
 - Hosted-only OAuth, session, store, Firestore, KMS, Secret Manager, web settings, and deploy code stays private to `icuvisor-host`.
-- Do not pass API keys, OAuth tokens, cookies, athlete identifiers, raw training payloads, or raw hosted requests into docs, tests, logs, commits, or model-visible tool parameters.
+- Do not expose API keys, OAuth tokens, cookies, raw hosted requests, or raw training payloads in docs, tests, logs, commits, or model-visible tool parameters.
+- Do not copy real athlete identifiers into docs, tests, fixtures, logs, or commits. Model-visible `athlete_id` tool arguments are allowed when the public core schema requires athlete routing and the host has already authenticated the caller and enforced its ACLs; `athlete_id` is a routing selector, not a credential.
 
 ## Compatibility expectations
 
