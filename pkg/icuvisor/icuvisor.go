@@ -4,6 +4,7 @@ package icuvisor
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -204,7 +205,11 @@ type ServerOptions struct {
 
 // NewServer constructs an MCP server from public core facade inputs.
 func NewServer(ctx context.Context, opts ServerOptions) (*Server, error) {
-	server, err := internalmcp.NewServer(ctx, internalmcp.Options{Config: opts.Config.toInternal(), Version: opts.Version, Logger: opts.Logger, Registry: opts.Registry.inner, ResourceRegistry: opts.ResourceRegistry.inner, PromptRegistry: opts.PromptRegistry.inner, Capability: safety.NewCapability(opts.DeleteMode.toInternal()), Toolset: opts.Toolset.toInternal(), Transport: opts.Transport, SkipRuntimeCatalogMetadata: opts.SkipRuntimeCatalogMetadata})
+	cfg, err := opts.Config.toInternalValidated()
+	if err != nil {
+		return nil, err
+	}
+	server, err := internalmcp.NewServer(ctx, internalmcp.Options{Config: cfg, Version: opts.Version, Logger: opts.Logger, Registry: opts.Registry.inner, ResourceRegistry: opts.ResourceRegistry.inner, PromptRegistry: opts.PromptRegistry.inner, Capability: safety.NewCapability(opts.DeleteMode.toInternal()), Toolset: opts.Toolset.toInternal(), Transport: opts.Transport, SkipRuntimeCatalogMetadata: opts.SkipRuntimeCatalogMetadata})
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +250,11 @@ type CatalogOptions struct {
 
 // CollectToolCatalog returns exposed MCP tool definitions without starting a transport.
 func CollectToolCatalog(ctx context.Context, opts CatalogOptions) ([]ToolInfo, error) {
-	catalog, err := internalmcp.CollectToolCatalog(ctx, internalmcp.CatalogHashOptions{Config: opts.Config.toInternal(), Registry: opts.Registry.inner, Capability: safety.NewCapability(opts.Mode.toInternal()), Toolset: opts.Toolset.toInternal(), Logger: opts.Logger})
+	cfg, err := opts.Config.toInternalValidated()
+	if err != nil {
+		return nil, err
+	}
+	catalog, err := internalmcp.CollectToolCatalog(ctx, internalmcp.CatalogHashOptions{Config: cfg, Registry: opts.Registry.inner, Capability: safety.NewCapability(opts.Mode.toInternal()), Toolset: opts.Toolset.toInternal(), Logger: opts.Logger})
 	if err != nil {
 		return nil, err
 	}
@@ -258,7 +267,11 @@ func CollectToolCatalog(ctx context.Context, opts CatalogOptions) ([]ToolInfo, e
 
 // ComputeToolCatalogHash returns the deterministic hash of the exposed tool catalog.
 func ComputeToolCatalogHash(ctx context.Context, opts CatalogOptions) (string, error) {
-	return internalmcp.ComputeToolCatalogHash(ctx, internalmcp.CatalogHashOptions{Config: opts.Config.toInternal(), Registry: opts.Registry.inner, Capability: safety.NewCapability(opts.Mode.toInternal()), Toolset: opts.Toolset.toInternal(), Logger: opts.Logger})
+	cfg, err := opts.Config.toInternalValidated()
+	if err != nil {
+		return "", err
+	}
+	return internalmcp.ComputeToolCatalogHash(ctx, internalmcp.CatalogHashOptions{Config: cfg, Registry: opts.Registry.inner, Capability: safety.NewCapability(opts.Mode.toInternal()), Toolset: opts.Toolset.toInternal(), Logger: opts.Logger})
 }
 
 // ToolInfo is public non-secret metadata about a registered tool.
@@ -399,6 +412,16 @@ func requirementFromInternal(tool tools.Tool) Requirement {
 		return RequirementWrite
 	}
 	return RequirementRead
+}
+
+func (cfg Config) toInternalValidated() (config.Config, error) {
+	out := cfg.toInternal()
+	normalizedAthleteID, err := config.NormalizeAthleteID(out.AthleteID)
+	if err != nil {
+		return config.Config{}, fmt.Errorf("normalizing athlete ID: %w", err)
+	}
+	out.AthleteID = normalizedAthleteID
+	return out, nil
 }
 
 func (cfg Config) toInternal() config.Config {

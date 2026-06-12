@@ -121,6 +121,24 @@ func TestServerFacadeCatalogHashAndSkipRuntimeMetadata(t *testing.T) {
 	}
 }
 
+func TestConfigValidationNormalizesAthleteIDForServerRouting(t *testing.T) {
+	t.Parallel()
+
+	cfg := facadeTestConfig()
+	cfg.AthleteID = " I12345 "
+	internalCfg, err := cfg.toInternalValidated()
+	if err != nil {
+		t.Fatalf("toInternalValidated() error = %v", err)
+	}
+	if internalCfg.AthleteID != "i12345" {
+		t.Fatalf("AthleteID = %q, want i12345", internalCfg.AthleteID)
+	}
+	cfg.AthleteID = "bad athlete"
+	if _, err := cfg.toInternalValidated(); err == nil {
+		t.Fatal("toInternalValidated() error = nil, want invalid athlete ID error")
+	}
+}
+
 func TestStreamableHTTPHandlerFacadeMapsFactoryError(t *testing.T) {
 	t.Parallel()
 
@@ -180,6 +198,27 @@ func facadeExtraTool(description string, toolset Toolset) Tool {
 		Handler: func(context.Context, ToolRequest) (ToolResult, error) {
 			return TextResult(map[string]any{"status": "ok"}), nil
 		},
+	}
+}
+
+func TestStreamableHTTPHandlerFacadeDefaultsToPublicFactoryError(t *testing.T) {
+	t.Parallel()
+
+	handler := NewStreamableHTTPHandler(func(*http.Request) (*Server, error) {
+		return nil, errors.New("internal token refresh failed for sensitive-token")
+	}, StreamableHTTPHandlerOptions{Stateless: true})
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, StreamableHTTPPath, strings.NewReader(`{}`)))
+
+	if recorder.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusUnauthorized)
+	}
+	body := recorder.Body.String()
+	if !strings.Contains(body, "MCP authorization failed") {
+		t.Fatalf("body = %q, want default public factory error message", body)
+	}
+	if strings.Contains(body, "sensitive-token") || strings.Contains(body, "token refresh") {
+		t.Fatalf("body leaked internal error: %q", body)
 	}
 }
 

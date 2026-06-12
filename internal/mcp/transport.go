@@ -18,6 +18,8 @@ const StreamableHTTPPath = "/mcp"
 const streamableHTTPSessionTimeout = 30 * time.Minute
 const streamableHTTPShutdownTimeout = 5 * time.Second
 
+const streamableHTTPDefaultFactoryErrorMessage = "MCP authorization failed"
+
 type streamableRequestServerKey struct{}
 
 // StreamableHTTPHandlerOptions configures a reusable SDK Streamable HTTP handler.
@@ -58,7 +60,8 @@ func NewStreamableHTTPHandler(factory StreamableHTTPServerFactory, opts Streamab
 		if r.Method == http.MethodPost || r.Method == http.MethodGet {
 			server, err := factory(r)
 			if err != nil {
-				message := err.Error()
+				logger.Warn("streamable HTTP server factory failed", "error", err)
+				message := streamableHTTPDefaultFactoryErrorMessage
 				if opts.FactoryErrorMessage != "" {
 					message = opts.FactoryErrorMessage
 				}
