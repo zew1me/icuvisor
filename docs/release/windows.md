@@ -83,7 +83,13 @@ The `.github/workflows/winget.yml` workflow uses `vedantmgoyal9/winget-releaser`
 
 ### 3.1 Bootstrap the first Winget version manually
 
-`winget-releaser` expects at least one version of the package to already exist in `microsoft/winget-pkgs`. Use `wingetcreate` for the first stable version, then let the workflow handle future versions. No separate issue or Microsoft form is required; the submitted pull request is the package request.
+The first Winget version is already bootstrapped: `RicardoCabral.icuvisor` version `1.0.0` was merged in `microsoft/winget-pkgs` via PR [#383829](https://github.com/microsoft/winget-pkgs/pull/383829). Users can install it with:
+
+```powershell
+winget install --id RicardoCabral.icuvisor --exact
+```
+
+`winget-releaser` expects at least one version of the package to already exist in `microsoft/winget-pkgs`. Keep the manual `wingetcreate` / Komac steps below as historical reference or recovery instructions if the package ever needs to be recreated. No separate issue or Microsoft form is required; the submitted pull request is the package request.
 
 From a Windows machine:
 
@@ -141,7 +147,7 @@ You generally only need to monitor the PR:
 
 - If validation fails, fix what the bot or moderator asks for.
 - If a moderator asks about the unsigned MSI, reply that unsigned MSI/EXE installers are accepted in `winget-pkgs`; the manifest pins immutable GitHub release asset URLs and SHA-256 hashes.
-- Once merged, users can install with `winget install RicardoCabral.icuvisor`.
+- Once merged, users can install with `winget install --id RicardoCabral.icuvisor --exact`.
 
 ### 3.3 Automate future Winget versions
 
@@ -166,7 +172,7 @@ The MSI source is `build/windows/icuvisor.wxs` (WiX v4). Highlights:
 
 The `wix build` invocation passes the binary, license, and icon paths in via WiX preprocessor variables (`$(var.BinarySource)`, etc.) so the same `.wxs` works for amd64 and arm64.
 
-## 5. Pre-flight before first unsigned Winget release
+## 5. Pre-flight for Windows package releases
 
 - [ ] `goreleaser check` passes locally.
 - [ ] Tag a release candidate (`v1.0.1-rc.1`) and watch all jobs go green. Expect a warning in `release-windows` saying signing is disabled; the unsigned `.msi` is still uploaded to the draft. `winget.yml` will not fire for prereleases.
@@ -176,10 +182,9 @@ The `wix build` invocation passes the binary, license, and icon paths in via WiX
   - run `icuvisor version`,
   - uninstall via Apps & Features,
   - confirm clean removal.
-- [ ] Promote to a stable tag (`v1.0.0`).
-- [ ] Submit the first Winget version with `wingetcreate` or Komac (section 3.1).
-- [ ] Wait for `wingetbot` validation and `microsoft/winget-pkgs` moderator review. No separate issue or form is required.
-- [ ] After the first Winget PR is merged, set `WINGET_PAT` and let `winget.yml` handle future stable releases.
+- [ ] Promote to a stable tag, such as `v1.0.1`.
+- [ ] Confirm `.github/workflows/winget.yml` opens or updates the Winget PR for the stable release.
+- [ ] After the Winget PR is merged, smoke test on a Windows VM: `winget install --id RicardoCabral.icuvisor --exact`, open a new shell, and run `icuvisor version`.
 
 Windows SmartScreen may warn "Unknown publisher" on unsigned builds. That is expected and does not prevent Winget submission.
 

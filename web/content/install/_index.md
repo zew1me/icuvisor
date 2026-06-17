@@ -25,6 +25,12 @@ On native Windows / PowerShell:
 iwr -useb https://icuvisor.app/install.ps1 | iex
 ```
 
+Prefer Winget on Windows?
+
+```powershell
+winget install --id RicardoCabral.icuvisor --exact
+```
+
 The installer detects your platform, downloads the matching release asset, verifies the SHA256 checksum (and the cosign signature when `cosign` is on your `PATH`), and installs the binary. Re-run the same command to upgrade in place. See [installer integrity](https://github.com/ricardocabral/icuvisor/blob/main/SECURITY.md#installer-integrity) for signature verification details.
 
 After installing, run `icuvisor setup` to store credentials safely and write non-secret defaults. If you maintain JSON config by hand or point a client at a config path, see the [config file reference]({{< relref "../reference/config-file" >}}); if your MCP client uses environment variables, see the [CLI environment variable reference]({{< relref "../reference/cli#environment-variables" >}}).
@@ -35,6 +41,6 @@ Prefer a package manager or platform-specific installer package? Pick your platf
 
 {{< cards >}}
   {{< card link="macos" title="macOS" subtitle="Install the signed macOS app and verify Gatekeeper status." >}}
-  {{< card link="windows" title="Windows" subtitle="Install with PowerShell or the MSI package." >}}
+  {{< card link="windows" title="Windows" subtitle="Install with Winget, PowerShell, or the MSI package." >}}
   {{< card link="linux" title="Linux" subtitle="Current Linux packaging status." >}}
 {{< /cards >}}

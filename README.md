@@ -44,7 +44,13 @@ iwr -useb https://icuvisor.app/install.ps1 | iex
 
 See [SECURITY.md](SECURITY.md#installer-integrity) for installer signature verification and in-place update behaviour.
 
-Prefer a package manager? Use `brew install ricardocabral/icuvisor/icuvisor` on macOS. Windows package-manager manifests are being validated; until they are published, use the PowerShell installer above or download the `.msi` from the [releases page](https://github.com/ricardocabral/icuvisor/releases).
+Prefer a package manager? Use `brew install ricardocabral/icuvisor/icuvisor` on macOS, or install from Winget on Windows:
+
+```powershell
+winget install --id RicardoCabral.icuvisor --exact
+```
+
+Open a new PowerShell or Command Prompt window after installation, then run `icuvisor version`. Windows users can also use the PowerShell installer above or download the `.msi` from the [releases page](https://github.com/ricardocabral/icuvisor/releases).
 
 Learn more on how to connect your AI assistant, read the tool catalog, and troubleshoot stale conversations or cached tool catalogs at <https://icuvisor.app>.
 

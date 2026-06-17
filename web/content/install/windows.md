@@ -1,9 +1,29 @@
 ---
 title: "Install on Windows"
-description: "Install icuvisor on Windows with PowerShell or the unsigned MSI."
+description: "Install icuvisor on Windows with Winget, PowerShell, or the MSI."
 ---
 
-The recommended Windows install path is the PowerShell installer. It downloads the latest release asset, verifies the SHA256 checksum, installs `icuvisor.exe` for the current user, and avoids the unsigned MSI SmartScreen prompt.
+The recommended Windows package-manager path is Winget:
+
+```powershell
+winget install --id RicardoCabral.icuvisor --exact
+```
+
+Winget downloads the current MSI from the official GitHub release, verifies the installer hash from the package manifest, and installs `icuvisor.exe` for the current user. Open a **new** PowerShell or Command Prompt window after installation and confirm:
+
+```powershell
+icuvisor version
+```
+
+To upgrade later:
+
+```powershell
+winget upgrade --id RicardoCabral.icuvisor --exact
+```
+
+## Install with PowerShell
+
+The PowerShell installer is also supported. It downloads the latest release asset, verifies the SHA256 checksum, installs `icuvisor.exe` for the current user, and avoids the unsigned MSI SmartScreen prompt.
 
 ```powershell
 iwr -useb https://icuvisor.app/install.ps1 | iex
@@ -18,8 +38,6 @@ icuvisor version
 Re-run the same command to upgrade in place.
 
 icuvisor also ships as an MSI built by CI on every release. The MSI is currently **unsigned** — Windows SmartScreen may warn about an unknown publisher on first launch. The installer is functional; once past the warning, install, upgrade, and uninstall behave normally.
-
-Windows package-manager distribution is still being validated. When Winget support is added, it can verify the installer URL and SHA-256 hash from the package manifest even before Authenticode signing is available. Signing may be added later if a suitable code-signing path is available.
 
 ## Install from the MSI manually
 
