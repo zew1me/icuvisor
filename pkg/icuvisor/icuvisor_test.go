@@ -108,7 +108,6 @@ func TestPublicCoreCatalogMatchesInternalForPolicyMatrix(t *testing.T) {
 	toolsets := []Toolset{ToolsetCore, ToolsetFull}
 	for _, mode := range modes {
 		for _, toolset := range toolsets {
-			mode, toolset := mode, toolset
 			t.Run(string(mode)+"/"+string(toolset), func(t *testing.T) {
 				t.Parallel()
 
