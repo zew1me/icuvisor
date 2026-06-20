@@ -1387,19 +1387,21 @@ func TestProtocolCoachModeEndToEndRoutesSelectedDefaultAndOverrideTargets(t *tes
 	for _, denied := range []struct {
 		name string
 		args map[string]any
+		want string
 	}{
-		{name: toolcatalog.AddOrUpdateEvent, args: map[string]any{"date": "2026-05-15", "category": "NOTE", "name": "Denied write"}},
-		{name: toolcatalog.DeleteEvent, args: map[string]any{"event_id": "e-denied"}},
+		{name: toolcatalog.AddOrUpdateEvent, args: map[string]any{"athlete_id": "i222", "date": "2026-05-15", "category": "NOTE", "name": "Denied write"}, want: toolNotAllowedForAthleteMessage},
+		{name: toolcatalog.DeleteEvent, args: map[string]any{"athlete_id": "i222", "event_id": "e-denied"}, want: toolNotAllowedForAthleteMessage},
+		{name: toolcatalog.GetAthleteProfile, args: map[string]any{"athlete_id": "i999"}, want: unauthorizedTargetAthleteMessage},
 	} {
 		result, err := session.CallTool(ctx, &sdkmcp.CallToolParams{Name: denied.name, Arguments: denied.args})
 		if err != nil {
 			t.Fatalf("CallTool(%s) protocol error = %v", denied.name, err)
 		}
 		if !result.IsError {
-			t.Fatalf("CallTool(%s) IsError = false, want read-only coach ACL denial", denied.name)
+			t.Fatalf("CallTool(%s) IsError = false, want request-time coach authorization denial", denied.name)
 		}
-		if text := result.Content[0].(*sdkmcp.TextContent).Text; text != toolNotAllowedForAthleteMessage {
-			t.Fatalf("CallTool(%s) error text = %q, want %q", denied.name, text, toolNotAllowedForAthleteMessage)
+		if text := result.Content[0].(*sdkmcp.TextContent).Text; text != denied.want {
+			t.Fatalf("CallTool(%s) error text = %q, want %q", denied.name, text, denied.want)
 		}
 	}
 	if afterDenied := upstreamRequests.Load(); afterDenied != beforeDenied {
