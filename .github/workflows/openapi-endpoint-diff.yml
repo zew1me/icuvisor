@@ -18,7 +18,7 @@ env:
 
 jobs:
   endpoint-diff:
-    name: Compare OpenAPI endpoint paths
+    name: Compare OpenAPI paths and schemas
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -26,7 +26,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - name: Generate endpoint diff report
+      - name: Generate OpenAPI diff report
         shell: bash
         env:
           DISPATCH_URL: ${{ github.event.inputs.latest_url }}
@@ -38,7 +38,7 @@ jobs:
             -latest-url "$latest_url" \
             -output openapi-endpoint-diff.md
           cat openapi-endpoint-diff.md >> "$GITHUB_STEP_SUMMARY"
-      - name: Upload endpoint diff report
+      - name: Upload OpenAPI diff report
         uses: actions/upload-artifact@v7
         with:
           name: openapi-endpoint-diff

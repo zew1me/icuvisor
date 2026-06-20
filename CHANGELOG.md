@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The OpenAPI endpoint-diff workflow now uses the live intervals.icu OpenAPI docs URL, reports `components.schemas` name drift alongside path drift, and refreshes the pinned baseline to the current accepted upstream snapshot.
 - The default non-coach CLI/MCP startup path now uses the public `pkg/icuvisor` facade, with parity coverage against the internal wiring; hosted deployments can depend on the public core library while keeping hosted OAuth, storage, and deployment code private.
 
 ### Fixed
