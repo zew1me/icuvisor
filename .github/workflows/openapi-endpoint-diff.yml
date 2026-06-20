@@ -6,7 +6,7 @@ on:
       latest_url:
         description: intervals.icu OpenAPI JSON URL to compare against the pinned baseline
         required: true
-        default: https://intervals.icu/api/openapi.json
+        default: https://intervals.icu/api/v1/docs
   schedule:
     - cron: '17 9 * * 1'
 
@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 env:
-  INTERVALS_OPENAPI_URL: https://intervals.icu/api/openapi.json
+  INTERVALS_OPENAPI_URL: https://intervals.icu/api/v1/docs
 
 jobs:
   endpoint-diff:

@@ -16,7 +16,7 @@ Run an opt-in live comparison by providing the upstream OpenAPI JSON URL explici
 ```sh
 go run ./scripts/openapidiff \
   -baseline scripts/openapidiff/baseline/intervals-openapi.json \
-  -latest-url https://intervals.icu/api/openapi.json \
+  -latest-url https://intervals.icu/api/v1/docs \
   -output openapi-endpoint-diff.md
 ```
 
@@ -24,7 +24,7 @@ Normal tests never fetch the network; the tool's tests use in-memory fixture spe
 
 ## Triage process
 
-1. Read the generated Markdown report. It compares only OpenAPI `paths` keys and is not a product-scope decision.
+1. Read the generated Markdown report. It compares OpenAPI `paths` keys and, when enabled by the diff utility, schema names. It is a human triage aid, not product approval or a product-scope decision.
 2. For each added path, inspect the public intervals.icu API docs and decide whether it fits the PRD/roadmap.
 3. If a path is relevant, create a focused Taskplane/backlog task. Include the endpoint path, HTTP method, terse/full response-shaping expectations, safety/delete-mode impact, and fixture requirements.
 4. For removed paths, check whether existing icuvisor tools depend on the path and open a regression task if needed.
