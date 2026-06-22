@@ -28,8 +28,9 @@ with my intervals.icu data.
    and source/device. If I ask about an activity custom field such as VO2Max,
    request its field code explicitly with `custom_fields` instead of assuming
    it is present in default activity rows.
-3. Get the intervals or laps with get_activity_intervals, and the per-km or
-   per-mile splits.
+3. Get the intervals or laps with get_activity_intervals, check
+   `_meta.interval_source`, `_meta.auto_lap_suspected`, and
+   `_meta.interval_source_caveat`, and get the per-km or per-mile splits.
 4. Get the time-in-zone for the session.
 5. Get the extended metrics, and report only the ones actually present
    (decoupling, IF, VI, normalized power, RPE, feel).
@@ -39,7 +40,10 @@ Then give me:
 - A table with one row per work interval: target vs actual power, average
   HR, duration, any interval `custom_fields` that are relevant to the prompt
   (for example manually-entered lactate), and whether it held. If the activity
-  has only laps and no structured intervals, say so and summarize the laps instead.
+  has only laps and no structured intervals, say so and summarize the laps instead;
+  if there is one unknown/collapsed interval row, say it is not proof of no
+  intervals and use `compute_activity_segment_stats` over explicit time or
+  distance bounds before judging sprint or anaerobic execution.
 - How the hard parts held up — pacing, fade, heart-rate drift, decoupling.
 - Two concrete takeaways for next time.
 
@@ -56,11 +60,11 @@ provide. Keep the answer under about 400 words, leading with the interval table.
 | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 1    | [`get_activities`]({{< relref "/reference/tools#get_activities" >}})                                                                                                    | Finds the activity and its ID when you describe it; terse rows include upstream tags when intervals.icu returns them.                                  |
 | 2    | [`get_activity_details`]({{< relref "/reference/tools#get_activity_details" >}})                                                                                        | Sport, timing, load, tags, activity fueling grams, device, Strava-import flag.                                                                         |
-| 3    | [`get_activity_intervals`]({{< relref "/reference/tools#get_activity_intervals" >}}) and [`get_activity_splits`]({{< relref "/reference/tools#get_activity_splits" >}}) | Per-rep and per-distance breakdown. `get_activity_intervals` also includes scalar interval `custom_fields` such as lactate when upstream returns them. |
+| 3    | [`get_activity_intervals`]({{< relref "/reference/tools#get_activity_intervals" >}}) and [`get_activity_splits`]({{< relref "/reference/tools#get_activity_splits" >}}) | Per-rep and per-distance breakdown. Check interval provenance/caveats before treating rows as reps; a single unknown/collapsed row can be an averaged import, not proof of no interval work. `get_activity_intervals` also includes scalar interval `custom_fields` such as lactate when upstream returns them. |
 | 4    | [`get_activity_histogram`]({{< relref "/reference/tools#get_activity_histogram" >}})                                                                                    | Time-in-zone distribution for the session.                                                                                                             |
 | 5    | [`get_extended_metrics`]({{< relref "/reference/tools#get_extended_metrics" >}})                                                                                        | Decoupling, IF, VI — only those upstream actually fitted.                                                                                              |
 
-For a specific surge, climb, or distance-bounded split, [`compute_activity_segment_stats`]({{< relref "/reference/tools#compute_activity_segment_stats" >}}) computes mean/median/p90, NP/IF, drift, or decoupling over an explicit time or distance range. For relative requests like "last 10 km", first use `get_activity_details` to get the activity distance, convert it to meters, and pass explicit bounds such as `start_distance_m = total_distance_m - 10000` and `end_distance_m = total_distance_m`. Do not fetch raw streams and average them in chat.
+For a specific surge, climb, distance-bounded split, or sprint/anaerobic workout that appears as one averaged interval row, [`compute_activity_segment_stats`]({{< relref "/reference/tools#compute_activity_segment_stats" >}}) computes mean/median/p90, NP/IF, drift, or decoupling over an explicit time or distance range. For relative requests like "last 10 km", first use `get_activity_details` to get the activity distance, convert it to meters, and pass explicit bounds such as `start_distance_m = total_distance_m - 10000` and `end_distance_m = total_distance_m`. Do not fetch raw streams and average them in chat.
 
 ## A good answer looks like
 
