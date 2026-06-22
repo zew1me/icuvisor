@@ -52,7 +52,7 @@ The assistant should call, in roughly this order:
 | 4 | [`get_activities`]({{< relref "/reference/tools#get_activities" >}}) | Per-session detail to name notable workouts. |
 | 5 | [`compute_zone_time`]({{< relref "/reference/tools#compute_zone_time" >}}) and [`compute_load_balance`]({{< relref "/reference/tools#compute_load_balance" >}}) | Intensity distribution and whether the block is polarized, pyramidal, or threshold-heavy. |
 
-`analyze_trend` may also be used to state whether load is meaningfully rising or falling.
+`analyze_trend` may also be used to state whether load is meaningfully rising or falling. For athlete-defined activity custom fields (for example a VO2Max estimate recorded on workouts), ask the assistant to request that field explicitly and use `analyze_correlation` with `metric_x` or `metric_y` set to `custom:<field_code>` plus `custom_fields: ["<field_code>"]`; do not draw a trend from one visible activity detail row.
 
 ## A good answer looks like
 
@@ -72,6 +72,7 @@ Every number is tagged with the tool it came from, and nothing is asserted that 
 - **Monthly review:** change the window to "the last 28 days" and ask for the polarization trend week-over-week.
 - **Compare two periods:** "Compare the last 14 days with the 14 days before — what changed in load and intensity?"
 - **Sport-specific:** add "Only consider rides" or "Only consider runs" to scope the summary.
+- **Custom-field correlation:** "For the last 8 weeks, test whether my activity custom field `vo2max_est` tracks CTL, ATL, TSB, or training load. Use `analyze_correlation` with `custom_fields: ["vo2max_est"]` and `metric_x: "custom:vo2max_est"`; if there are too few paired samples, say so instead of inferring a trend."
 
 ## Why this prompt works
 

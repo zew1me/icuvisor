@@ -25,7 +25,9 @@ with my intervals.icu data.
    me which activity ID you chose.
 2. Get the activity details: sport, local start time, duration, distance,
    load, tags, activity fueling (`carbs_ingested_g`, `carbs_used_g`),
-   and source/device.
+   and source/device. If I ask about an activity custom field such as VO2Max,
+   request its field code explicitly with `custom_fields` instead of assuming
+   it is present in default activity rows.
 3. Get the intervals or laps with get_activity_intervals, and the per-km or
    per-mile splits.
 4. Get the time-in-zone for the session.
@@ -73,6 +75,7 @@ For a specific surge, climb, or distance-bounded split, [`compute_activity_segme
 ## Variations
 
 - **Lactate test:** "Analyze this interval session and include the lactate values I entered on each rep. Use `custom_fields.lactate` from `get_activity_intervals` when present."
+- **Activity custom field:** "For this ride, include my activity custom field `vo2max_est`. Pass `custom_fields: ["vo2max_est"]` to `get_activity_details`, and if I ask whether it is improving over time, switch to `analyze_correlation` with `metric_x: "custom:vo2max_est"` plus the same `custom_fields` selection over a date range."
 - **Race debrief:** "...this was a race — focus on pacing discipline and where I lost time."
 - **First-vs-last distance comparison:** "Compare the first 10 km with the last 10 km of this run. Use `get_activity_details` for total distance, then call `compute_activity_segment_stats` with explicit distance bounds (`0..10000 m` and `total_distance_m-10000..total_distance_m`) for average `velocity_smooth`, `watts` if available, and `heart_rate`. Convert velocity to pace in the final answer; do not reduce raw streams in chat."
 - **Compare two sessions:** "Compare activity A and activity B — same workout, two weeks apart. Did the hard parts improve?"

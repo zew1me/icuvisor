@@ -100,7 +100,7 @@
     "group": "analyzers",
     "tier": "full",
     "safety": "read",
-    "summary": "Use when the prompt asks whether two analysis metrics are correlated or lagged together; do not fetch get_* rows or streams and reduce them in chat.",
+    "summary": "Use when the prompt asks whether two analysis metrics are correlated or lagged together, including explicitly requested activity custom fields via metric custom:\u003cfield_code\u003e plus custom_fields; do not fetch get_* rows or streams and reduce them in chat.",
     "anchor": "analyze_correlation"
   },
   {

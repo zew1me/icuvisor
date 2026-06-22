@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added explicit activity custom-field selection for activity reads and `analyze_correlation`, including `custom:<field_code>` correlation metrics for VO2Max-like field histories with provenance and insufficient-data metadata.
 - Added weather provenance to `get_today` and `get_activities`: completed activities expose Intervals.icu historical weather when present, while daily forecast gaps are explicit so assistants do not invent conditions.
 - Added indoor/outdoor adaptation guidance to the recovery prompt, cookbook recipes, and eval scenarios, including the guardrail to avoid duplicate active calendar workouts for one planned session.
 - Added `get_planning_context` season context, exposing read-only `SEASON_START` season-boundary rows with bounded multi-year window metadata for planning prompts.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 	"time"
@@ -101,6 +102,122 @@ func loadAllAnalyzerActivities(ctx context.Context, client ActivitiesClient, old
 		}
 	}
 	return nil, errors.New(analyzerActivityWindowTooLargeMessage)
+}
+
+func loadCustomFieldAnalyzerSeries(ctx context.Context, clients analyzerClients, field string, window analysis.ParsedWindow, grain analysis.SampleGrain, sport string, customFieldCodes []string) (analyzerSampleSeries, error) {
+	series := analyzerSampleSeries{Metric: analysis.Metric("custom:" + field), Unit: "custom field value", SourceTools: []string{"get_activities", "get_activities.custom_fields." + field}, Assumptions: map[string]any{"sample_grain": string(grain), "unit": "custom field value", "custom_field_code": field, "source": "intervals.icu activity custom field"}}
+	if clients.activities == nil {
+		return series, errors.New("missing activities client")
+	}
+	rows, err := loadAllAnalyzerActivities(ctx, clients.activities, window.StartDate, window.EndDate, customFieldCodes)
+	if err != nil {
+		return series, err
+	}
+	rows = filterAnalyzerSport(rows, sport)
+	if grain == analysis.SampleGrainActivity {
+		var missing, nonNumeric int
+		for _, row := range rows {
+			value, ok, reason := activityCustomNumericValue(row, field)
+			if !ok {
+				if reason == "missing" {
+					missing++
+				} else {
+					nonNumeric++
+				}
+				continue
+			}
+			series.Samples = append(series.Samples, analysis.NumericSample{Key: row.ID, Date: localActivityDate(row), ActivityID: row.ID, Value: value})
+		}
+		series.MissingDays = 0
+		series.Assumptions["missing_days_applicable"] = false
+		series.Assumptions["aggregation"] = "per_activity_value"
+		series.Assumptions["missing_field_samples"] = missing
+		series.Assumptions["skipped_non_numeric"] = nonNumeric
+		series.Samples = sortedSamples(series.Samples)
+		return series, nil
+	}
+	byDate := groupActivitiesByLocalDate(rows)
+	var missing, nonNumeric int
+	for date, dateRows := range byDate {
+		sample, ok, assumptions, dateMissing, dateNonNumeric := aggregateCustomActivityDay(date, dateRows, field)
+		missing += dateMissing
+		nonNumeric += dateNonNumeric
+		if !ok {
+			continue
+		}
+		series.Samples = append(series.Samples, sample)
+		for key, value := range assumptions {
+			series.Assumptions[key] = value
+		}
+	}
+	series.Samples = sortedSamples(series.Samples)
+	series.MissingDays = analysis.MissingSamples(window.Days, len(series.Samples))
+	series.Assumptions["missing_field_samples"] = missing
+	series.Assumptions["skipped_non_numeric"] = nonNumeric
+	return series, nil
+}
+
+func aggregateCustomActivityDay(date string, rows []intervals.Activity, field string) (analysis.NumericSample, bool, map[string]any, int, int) {
+	assumptions := map[string]any{"sample_grain": string(analysis.SampleGrainDaily)}
+	var weighted, weights, plainSum float64
+	var plainN, missing, nonNumeric int
+	for _, row := range rows {
+		value, ok, reason := activityCustomNumericValue(row, field)
+		if !ok {
+			if reason == "missing" {
+				missing++
+			} else {
+				nonNumeric++
+			}
+			continue
+		}
+		plainSum += value
+		plainN++
+		if row.MovingTime != nil && *row.MovingTime > 0 {
+			weight := float64(*row.MovingTime)
+			weighted += value * weight
+			weights += weight
+		}
+	}
+	if weights > 0 {
+		assumptions["aggregation"] = "moving_time_weighted_mean"
+		return analysis.NumericSample{Key: date, Date: date, Value: weighted / weights}, true, assumptions, missing, nonNumeric
+	}
+	if plainN > 0 {
+		assumptions["aggregation"] = "unweighted_mean"
+		return analysis.NumericSample{Key: date, Date: date, Value: plainSum / float64(plainN)}, true, assumptions, missing, nonNumeric
+	}
+	assumptions["aggregation"] = "unweighted_mean"
+	return analysis.NumericSample{}, false, assumptions, missing, nonNumeric
+}
+
+func activityCustomNumericValue(activity intervals.Activity, field string) (float64, bool, string) {
+	if len(activity.Raw) == 0 {
+		return 0, false, "missing"
+	}
+	value, ok := activity.Raw[field]
+	if !ok || value == nil {
+		return 0, false, "missing"
+	}
+	var number float64
+	switch typed := value.(type) {
+	case float64:
+		number = typed
+	case float32:
+		number = float64(typed)
+	case int:
+		number = float64(typed)
+	case int64:
+		number = float64(typed)
+	case int32:
+		number = float64(typed)
+	default:
+		return 0, false, "non_numeric"
+	}
+	if math.IsNaN(number) || math.IsInf(number, 0) {
+		return 0, false, "non_numeric"
+	}
+	return number, true, ""
 }
 
 func activityMetricValue(activity intervals.Activity, metric analysis.Metric, unitSystem response.UnitSystem) (float64, bool) {

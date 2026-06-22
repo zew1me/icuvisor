@@ -10,7 +10,8 @@ icuvisor is terse by default so routine questions fit comfortably in a conversat
 - Read tools return the smallest useful shape first.
 - Null values are stripped from terse responses, while meaningful zero, empty string, and `false` values remain.
 - Response metadata explains scales and units when the assistant needs them.
-- Small scalar custom fields that are useful in routine analysis stay in terse mode when they are safe to name directly. For example, `get_activity_intervals` returns manually-entered interval fields such as lactate under each row's `custom_fields` map when intervals.icu includes them.
+- Activity custom fields are opt-in by field code on activity reads and analyzers, so default activity rows stay small. For example, request `custom_fields: ["vo2max_est"]` and use `custom:vo2max_est` in `analyze_correlation` when you need that history.
+- Small scalar interval custom fields that are already part of interval rows stay in terse mode when they are safe to name directly. For example, `get_activity_intervals` returns manually-entered interval fields such as lactate under each row's `custom_fields` map when intervals.icu includes them.
 - Heavy payloads, such as raw samples and full raw upstream objects, require an explicit `include_full: true` argument on tools that support it.
 - Workout-library reads are shaped to find the right folder first and inspect folder-scoped examples instead of sending every template into the conversation.
 

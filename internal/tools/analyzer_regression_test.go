@@ -50,6 +50,73 @@ func TestLoadAnalyzerSeriesLoadsDerivedWeeklyMetrics(t *testing.T) {
 	}
 }
 
+func TestAnalyzeCorrelationSupportsVO2MaxLikeCustomFieldAgainstCTL(t *testing.T) {
+	t.Parallel()
+
+	fitness := &fakeFitnessMetricsClient{summaries: decodeSummaries(t, `[
+		{"date":"2026-05-01","fitness":60},
+		{"date":"2026-05-02","fitness":61},
+		{"date":"2026-05-03","fitness":63}
+	]`)}
+	activities := newFakeActivitiesClient(t, []string{
+		`{"id":"a1","name":"Ride 1","type":"Ride","start_date_local":"2026-05-01T07:00:00","moving_time":3600,"vo2max_est":51.2}`,
+		`{"id":"a2","name":"Ride 2","type":"Ride","start_date_local":"2026-05-02T07:00:00","moving_time":4200,"vo2max_est":52.1}`,
+		`{"id":"a3","name":"Ride 3","type":"Ride","start_date_local":"2026-05-03T07:00:00","moving_time":3900,"vo2max_est":53.0}`,
+	}, "metric")
+	activities.customItems = decodeCustomItems(t, `{"id":"c1","type":"ACTIVITY_FIELD","content":{"field":"vo2max_est"}}`)
+	tool := newAnalyzeCorrelationTool(fitness, nil, activities, activities, "test", "UTC", false)
+
+	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"metric_x":"custom:vo2max_est","metric_y":"ctl","window":{"start_date":"2026-05-01","end_date":"2026-05-03"},"custom_fields":["vo2max_est"],"include_full":true}`)})
+	if err != nil {
+		t.Fatalf("Handler() error = %v", err)
+	}
+	payload := resultMap(t, result)
+	body := payload["result"].(map[string]any)
+	if body["metric_x"] != "custom:vo2max_est" || body["metric_y"] != "ctl" || body["n"] != float64(3) {
+		t.Fatalf("result = %#v, want custom metric paired with ctl n=3", body)
+	}
+	if len(payload["series"].([]any)) != 3 {
+		t.Fatalf("series = %#v, want full paired rows", payload["series"])
+	}
+	meta := payload["_meta"].(map[string]any)
+	tools := meta["source_tools"].([]any)
+	if !slices.Contains(tools, any("get_activities.custom_fields.vo2max_est")) {
+		t.Fatalf("source_tools = %#v, want custom field provenance", tools)
+	}
+	seriesAssumptions := meta["assumptions"].(map[string]any)["series"].(map[string]any)["custom:vo2max_est"].(map[string]any)
+	if seriesAssumptions["custom_field_code"] != "vo2max_est" || seriesAssumptions["aggregation"] != "moving_time_weighted_mean" {
+		t.Fatalf("custom assumptions = %#v", seriesAssumptions)
+	}
+}
+
+func TestAnalyzeCorrelationCustomFieldInsufficientDataMetadata(t *testing.T) {
+	t.Parallel()
+
+	activities := newFakeActivitiesClient(t, []string{
+		`{"id":"a1","name":"Ride 1","type":"Ride","start_date_local":"2026-05-01T07:00:00","icu_training_load":50,"vo2max_est":51.2}`,
+		`{"id":"a2","name":"Ride 2","type":"Ride","start_date_local":"2026-05-02T07:00:00","icu_training_load":70,"vo2max_est":"not numeric"}`,
+		`{"id":"a3","name":"Ride 3","type":"Ride","start_date_local":"2026-05-03T07:00:00","icu_training_load":65}`,
+	}, "metric")
+	activities.customItems = decodeCustomItems(t, `{"id":"c1","type":"ACTIVITY_FIELD","content":{"field":"vo2max_est"}}`)
+	tool := newAnalyzeCorrelationTool(nil, nil, activities, activities, "test", "UTC", false)
+
+	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"metric_x":"custom:vo2max_est","metric_y":"training_load","window":{"start_date":"2026-05-01","end_date":"2026-05-03"},"pairing_grain":"activity","custom_fields":["vo2max_est"]}`)})
+	if err != nil {
+		t.Fatalf("Handler() error = %v", err)
+	}
+	meta := resultMap(t, result)["_meta"].(map[string]any)
+	if meta["insufficient_sample"] != true || meta["n"] != float64(1) {
+		t.Fatalf("meta = %#v, want insufficient sample n=1", meta)
+	}
+	seriesAssumptions := meta["assumptions"].(map[string]any)["series"].(map[string]any)["custom:vo2max_est"].(map[string]any)
+	if seriesAssumptions["skipped_non_numeric"] != float64(1) || seriesAssumptions["missing_field_samples"] != float64(1) {
+		t.Fatalf("custom assumptions = %#v", seriesAssumptions)
+	}
+	if _, ok := resultMap(t, result)["series"]; ok {
+		t.Fatal("terse response included paired series without include_full")
+	}
+}
+
 func TestAnalyzeCorrelationFetchesExplicitCustomFieldsForActivityMetrics(t *testing.T) {
 	t.Parallel()
 
