@@ -145,7 +145,7 @@ func getActivityDetailsHandler(client ActivityDetailsClient, profileClient Profi
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 				return Result{}, err
 			}
-			return Result{}, NewUserError(invalidActivityReadArgumentsMessage, err)
+			return Result{}, NewUserError(activityCustomFieldSelectionMessage(err, invalidActivityReadArgumentsMessage), err)
 		}
 		activityTimezone := profileTimezone(profile.Timezone, timezoneFallback)
 		row := activityRow(activity, args.IncludeFull, activityTimezone, unitSystem, gearResolutions[activity.ID], customFieldCodes)

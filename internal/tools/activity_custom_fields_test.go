@@ -195,6 +195,21 @@ func TestGetActivitiesKnownButAbsentCustomFieldIsOmitted(t *testing.T) {
 	}
 }
 
+func TestGetActivityDetailsUnknownCustomFieldHintsAvailableFields(t *testing.T) {
+	t.Parallel()
+
+	activity := decodeActivityFixture(t, `{"id":"a1","icu_athlete_id":"i12345","name":"Ride","type":"Ride","start_date_local":"2026-01-02T07:00:00"}`)
+	client := &fakeActivityReadClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC"}}, activity: activity}
+	client.customItems = decodeCustomItems(t, `{"id":"c1","type":"ACTIVITY_FIELD","content":{"field":"vo2max_est"}}`)
+	tool := newGetActivityDetailsToolWithGear(client, client, nil, nil, client, newCustomFieldCache(), "test", "UTC", false)
+
+	_, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"activity_id":"a1","custom_fields":["unknown_field"]}`)})
+	message, ok := PublicErrorMessage(err)
+	if !ok || !strings.Contains(message, "unknown_field") || !strings.Contains(message, "vo2max_est") {
+		t.Fatalf("Handler() error = %v, public=%q ok=%v; want public unknown-field hint", err, message, ok)
+	}
+}
+
 func TestGetActivitiesUnknownCustomFieldHintsAvailableFields(t *testing.T) {
 	t.Parallel()
 
@@ -206,12 +221,8 @@ func TestGetActivitiesUnknownCustomFieldHintsAvailableFields(t *testing.T) {
 
 	_, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"oldest":"2026-01-01","custom_fields":["unknown_field"]}`)})
 	message, ok := PublicErrorMessage(err)
-	if !ok || message != invalidGetActivitiesArgumentsMessage {
-		t.Fatalf("Handler() error = %v, public=%q ok=%v", err, message, ok)
-	}
-	cause := errors.Unwrap(err)
-	if cause == nil || !strings.Contains(cause.Error(), "unknown_field") || !strings.Contains(cause.Error(), "vo2max_est") {
-		t.Fatalf("cause = %v, want unknown field and available hint", cause)
+	if !ok || !strings.Contains(message, "unknown_field") || !strings.Contains(message, "vo2max_est") {
+		t.Fatalf("Handler() error = %v, public=%q ok=%v; want public unknown-field hint", err, message, ok)
 	}
 }
 

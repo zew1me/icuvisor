@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/ricardocabral/icuvisor/internal/analysis"
@@ -66,6 +67,20 @@ func TestAnalyzeCorrelationFetchesExplicitCustomFieldsForActivityMetrics(t *test
 	}
 	if len(client.listCalls) == 0 || !slices.Contains(client.listCalls[0].Fields, "vo2max_est") {
 		t.Fatalf("ListActivities fields = %#v, want explicit custom field", client.listCalls)
+	}
+}
+
+func TestAnalyzeCorrelationUnknownCustomFieldUsesPublicHint(t *testing.T) {
+	t.Parallel()
+
+	client := newFakeActivitiesClient(t, nil, "metric")
+	client.customItems = decodeCustomItems(t, `{"id":"c1","type":"ACTIVITY_FIELD","content":{"field":"vo2max_est"}}`)
+	tool := newAnalyzeCorrelationTool(nil, nil, client, client, "test", "UTC", false)
+
+	_, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"metric_x":"training_load","metric_y":"moving_time_seconds","window":{"start_date":"2026-05-01","end_date":"2026-05-03"},"custom_fields":["missing_vo2"]}`)})
+	message, ok := PublicErrorMessage(err)
+	if !ok || !strings.Contains(message, "missing_vo2") || !strings.Contains(message, "vo2max_est") {
+		t.Fatalf("public error = %q/%v; err=%v", message, ok, err)
 	}
 }
 

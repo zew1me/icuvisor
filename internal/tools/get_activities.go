@@ -201,7 +201,7 @@ func getActivitiesHandler(activityClient ActivitiesClient, profileClient Profile
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 				return Result{}, err
 			}
-			return Result{}, NewUserError(invalidGetActivitiesArgumentsMessage, err)
+			return Result{}, NewUserError(activityCustomFieldSelectionMessage(err, invalidGetActivitiesArgumentsMessage), err)
 		}
 		activities, nextToken, err := fetchActivitiesPage(ctx, activityClient, args, token, targetAthleteID, customFieldCodes)
 		if err != nil {

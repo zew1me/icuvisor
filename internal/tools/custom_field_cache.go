@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -104,9 +105,47 @@ func selectedActivityCustomFieldCodes(ctx context.Context, client ActivityCustom
 		}
 	}
 	if len(unknown) > 0 {
-		return nil, fmt.Errorf("unknown activity custom field(s): %s; available custom fields: %s", strings.Join(unknown, ", "), strings.Join(available, ", "))
+		return nil, unknownActivityCustomFieldsError{unknown: unknown, available: available}
 	}
 	return selected, nil
+}
+
+type unknownActivityCustomFieldsError struct {
+	unknown   []string
+	available []string
+}
+
+func (e unknownActivityCustomFieldsError) Error() string {
+	unknown := limitedFieldList(e.unknown, 3)
+	available := limitedFieldList(e.available, 8)
+	if available == "" {
+		available = "none"
+	}
+	if len(e.unknown) == 1 {
+		return fmt.Sprintf("unknown activity custom field %q; available: %s", e.unknown[0], available)
+	}
+	return fmt.Sprintf("unknown activity custom fields: %s; available: %s", unknown, available)
+}
+
+func activityCustomFieldSelectionMessage(err error, fallback string) string {
+	var unknown unknownActivityCustomFieldsError
+	if errors.As(err, &unknown) {
+		return unknown.Error()
+	}
+	return fallback
+}
+
+func limitedFieldList(values []string, limit int) string {
+	if len(values) == 0 || limit <= 0 {
+		return ""
+	}
+	trimmed := values
+	suffix := ""
+	if len(values) > limit {
+		trimmed = values[:limit]
+		suffix = fmt.Sprintf(", +%d more", len(values)-limit)
+	}
+	return strings.Join(trimmed, ", ") + suffix
 }
 
 func compactCustomFieldCodes(values []string) []string {

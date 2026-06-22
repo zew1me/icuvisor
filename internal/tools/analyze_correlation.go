@@ -86,7 +86,7 @@ func analyzeCorrelationHandler(clients analyzerClients, profileClient ProfileCli
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 				return Result{}, err
 			}
-			return Result{}, NewUserError(invalidAnalyzeCorrelationArgs, err)
+			return Result{}, NewUserError(activityCustomFieldSelectionMessage(err, invalidAnalyzeCorrelationArgs), err)
 		}
 		xSeries, err := loadAnalyzerSeries(ctx, clients, metricX, window, grain, args.Sport, unitSystem, customFieldCodes, false)
 		if err != nil {
