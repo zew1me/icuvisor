@@ -23,14 +23,15 @@ with my intervals.icu data.
    sleep duration, sleep quality, sleep score, HRV, resting heart rate, fatigue,
    soreness, stress, feel, mood, motivation, and any `_native` provider fields.
 3. Pull my current fitness, fatigue, and form (CTL / ATL / TSB).
-4. If a hard session is planned today, use `get_today` to read planned-event tags
-   and any completed warm-up activity tags before judging context.
+4. If a hard session is planned today, use `get_today` to read planned-event tags,
+   the planned `indoor` flag, weather availability/provenance, and any completed
+   warm-up activity tags before judging context.
 
 Then:
 - Give today's training-readiness guidance in one word — green, amber, or red — and why.
 - If the Intervals readiness field is missing or null, say that before using fallback signals.
 - Name the one or two signals driving that call.
-- Recommend whether to keep, modify, or move today's planned hard session, naming any relevant planned-event or activity tags returned by icuvisor.
+- Recommend whether to keep, modify, move, or execute indoors/outdoors today, naming any relevant planned-event tags, `indoor` flag, weather availability, or activity tags returned by icuvisor.
 
 Rules: sleep quality is a 1-4 scale, sleep score is 0-100 when device-imported,
 and feel is a 1-5 scale — use the labels icuvisor returns, do not rescale them
@@ -39,7 +40,12 @@ from Garmin Body Battery or any other native/supporting field; treat HRV,
 resting HR, sleep, subjective scales, and `_native` fields as cautious evidence.
 If today's wellness row has not synced yet (common with a timezone offset), tell
 me the latest data is stale rather than guessing today's values. Do not invent
-HRV or sleep numbers.
+HRV or sleep numbers. Use weather only when `get_today.weather` or completed
+activity weather fields provide it with provenance; if `get_today.weather.status`
+is `forecast_unavailable`, say that weather is unavailable from icuvisor rather
+than inventing conditions. If you suggest doing the workout indoors instead of
+outdoors, keep it as advice or a preview unless I approve a calendar edit; do not
+create a second active workout for the same session.
 ```
 
 ## What icuvisor does
@@ -49,7 +55,7 @@ HRV or sleep numbers.
 | 1 | [`get_athlete_profile`]({{< relref "/reference/tools#get_athlete_profile" >}}) | Confirms units and which wellness fields you track. |
 | 2 | [`get_wellness_data`]({{< relref "/reference/tools#get_wellness_data" >}}) | Readiness when present; sleep, HRV, resting HR, subjective scales, missing fields, provenance, and provider `_native` fields over the window. |
 | 3 | [`get_fitness`]({{< relref "/reference/tools#get_fitness" >}}) | CTL / ATL / TSB — the fatigue side of the picture. |
-| 4 | [`get_today`]({{< relref "/reference/tools#get_today" >}}) | Optional context for today's planned workout and completed activity tags. |
+| 4 | [`get_today`]({{< relref "/reference/tools#get_today" >}}) | Optional context for today's planned workout, `indoor` flag, weather availability/provenance, and completed activity tags. |
 
 `analyze_correlation` can be added if you want to know whether a wellness metric tracks load over a longer window.
 
@@ -69,6 +75,7 @@ HRV or sleep numbers.
 
 - **Pre-race morning:** "...tell me whether I am ready to race today" and ask for the one thing to manage during the event.
 - **Specific session:** paste the planned workout — "I have 4x8min at threshold planned; is today the day?"
+- **Indoor alternative:** "If the outdoor session looks risky from available weather or logistics, suggest an indoor trainer version, but do not change my calendar unless I approve it."
 - **Trend only:** "Just show me the 14-day HRV, resting HR, and sleep trends with no recommendation."
 
 ## Why this prompt works
@@ -77,6 +84,7 @@ HRV or sleep numbers.
 - **Missing-readiness fallback.** Garmin and other providers can expose useful HRV, resting HR, sleep, subjective, and `_native` wellness fields even when Intervals readiness itself is null. The prompt tells the assistant to explain that absence first and use fallback fields cautiously instead of creating a synthetic score.
 - **Staleness instruction.** intervals.icu wellness often lags by a day because of timezone offsets. Telling the assistant to flag stale data prevents it from inventing today's HRV.
 - **One-word verdict first.** Forcing green/amber/red keeps the answer decision-shaped instead of a hedge.
+- **Weather provenance and one active workout.** `get_today` says whether weather is sourced or unavailable, so the assistant can recommend an indoor alternative without making up a forecast. Keeping the alternative as a preview avoids double-counting planned load by placing both outdoor and indoor versions on the active calendar.
 
 {{< callout type="info" >}}
 The `recovery_check` [MCP prompt]({{< relref "/reference/resources-prompts" >}}) runs this workflow with the scale and staleness guardrails enforced server-side.

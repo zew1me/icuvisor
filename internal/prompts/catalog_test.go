@@ -100,6 +100,25 @@ func TestReadinessPromptsRequireProviderNativeLabels(t *testing.T) {
 	}
 }
 
+func TestRecoveryCheckIncludesWeatherAndIndoorOutdoorGuardrails(t *testing.T) {
+	t.Parallel()
+
+	text := renderPromptText(t, RecoveryCheckPrompt(), nil)
+	for _, want := range []string{
+		"get_today",
+		"weather.status/provenance",
+		"forecast_unavailable",
+		"do not invent conditions",
+		"planned_events[].indoor",
+		"do not create a second active workout",
+		"Do not call write or delete tools for indoor/outdoor adaptation",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("recovery prompt missing %q:\n%s", want, text)
+		}
+	}
+}
+
 func TestWeeklyReviewRendersExplicitArguments(t *testing.T) {
 	t.Parallel()
 

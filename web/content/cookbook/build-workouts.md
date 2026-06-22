@@ -25,7 +25,10 @@ my intervals.icu data.
    and read one or two terse examples. Keep include_full off unless you need the
    full source for a specific template.
 3. Draft this workout: [DESCRIBE IT — e.g. VO2max bike session, 5x4min at
-   110% FTP with 4min recoveries, plus warm-up and cool-down]. Before saving,
+   110% FTP with 4min recoveries, plus warm-up and cool-down]. If adapting an
+   existing planned session for indoor vs outdoor execution, read `get_today`
+   first and use only its weather availability/provenance, planned `indoor` flag,
+   tags, equipment context I provide, and athlete preference. Before saving,
    show a proposed-change preview with the total duration, key steps, target
    intensities, planned load/distance/time changes, and anything being preserved.
 4. Ask for approval of the exact preview. Only after I approve, either save it
@@ -47,7 +50,10 @@ a specific template that needs raw source detail. Do not overwrite an existing
 library workout; create a new one unless I explicitly name one to update. For
 multiple calendar or library writes, validate one representative workout, write
 one, read it back, check warnings and
-structured-step summaries, then continue with the rest.
+structured-step summaries, then continue with the rest. For indoor/outdoor
+alternatives to the same planned session, keep only one active calendar workout
+unless I explicitly ask for both; prefer editing/replacing the existing event
+after approval so planned load is not double-counted.
 ```
 
 ## What icuvisor does
@@ -60,6 +66,8 @@ structured-step summaries, then continue with the rest.
 | 4 | [`create_workout`]({{< relref "/reference/tools#create_workout" >}}) or [`add_or_update_event`]({{< relref "/reference/tools#add_or_update_event" >}}) | Saves to the library or schedules it — gated on write mode. |
 
 For manual calendar writes that may be retried, ask the assistant to pass a stable `external_id` to `add_or_update_event`, such as a namespace you own plus the workout/date. Intervals stores that value upstream and icuvisor exposes it in event reads for auditability, so do not put secrets or credential-like values in it. Blank `external_id` values are ignored rather than used to clear an existing upstream value, and IDs are best-effort idempotency aids alongside icuvisor's same-day preflight rather than a global dedupe guarantee. Use your own namespace and avoid provider-owned prefixes such as `strava-` or `hevy-`.
+
+For an indoor/outdoor adaptation of today's planned workout, ask for a preview first: what changes (route/trainer mode, target basis, duration/load, tags, and the `indoor` flag), what is preserved, and whether weather was sourced or unavailable. Do not ask the assistant to create an indoor clone next to the outdoor plan unless you explicitly want two active workouts and understand the planned-load/CTL double-counting risk.
 
 To revise an existing template, name it and the assistant uses [`update_workout`]({{< relref "/reference/tools#update_workout" >}}). On updates, supplied `description` text is prose in the same upstream description/DSL field; it replaces that field rather than appending a note. `workout_doc` is the structured step plan that icuvisor serializes into intervals.icu workout syntax. If the existing template has structured steps you want to keep, ask the assistant to include the desired `workout_doc` explicitly and use `<!-- icuvisor:steps -->` to place the serialized steps around any prose. When `update_workout` changes `workout_doc` for a sport where zone targets are ambiguous, include the template `sport` in the same request so icuvisor can apply the athlete's sport priority settings. When the structure or DSL is uncertain, have the assistant run [`validate_workout`]({{< relref "/reference/tools#validate_workout" >}}) first and use the returned canonical DSL plus estimated duration in the preview. For bulk edits, avoid parallel writes until one representative readback confirms `_meta.workout_doc_warning` is absent or understood and `workout_doc_summary` still shows the expected steps.
 
@@ -96,12 +104,14 @@ For an existing-template edit, the assistant should make the delta just as expli
 - **A week of workouts:** describe 3-4 sessions and ask for them scheduled across named days — still review each before the writes.
 - **From a description:** paste a coach's text endurance workout and ask for it converted to valid intervals.icu syntax.
 - **Gym time block:** "Put 45 minutes of gym strength and mobility on Friday as a calendar note; keep the exercise details in free text and do not create structured sets."
+- **Indoor option for today:** "Read `get_today`, then show me an indoor trainer version of today's outdoor ride. Do not write it unless I approve replacing the existing event."
 
 ## Why this prompt works
 
 - **Read the syntax reference first.** The `icuvisor://workout-syntax` resource is the authoritative DSL spec. Forcing the assistant to consult it — plus one or two folder-filtered library examples — is what fixes the broken repeat/bullet syntax users hit without wasting context on unrelated templates.
 - **Draft, then save.** Showing the workout in the chat before any write means you catch a wrong target before it lands on your calendar.
 - **"Create, don't overwrite."** Without this, an assistant may update the closest-matching library workout. The explicit rule protects your existing templates; for any intentional bulk or template edit, read and retain structured steps explicitly instead of sending description-only prose.
+- **One active version.** Indoor and outdoor variants of the same planned session are alternatives, not two workouts to publish by default. Preview the replacement and write only after approval so Intervals.icu does not double-count planned load.
 
 {{< callout type="warning" >}}
 `create_workout`, `update_workout`, and `add_or_update_event` only run when the server is in write mode. In read-only mode the assistant should still draft the workout and show you the syntax to paste into intervals.icu yourself. See [safety modes]({{< relref "/reference/safety-modes" >}}).

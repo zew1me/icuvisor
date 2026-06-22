@@ -145,6 +145,39 @@
       ]
     },
     {
+      "id": "CB-READY-03",
+      "recipe": "readiness-check",
+      "persona": "athlete",
+      "prompt": "Give me a morning briefing for today's planned workout. Use icuvisor, including get_today, to check readiness context and whether weather is available. If the outdoor option looks questionable from sourced weather or if weather is unavailable, suggest an indoor alternative in the answer, but do not write calendar changes or create a duplicate workout unless I explicitly approve replacing the existing event.",
+      "expected_tools": [
+        "get_today",
+        "get_wellness_data",
+        "get_fitness"
+      ],
+      "bonus_tools": [
+        "get_athlete_profile"
+      ],
+      "forbidden_tools": [
+        "add_or_update_event",
+        "create_workout",
+        "update_workout",
+        "delete_event",
+        "delete_events_by_date_range"
+      ],
+      "must_address": [
+        "today's planned workout context",
+        "weather availability or explicit unavailable status",
+        "indoor versus outdoor recommendation",
+        "no silent calendar write",
+        "no duplicate active workout"
+      ],
+      "anti_patterns": [
+        "invents weather when get_today says forecast_unavailable",
+        "creates both indoor and outdoor calendar workouts by default",
+        "calls a write tool without explicit approval"
+      ]
+    },
+    {
       "id": "CB-ACT-01",
       "recipe": "activity-retrospective",
       "persona": "athlete",
@@ -210,33 +243,98 @@
       "recipe": "activity-retrospective",
       "persona": "athlete",
       "prompt": "Analyze my race last Sunday. Use icuvisor with my intervals.icu data: first resolve last Sunday in my athlete-local timezone, list activities for that date window, choose the race activity if one exists, then fetch its details and intervals before analyzing it. If there is no activity or no race-like activity on that date, say so plainly and stop. Include which activity ID/name you selected, pacing and effort evidence from details/intervals, any unavailable data caveats, and two race takeaways. Do not ask me for an activity ID.",
-      "expected_tools": ["get_activities", "get_activity_details", "get_activity_intervals"],
-      "bonus_tools": ["get_activity_splits", "get_activity_histogram", "get_extended_metrics", "get_athlete_profile"],
-      "forbidden_tools": ["delete_activity", "delete_event", "delete_workout"],
-      "must_address": ["resolves last Sunday as an athlete-local activity date before selecting an ID", "identifies the chosen race activity or says none was found", "uses detail and interval evidence for the analysis", "names unavailable or missing data instead of guessing", "two concrete race takeaways"],
-      "anti_patterns": ["asks the user for an activity ID before trying get_activities", "claims no activity exists without querying the last-Sunday date window", "analyzes a race from get_activities summaries only", "calls get_activity_details or get_activity_intervals before resolving the activity with get_activities"]
+      "expected_tools": [
+        "get_activities",
+        "get_activity_details",
+        "get_activity_intervals"
+      ],
+      "bonus_tools": [
+        "get_activity_splits",
+        "get_activity_histogram",
+        "get_extended_metrics",
+        "get_athlete_profile"
+      ],
+      "forbidden_tools": [
+        "delete_activity",
+        "delete_event",
+        "delete_workout"
+      ],
+      "must_address": [
+        "resolves last Sunday as an athlete-local activity date before selecting an ID",
+        "identifies the chosen race activity or says none was found",
+        "uses detail and interval evidence for the analysis",
+        "names unavailable or missing data instead of guessing",
+        "two concrete race takeaways"
+      ],
+      "anti_patterns": [
+        "asks the user for an activity ID before trying get_activities",
+        "claims no activity exists without querying the last-Sunday date window",
+        "analyzes a race from get_activities summaries only",
+        "calls get_activity_details or get_activity_intervals before resolving the activity with get_activities"
+      ]
     },
     {
       "id": "CB-ACT-04",
       "recipe": "activity-retrospective",
       "persona": "athlete",
       "prompt": "Show and compare the lap splits or reps for my run last Wednesday. Use icuvisor: resolve last Wednesday in my athlete-local timezone, list activities for that date window, pick the run, then fetch intervals and per-distance splits for that activity. Give a compact table comparing each rep/lap/split with distance, duration, pace, and heart-rate or power when returned. If the activity has no manual reps/laps, say that and use get_activity_splits for virtual splits; do not stop at the session summary.",
-      "expected_tools": ["get_activities", "get_activity_intervals", "get_activity_splits"],
-      "bonus_tools": ["get_activity_details", "get_athlete_profile"],
-      "forbidden_tools": ["delete_activity", "delete_event", "delete_workout"],
-      "must_address": ["resolves the athlete-local date and selected run before requesting reps or splits", "compares lap/rep/split rows rather than only session-level metrics", "states whether rows came from intervals or virtual splits", "names missing HR/power/pace fields instead of estimating"],
-      "anti_patterns": ["answers from get_activities session summaries only", "asks the user for an activity ID before trying date lookup", "skips get_activity_intervals and get_activity_splits", "fabricates split rows or per-rep metrics not returned by a tool"]
+      "expected_tools": [
+        "get_activities",
+        "get_activity_intervals",
+        "get_activity_splits"
+      ],
+      "bonus_tools": [
+        "get_activity_details",
+        "get_athlete_profile"
+      ],
+      "forbidden_tools": [
+        "delete_activity",
+        "delete_event",
+        "delete_workout"
+      ],
+      "must_address": [
+        "resolves the athlete-local date and selected run before requesting reps or splits",
+        "compares lap/rep/split rows rather than only session-level metrics",
+        "states whether rows came from intervals or virtual splits",
+        "names missing HR/power/pace fields instead of estimating"
+      ],
+      "anti_patterns": [
+        "answers from get_activities session summaries only",
+        "asks the user for an activity ID before trying date lookup",
+        "skips get_activity_intervals and get_activity_splits",
+        "fabricates split rows or per-rep metrics not returned by a tool"
+      ]
     },
     {
       "id": "CB-ACT-05",
       "recipe": "activity-retrospective",
       "persona": "athlete",
       "prompt": "Compare the first 10 km with the last 10 km of my most recent marathon or long run. Use icuvisor: find the activity, get details to determine total distance, translate the first segment to 0..10000 meters and the last segment to total_distance_m-10000..total_distance_m, then call compute_activity_segment_stats for average pace/velocity, power if available, and heart rate for each segment. Do not fetch raw activity streams or reduce samples in chat. If the activity is shorter than 20 km or streams are missing, say exactly what prevents the comparison.",
-      "expected_tools": ["get_activities", "get_activity_details", "compute_activity_segment_stats"],
-      "bonus_tools": ["get_activity_intervals", "get_extended_metrics"],
-      "forbidden_tools": ["get_activity_streams", "delete_activity", "delete_event"],
-      "must_address": ["the activity and total distance used", "the explicit first and last distance bounds", "first-vs-last pace or velocity, heart-rate, and power when available", "a clear unavailable-data explanation rather than an estimate"],
-      "anti_patterns": ["fetches raw streams and computes averages in chat", "uses a last-10-km segment without deriving it from total distance", "hallucinates pace, power, or heart-rate values when segment stats are unavailable"]
+      "expected_tools": [
+        "get_activities",
+        "get_activity_details",
+        "compute_activity_segment_stats"
+      ],
+      "bonus_tools": [
+        "get_activity_intervals",
+        "get_extended_metrics"
+      ],
+      "forbidden_tools": [
+        "get_activity_streams",
+        "delete_activity",
+        "delete_event"
+      ],
+      "must_address": [
+        "the activity and total distance used",
+        "the explicit first and last distance bounds",
+        "first-vs-last pace or velocity, heart-rate, and power when available",
+        "a clear unavailable-data explanation rather than an estimate"
+      ],
+      "anti_patterns": [
+        "fetches raw streams and computes averages in chat",
+        "uses a last-10-km segment without deriving it from total distance",
+        "hallucinates pace, power, or heart-rate values when segment stats are unavailable"
+      ]
     },
     {
       "id": "CB-FTP-01",
