@@ -37,17 +37,6 @@ func newCustomFieldCache() *customFieldCache {
 	return &customFieldCache{entries: map[string][]string{}}
 }
 
-// activityFieldCodes returns the athlete's activity custom field codes, fetching
-// and caching them on first use. A nil client yields no codes; a fetch failure
-// degrades to no codes so activity reads still succeed without custom fields.
-func (c *customFieldCache) activityFieldCodes(ctx context.Context, client ActivityCustomFieldClient) []string {
-	codes, err := c.lookupActivityFieldCodes(ctx, client)
-	if err != nil {
-		return nil
-	}
-	return codes
-}
-
 func (c *customFieldCache) lookupActivityFieldCodes(ctx context.Context, client ActivityCustomFieldClient) ([]string, error) {
 	if client == nil || ctx.Err() != nil {
 		return nil, ctx.Err()

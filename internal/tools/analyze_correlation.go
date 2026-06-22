@@ -125,9 +125,8 @@ type correlationMetricRef struct {
 
 func parseCorrelationMetricArgument(value string, selectedCustomFields []string) (correlationMetricRef, error) {
 	trimmed := strings.TrimSpace(value)
-	field, ok := strings.CutPrefix(strings.ToLower(trimmed), "custom:")
-	if ok {
-		field = strings.TrimSpace(trimmed[len("custom:"):])
+	if strings.HasPrefix(strings.ToLower(trimmed), "custom:") {
+		field := strings.TrimSpace(trimmed[len("custom:"):])
 		if field == "" {
 			return correlationMetricRef{}, fmt.Errorf("custom metric must use custom:<field_code>")
 		}
