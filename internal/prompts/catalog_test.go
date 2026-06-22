@@ -78,6 +78,22 @@ func TestRenderedPromptsGolden(t *testing.T) {
 	}
 }
 
+func TestTrainingAnalysisPromptIncludesHypoxicContextGuardrail(t *testing.T) {
+	t.Parallel()
+
+	text := renderPromptText(t, TrainingAnalysisPrompt(), nil)
+	for _, want := range []string{
+		"If the user explicitly mentions hypoxic training",
+		"power-based load may under-represent extra hypoxic strain",
+		"HR/RPE/feel/recovery can be supporting context",
+		"must not apply a hypoxia multiplier",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("training analysis prompt missing %q:\n%s", want, text)
+		}
+	}
+}
+
 func TestReadinessPromptsRequireProviderNativeLabels(t *testing.T) {
 	t.Parallel()
 

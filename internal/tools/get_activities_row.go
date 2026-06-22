@@ -62,6 +62,7 @@ func activityRow(activity intervals.Activity, includeFull bool, timezoneFallback
 	applyActivitySpeed(&row, activity.MaxSpeed, false, unitSystem)
 	row.Weather = activityWeatherSummary(activity)
 	row.CustomFields = activityCustomFields(activity.Raw, customFieldCodes)
+	row.HypoxicLoadCaveat = hypoxicTrainingCaveatForActivity(activity.Raw, customFieldCodes)
 	if includeFull {
 		row.Full = activity.Raw
 	}

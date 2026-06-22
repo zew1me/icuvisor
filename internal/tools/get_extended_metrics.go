@@ -84,12 +84,13 @@ type extendedIntervalMetrics struct {
 }
 
 type extendedMetricsMeta struct {
-	ServerVersion       string            `json:"server_version"`
-	IncludeFull         bool              `json:"include_full"`
-	ExtendedMetricUnits map[string]string `json:"extended_metric_units"`
-	DroppedFields       []string          `json:"dropped_fields"`
-	Partial             bool              `json:"partial,omitempty"`
-	UnavailableSources  []string          `json:"unavailable_sources,omitempty"`
+	ServerVersion       string                 `json:"server_version"`
+	IncludeFull         bool                   `json:"include_full"`
+	ExtendedMetricUnits map[string]string      `json:"extended_metric_units"`
+	DroppedFields       []string               `json:"dropped_fields"`
+	HypoxicLoadCaveat   *hypoxicTrainingCaveat `json:"hypoxic_training_caveat,omitempty"`
+	Partial             bool                   `json:"partial,omitempty"`
+	UnavailableSources  []string               `json:"unavailable_sources,omitempty"`
 }
 
 func newGetExtendedMetricsTool(client ExtendedMetricsClient, profileClient ProfileClient, version string, timezoneFallback string, debugMetadata bool, shaping ...responseShaping) Tool {
@@ -198,7 +199,7 @@ func unavailableExtendedMetricsResponse(activityID string, includeFull bool, ver
 
 func shapeExtendedMetrics(activityID string, activity intervals.Activity, dto intervals.IntervalsDTO, intervalsOK bool, powerVsHR intervals.PowerVsHR, powerVsHROK bool, includeFull bool, version string, unavailable []string) extendedMetricsResponse {
 	metrics := extendedMetricsFromActivity(activity.Raw, powerVsHR, powerVsHROK)
-	out := extendedMetricsResponse{ActivityID: firstNonEmpty(activity.ID, activityID), Metrics: &metrics, Meta: extendedMetricsMeta{ServerVersion: normalizeVersion(version), IncludeFull: includeFull, ExtendedMetricUnits: extendedMetricUnits(), DroppedFields: droppedExtendedMetricFields, Partial: len(unavailable) > 0, UnavailableSources: unavailable}}
+	out := extendedMetricsResponse{ActivityID: firstNonEmpty(activity.ID, activityID), Metrics: &metrics, Meta: extendedMetricsMeta{ServerVersion: normalizeVersion(version), IncludeFull: includeFull, ExtendedMetricUnits: extendedMetricUnits(), DroppedFields: droppedExtendedMetricFields, HypoxicLoadCaveat: hypoxicTrainingCaveatForActivity(activity.Raw, nil), Partial: len(unavailable) > 0, UnavailableSources: unavailable}}
 	if intervalsOK {
 		out.Intervals = extendedIntervals(dto.ICUIntervals)
 	}
