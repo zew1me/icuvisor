@@ -15,6 +15,23 @@ It is deterministic on purpose. The same inputs always produce the same curve, s
 
 The projection seeds CTL, ATL, and TSB from the athlete-local `start_date` returned by [`get_fitness`]({{< relref "/reference/tools#get_fitness" >}}). The starting point is your real, current fitness — not an estimate — so a projection is only ever as current as your logged data.
 
+## Logged load is the model input
+
+CTL, ATL, Form, and `get_fitness_projection` all move from logged `training_load`.
+icuvisor does not adjust TSS, invent a hypoxia multiplier, or separately model
+reduced-oxygen exposure. Treat hypoxic-training caveats only when explicit
+provenance exists — for example, the user says the session was in an altitude
+tent/chamber or an activity name, note, tag, or selected custom field clearly says
+hypoxic/reduced oxygen. Altitude, elevation gain, or SpO2 by itself is context,
+not proof that the session should be interpreted as hypoxic training.
+
+If a hypoxic session used power-based TSS/load, the logged load may
+under-represent extra physiological strain from reduced oxygen. HR-based load may
+capture some acute cardiovascular response, but it is not a complete
+hypoxic-stress model. Use HR, RPE, feel, and recovery trends as supporting
+context; do not inflate CTL/ATL/Form unless the logged `training_load` itself was
+changed upstream.
+
 ## Per-sport load trends are a context aid
 
 For runners, cyclists, swimmers, and triathletes, a single combined load can hide divergent sport fatigue. [`get_fitness`]({{< relref "/reference/tools#get_fitness" >}}) therefore has an opt-in `include_per_sport_load_trends: true` view that computes running, cycling, swimming, and other load trends from visible `byCategory[].training_load` in the athlete summary.

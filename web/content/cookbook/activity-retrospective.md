@@ -34,6 +34,11 @@ with my intervals.icu data.
 4. Get the time-in-zone for the session.
 5. Get the extended metrics, and report only the ones actually present
    (decoupling, IF, VI, normalized power, RPE, feel).
+6. If `get_activities`/`get_activity_details` returns `hypoxic_training_caveat`,
+   or `get_extended_metrics` returns `_meta.hypoxic_training_caveat`, quote its
+   provenance and wording. If I explicitly said the session used an altitude
+   tent/chamber or reduced oxygen exposure, mention that CTL/ATL/Form still use
+   logged `training_load` and do not add a hypoxia multiplier.
 
 Then give me:
 - What kind of session this was and how it went overall.
@@ -51,7 +56,10 @@ Rules: if this activity was imported from Strava and its fields are blank,
 tell me that up front and analyze only what is actually there. Quote a
 decoupling, NP, IF, or VI figure only when a tool returned it, and name the
 source tool inline. Do not compute or estimate metrics intervals.icu did not
-provide. Keep the answer under about 400 words, leading with the interval table.
+provide. For hypoxic training, require explicit provenance from the user or from
+activity name/notes/tags/custom fields; do not treat altitude, elevation gain, or
+SpO2 alone as proof. Keep the answer under about 400 words, leading with the
+interval table.
 ```
 
 ## What icuvisor does
@@ -65,6 +73,23 @@ provide. Keep the answer under about 400 words, leading with the interval table.
 | 5    | [`get_extended_metrics`]({{< relref "/reference/tools#get_extended_metrics" >}})                                                                                        | Decoupling, IF, VI — only those upstream actually fitted.                                                                                              |
 
 For a specific surge, climb, distance-bounded split, or sprint/anaerobic workout that appears as one averaged interval row, [`compute_activity_segment_stats`]({{< relref "/reference/tools#compute_activity_segment_stats" >}}) computes mean/median/p90, NP/IF, drift, or decoupling over an explicit time or distance range. For relative requests like "last 10 km", first use `get_activity_details` to get the activity distance, convert it to meters, and pass explicit bounds such as `start_distance_m = total_distance_m - 10000` and `end_distance_m = total_distance_m`. Do not fetch raw streams and average them in chat.
+
+### Hypoxic-training caveat
+
+Some athletes do workouts in reduced-oxygen environments such as altitude tents,
+altitude chambers, or other explicitly logged hypoxic setups. icuvisor surfaces a
+`hypoxic_training_caveat` on activity rows, and `_meta.hypoxic_training_caveat`
+from `get_extended_metrics`, only when explicit evidence is present in the user
+request or exposed activity name/notes/tags/custom fields. Do not infer hypoxic
+stress from altitude, elevation gain, or a low SpO2 value by itself.
+
+When the caveat appears, keep the interpretation conservative: CTL, ATL, Form,
+and projections are based on logged `training_load`; icuvisor does not change TSS
+or apply a hypoxia multiplier. If load is power-based, it may under-represent
+extra physiological strain from reduced oxygen. If load is HR-based, it may
+capture some acute cardiovascular response, but it is still not a complete
+hypoxic-stress model. Use HR, RPE, feel, and recovery trends as supporting
+context only.
 
 ## A good answer looks like
 
