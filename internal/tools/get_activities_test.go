@@ -81,8 +81,14 @@ func TestGetActivitiesRegistrationMetadata(t *testing.T) {
 
 	client := newFakeActivitiesClient(t, nil, "metric")
 	tool := newGetActivitiesToolWithGear(client, client, nil, nil, nil, nil, "test", "UTC", false)
-	if !strings.Contains(tool.Description, "paginated activity index") {
-		t.Fatalf("description = %q, want distinguishing activity-list sentence", tool.Description)
+	if !strings.Contains(tool.Description, "paginated activity index") || !strings.Contains(tool.Description, "historical activity weather") {
+		t.Fatalf("description = %q, want distinguishing activity-list and weather provenance sentence", tool.Description)
+	}
+	outputDescription := tool.OutputSchema.(map[string]any)["description"].(string)
+	for _, want := range []string{"activities[].weather", "historical activity weather", "degrees C", "m/s", "not treat activities[].weather as a forecast"} {
+		if !strings.Contains(outputDescription, want) {
+			t.Fatalf("output description = %q, missing %q", outputDescription, want)
+		}
 	}
 	properties := tool.InputSchema.(map[string]any)["properties"].(map[string]any)
 	for _, name := range []string{"oldest", "newest", "include_unnamed", "page_size", "next_page_token", "include_full"} {
