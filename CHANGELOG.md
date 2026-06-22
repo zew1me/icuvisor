@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `get_activity_intervals` now adds a single-row collapsed/imported-lap caveat and `compute_activity_segment_stats` follow-up hint when interval provenance is unknown, so assistants do not treat one averaged lap as proof of no interval work.
 - The OpenAPI endpoint-diff workflow now uses the live intervals.icu OpenAPI docs URL, reports `components.schemas` name drift alongside path drift, and refreshes the pinned baseline to the current accepted upstream snapshot.
 - The default non-coach CLI/MCP startup path now uses the public `pkg/icuvisor` facade, with parity coverage against the internal wiring; hosted deployments can depend on the public core library while keeping hosted OAuth, storage, and deployment code separate.
 
