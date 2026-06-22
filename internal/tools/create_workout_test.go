@@ -111,6 +111,53 @@ func TestCreateWorkoutRunPowerOrderSerializesPowerZoneSuffix(t *testing.T) {
 	}
 }
 
+func TestCreateWorkoutRunPaceTargetSerializesStructuredPaceDSL(t *testing.T) {
+	t.Parallel()
+
+	client := &fakeWorkoutCreatorClient{
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC", SportSettings: []intervals.SportSettings{{Type: "Run", Types: []string{"Run"}, WorkoutOrder: "PACE_HR_POWER"}}}},
+		workout:           decodeToolWorkouts(t, `{"id":"w-run-pace","name":"Cruise","type":"Run","folder_id":"f-run","workout_doc":{"steps":[{"description":"Cruise","duration":1200,"pace":{"value":95,"units":"PERCENT_THRESHOLD"}}]}}`)[0],
+	}
+	tool := newCreateWorkoutTool(client, client, "test", "UTC", false)
+
+	_, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"name":"Cruise","folder_id":"f-run","sport":"Run","workout_doc":{"steps":[{"description":"Cruise","duration":1200,"pace":{"value":95,"units":"PERCENT_THRESHOLD"}}]}}`)})
+	if err != nil {
+		t.Fatalf("Handler() error = %v", err)
+	}
+	if len(client.calls) != 1 || client.calls[0].Description == nil {
+		t.Fatalf("write calls = %#v, want one serialized workout_doc", client.calls)
+	}
+	if got, want := *client.calls[0].Description, "- Cruise 20m 95% Pace"; got != want {
+		t.Fatalf("description DSL = %q, want %q", got, want)
+	}
+}
+
+func TestCreateWorkoutSerializesHRZoneAndDoesNotInsertPhantomWarmupCooldown(t *testing.T) {
+	t.Parallel()
+
+	client := &fakeWorkoutCreatorClient{
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC", SportSettings: []intervals.SportSettings{{Type: "Run", Types: []string{"Run"}, WorkoutOrder: "HR_POWER_PACE"}}}},
+		workout:           decodeToolWorkouts(t, `{"id":"w-run-hr","name":"HR Progression","type":"Run","folder_id":"f-run","workout_doc":{"steps":[{"description":"Aerobic","duration":1200,"hr":{"value":2,"units":"HR_ZONE"}},{"description":"Float","duration":300,"freeride":true}]}}`)[0],
+	}
+	tool := newCreateWorkoutTool(client, client, "test", "UTC", false)
+
+	_, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"name":"HR Progression","folder_id":"f-run","sport":"Run","workout_doc":{"steps":[{"description":"Aerobic","duration":1200,"hr":{"value":2,"units":"HR_ZONE"}},{"description":"Float","duration":300,"freeride":true}]}}`)})
+	if err != nil {
+		t.Fatalf("Handler() error = %v", err)
+	}
+	if len(client.calls) != 1 || client.calls[0].Description == nil {
+		t.Fatalf("write calls = %#v, want one serialized workout_doc", client.calls)
+	}
+	got := *client.calls[0].Description
+	want := "- Aerobic 20m Z2 HR\n- Float 5m freeride"
+	if got != want {
+		t.Fatalf("description DSL = %q, want exact structured steps %q", got, want)
+	}
+	if strings.Contains(got, "Warmup") || strings.Contains(got, "Cooldown") || len(strings.Split(got, "\n")) != 2 {
+		t.Fatalf("description DSL = %q, want no phantom warmup/cooldown steps", got)
+	}
+}
+
 func TestCreateWorkoutWarnsWhenUpstreamDoesNotRenderWorkoutDoc(t *testing.T) {
 	t.Parallel()
 
