@@ -40,6 +40,12 @@ The local icuvisor process calls intervals.icu's public API and sends tool respo
 
 Your chosen AI client may send conversation content to its model provider according to that client's own terms and settings. icuvisor's job is to keep the intervals.icu credential out of the conversation and provide the smallest useful data response for each tool call.
 
+## Shareable reports are user-controlled
+
+Workflows such as `shareable_training_report` help draft Markdown from your own training data, but icuvisor does not publish, host, upload, or auto-share the result. Review and redact private health details, locations, notes, identifiers, and race logistics before you manually copy, export, or post anything.
+
+Because the local binary is not an icuvisor SaaS product, there is no icuvisor app-side credit quota for these report drafts. You still use your chosen AI client or model subscription, and that provider's billing, privacy, and retention terms still apply.
+
 ## Why local-first matters
 
 Local-first keeps the trust boundary small:

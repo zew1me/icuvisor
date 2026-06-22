@@ -66,8 +66,19 @@ The assistant should call, in roughly this order:
 
 Every number is tagged with the tool it came from, and nothing is asserted that the tools did not return.
 
+## Share a reviewed report manually
+
+When you want a public-facing weekly recap, month-end story, race-prep note, or training-journey update, use the MCP prompt `shareable_training_report` instead of asking the assistant to publish anything for you.
+
+```text
+Use `shareable_training_report` for a race-prep report from [START_DATE] to [END_DATE], with race_date=[RACE_DATE] and audience=[AUDIENCE]. Draft Markdown first with highlights, one honest challenge, key numbers with icuvisor tool citations, and a private-data review checklist. Do not publish, host, upload, or auto-share the report. If I later ask for HTML, convert the reviewed Markdown to simple static HTML in chat only.
+```
+
+The local icuvisor server helps compose the draft from your own intervals.icu data. It does not host a report page, push to social media, or spend an icuvisor app-side credit quota. You use your chosen AI client or subscription, and that client's provider terms still apply. Review and redact private health details, locations, notes, identifiers, and race logistics before copying, exporting, or posting the report yourself.
+
 ## Variations
 
+- **Shareable report:** ask for `shareable_training_report` when the output is meant to become a manually shared Markdown recap, journey update, or race-prep note. Keep no-publish/no-host/no-auto-share and review/redact instructions in the prompt.
 - **Plan-health review:** ask for `plan_health_review` when you want a transparent audit of the upcoming plan. Require evidence for any risk label, caveat missing wellness/readiness data, and ask the assistant to state when a race date is only a scenario anchor because no race event was found.
 - **Monthly review:** change the window to "the last 28 days" and ask for the polarization trend week-over-week.
 - **Compare two periods:** "Compare the last 14 days with the 14 days before — what changed in load and intensity?"
@@ -81,5 +92,5 @@ Every number is tagged with the tool it came from, and nothing is asserted that 
 - **"Tell me which tool each number came from"** makes the answer auditable, so you can spot a wrong number instead of trusting a fluent paragraph.
 
 {{< callout type="info" >}}
-If your client supports [MCP prompts]({{< relref "/reference/resources-prompts" >}}), `weekly_review` covers this retrospective workflow with server-side guardrails, and `plan_health_review` covers the current-plan risk audit without introducing an opaque score.
+If your client supports [MCP prompts]({{< relref "/reference/resources-prompts" >}}), `weekly_review` covers this retrospective workflow with server-side guardrails, `shareable_training_report` drafts a manually reviewed Markdown report without publishing or hosting it, and `plan_health_review` covers the current-plan risk audit without introducing an opaque score.
 {{< /callout >}}

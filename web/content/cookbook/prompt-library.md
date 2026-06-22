@@ -22,6 +22,10 @@ Compare my last 14 days of training with the 14 days before that. What changed i
 Give me a month-end review for [MONTH]: load trend, polarization of my intensity, longest sessions, and one thing to keep doing and one to change.
 ```
 
+```text
+Use the `shareable_training_report` prompt to draft a Markdown report for [WEEK/MONTH/RACE PREP/TRAINING JOURNEY] from [START_DATE] to [END_DATE] for [AUDIENCE]. Keep it grounded in my intervals.icu data, cite the icuvisor tool behind key numbers, include a short private-data review checklist, and do not publish, host, upload, or auto-share anything. I will review/redact and share manually if I choose.
+```
+
 ## Recovery and wellness
 
 ```text
