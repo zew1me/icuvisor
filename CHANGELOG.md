@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Hardened WorkoutDoc target serialization for device-facing workout exports, including pace/HR/power regressions and all athlete sport target-priority orderings that need explicit zone metric suffixes.
 - Documented the validated Windows Winget install path in the README, website install guides, and Windows release runbook.
 - Clarified Windows and ChatGPT connection documentation after Windows VM install testing, including PowerShell-first Windows install guidance, exact Windows credential cleanup, platform-specific MCP command examples, and hosted ChatGPT connector limitations.
 - Clarified the Claude Desktop manual setup docs for Windows users, including the `%APPDATA%\Claude\claude_desktop_config.json` path and the `%LOCALAPPDATA%\Programs\icuvisor\icuvisor.exe` command path.
