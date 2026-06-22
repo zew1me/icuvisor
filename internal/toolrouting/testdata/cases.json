@@ -108,6 +108,60 @@
       "toolset": "full",
       "delete_mode": "safe",
       "notes": "Analyzer helper should handle training-distribution classification when concrete athlete-local dates are already supplied; relative-date prompts may reasonably resolve dates first."
+    },
+    {
+      "id": "planning-atp-season-overview",
+      "prompt": "Give me a season planning overview for the next 20 weeks: current phase, key build blocks, recovery weeks, taper context, and weekly load targets if they exist.",
+      "expected_first_tool": "get_annual_training_plan",
+      "catalog_mode": "full_safe",
+      "toolset": "full",
+      "delete_mode": "safe",
+      "notes": "ATP positive: season phase, recovery weeks, taper context, and weekly load targets should use the annual training plan summary instead of manually listing raw calendar events."
+    },
+    {
+      "id": "planning-atp-weekly-targets",
+      "prompt": "What weekly TSS or load targets are already planned for my next base and build blocks, including any recovery weeks?",
+      "expected_first_tool": "get_annual_training_plan",
+      "catalog_mode": "full_safe",
+      "toolset": "full",
+      "delete_mode": "safe",
+      "notes": "ATP positive: existing planned weekly targets and recovery weeks are summarized by get_annual_training_plan, not reconstructed from get_events in chat."
+    },
+    {
+      "id": "planning-atp-periodization-summary",
+      "prompt": "Summarize my periodization from the calendar notes and plan targets: base, build, recovery, and taper phases with projection-ready weekly targets.",
+      "expected_first_tool": "get_annual_training_plan",
+      "catalog_mode": "full_safe",
+      "toolset": "full",
+      "delete_mode": "safe",
+      "notes": "ATP positive: explicit periodization summary and projection-ready weekly_plan_targets should route first to the ATP tool."
+    },
+    {
+      "id": "planning-events-list-calendar",
+      "prompt": "List the calendar events and notes on my intervals calendar between 2026-06-01 and 2026-06-14 so I can inspect the raw entries myself.",
+      "expected_first_tool": "get_events",
+      "catalog_mode": "full_safe",
+      "toolset": "full",
+      "delete_mode": "safe",
+      "notes": "Contrast: raw calendar listing with explicit date window should choose get_events even though ATP, training-plan, and projection tools are available."
+    },
+    {
+      "id": "planning-training-plan-assignment",
+      "prompt": "Which training plan is currently assigned to me, and what plan metadata or assigned dates does Intervals have for it?",
+      "expected_first_tool": "get_training_plan",
+      "catalog_mode": "full_safe",
+      "toolset": "full",
+      "delete_mode": "safe",
+      "notes": "Contrast: asking for the assigned training-plan object or template metadata should route to get_training_plan, not the ATP calendar summary."
+    },
+    {
+      "id": "planning-fitness-projection",
+      "prompt": "Project my CTL, ATL, and TSB through 2026-09-01 using my planned weekly targets to see if the load ramp is sustainable.",
+      "expected_first_tool": "get_fitness_projection",
+      "catalog_mode": "full_safe",
+      "toolset": "full",
+      "delete_mode": "safe",
+      "notes": "Contrast: explicit future fitness projection should choose get_fitness_projection rather than summarizing ATP phases first."
     }
   ]
 }
