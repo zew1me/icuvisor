@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added first-tool routing eval cases and save/diff reporting for ambiguous planning prompts, including ATP/periodization versus raw events, training-plan assignment, and fitness projection contrasts.
 - Added MCP Registry `server.json` metadata, Cursor install CTA validation, and release-publishing recovery guidance for distribution maintainers.
 - Added the read-only `get_annual_training_plan` MCP tool for ATP/periodization summaries from PLAN, TARGET, and NOTE calendar events, including projection-ready weekly target bridge rows for `get_fitness_projection`.
 - Added conservative hypoxic-training load caveats to activity reads, extended metrics, the training-analysis prompt, and public docs so assistants require explicit reduced-oxygen provenance and do not invent hypoxia multipliers.

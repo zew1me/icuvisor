@@ -70,6 +70,37 @@ Live mode is supported for recalibration. A live run must use the same prompt-se
 
 Acceptable fixture rerun tolerance is zero for catalog token counts and zero for response-byte medians because both are computed deterministically from committed canonical JSON and audited byte fields. Live reruns should stay within ±5% response-byte median unless upstream data changed; outside that range, refresh the frozen snapshot and document why.
 
+## First-tool routing smoke eval
+
+The focused routing eval in `internal/toolrouting` and `scripts/toolroutingeval` covers first-tool-call selection for ambiguous prompts. It is separate from KR5: KR5 measures fixed call-plan token and response efficiency, while the routing eval checks whether catalog descriptions make the first MCP tool choice measurable for prompts such as ATP/periodization summaries versus raw calendar events, training-plan assignment, and fitness projection.
+
+Default execution is credential-free and CI-safe:
+
+```bash
+make eval-tool-routing
+```
+
+With no provider configured, the runner validates the committed fixture (`internal/toolrouting/testdata/cases.json`), loads the registered tool catalogs for each `catalog_mode`, confirms expected tools are exposed, reports every case as skipped, and exits successfully. It does not call intervals.icu and does not make an LLM request.
+
+Saved-result and diff workflows are available for explicit local runs:
+
+```bash
+go run ./scripts/toolroutingeval -json -output /tmp/routing-current.json
+go run ./scripts/toolroutingeval -diff /tmp/routing-baseline.json -json -output /tmp/routing-diff.json
+```
+
+Diff output classifies each case as `win`, `regression`, `still_failing`, `still_passing`, `new`, `removed`, or `skipped`. Human output never prints raw provider messages. JSON output omits raw provider messages by default; pass `-include-raw` only for local debugging and do not commit unsanitized model responses.
+
+Optional model-backed routing is opt-in:
+
+```bash
+ICUVISOR_ROUTING_EVAL_PROVIDER=anthropic \
+ANTHROPIC_API_KEY=... \
+go run ./scripts/toolroutingeval -json -output /tmp/routing-live.json
+```
+
+The API key is read from the environment only. The default test suite and `make eval-tool-routing` remain skipped-by-default and require no paid model call.
+
 ## Running
 
 Fixture-mode reproducibility command for the committed result:
