@@ -45,9 +45,10 @@ func sportSettingsForSport(profile intervals.AthleteWithSportSettings, sport str
 }
 
 func normalizedWorkoutOrder(order string) string {
-	switch strings.ToUpper(strings.TrimSpace(order)) {
-	case "POWER_HR_PACE", "HR_POWER_PACE", "PACE_HR_POWER":
-		return strings.ToUpper(strings.TrimSpace(order))
+	normalized := strings.ToUpper(strings.TrimSpace(order))
+	switch normalized {
+	case "POWER_HR_PACE", "POWER_PACE_HR", "HR_POWER_PACE", "HR_PACE_POWER", "PACE_POWER_HR", "PACE_HR_POWER":
+		return normalized
 	default:
 		return ""
 	}

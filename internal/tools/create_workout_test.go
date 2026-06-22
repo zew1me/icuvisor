@@ -77,6 +77,7 @@ func TestWorkoutDocSerializeOptionsForSportUsesKnownWorkoutOrder(t *testing.T) {
 	profile := intervals.AthleteWithSportSettings{SportSettings: []intervals.SportSettings{
 		{Type: "Ride", Types: []string{"Ride"}, WorkoutOrder: "HR_POWER_PACE"},
 		{Type: "Run", Types: []string{"TrailRun", "Run"}, WorkoutOrder: "POWER_HR_PACE"},
+		{Type: "Bike", Types: []string{"VirtualRide"}, WorkoutOrder: "POWER_PACE_HR"},
 		{Type: "Walk", Types: []string{"Walk"}, WorkoutOrder: "UNKNOWN"},
 	}}
 	if got := workoutDocSerializeOptionsForSport(profile, " Run ").WorkoutOrder; got != "POWER_HR_PACE" {
@@ -84,6 +85,9 @@ func TestWorkoutDocSerializeOptionsForSportUsesKnownWorkoutOrder(t *testing.T) {
 	}
 	if got := workoutDocSerializeOptionsForSport(profile, "ride").WorkoutOrder; got != "HR_POWER_PACE" {
 		t.Fatalf("ride workout order = %q, want HR_POWER_PACE", got)
+	}
+	if got := workoutDocSerializeOptionsForSport(profile, "VirtualRide").WorkoutOrder; got != "POWER_PACE_HR" {
+		t.Fatalf("virtual ride workout order = %q, want POWER_PACE_HR", got)
 	}
 	if got := workoutDocSerializeOptionsForSport(profile, "Walk").WorkoutOrder; got != "" {
 		t.Fatalf("unknown workout order = %q, want zero options", got)

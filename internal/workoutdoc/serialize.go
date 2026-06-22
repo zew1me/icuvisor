@@ -185,7 +185,7 @@ func formatTarget(family string, target Target, ramp bool, options SerializeOpti
 
 func explicitZoneMetricSuffixes(options SerializeOptions) bool {
 	switch canonicalUnit(options.WorkoutOrder) {
-	case "POWER_HR_PACE", "HR_POWER_PACE", "PACE_HR_POWER":
+	case "POWER_HR_PACE", "POWER_PACE_HR", "HR_POWER_PACE", "HR_PACE_POWER", "PACE_POWER_HR", "PACE_HR_POWER":
 		return true
 	default:
 		return false
