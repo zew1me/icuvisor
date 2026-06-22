@@ -23,12 +23,13 @@ type analyzeCorrelationRequest struct {
 	PairingGrain string                `json:"pairing_grain,omitempty"`
 	LagDays      int                   `json:"lag_days,omitempty"`
 	Sport        string                `json:"sport,omitempty"`
+	CustomFields []string              `json:"custom_fields,omitempty"`
 	IncludeFull  bool                  `json:"include_full,omitempty"`
 }
 
 func newAnalyzeCorrelationTool(fitness FitnessClient, wellness WellnessClient, activities ActivitiesClient, profileClient ProfileClient, version string, timezoneFallback string, debugMetadata bool, shaping ...responseShaping) Tool {
 	shapeCfg := responseShapingOrDefault(shaping)
-	clients := analyzerClients{fitness: fitness, wellness: wellness, activities: activities}
+	clients := newAnalyzerClients(fitness, wellness, activities)
 	return fullTool(Tool{Name: analyzeCorrelationName, Description: analyzeCorrelationDescription, InputSchema: analyzeCorrelationInputSchema(), OutputSchema: genericOutputSchema("Analyzer correlation result with coefficient, slope, intercept, paired series, and analyzer _meta."), Handler: analyzeCorrelationHandler(clients, profileClient, version, timezoneFallback, debugMetadata, shapeCfg)})
 }
 
@@ -80,14 +81,21 @@ func analyzeCorrelationHandler(clients analyzerClients, profileClient ProfileCli
 			}
 			yWindow = shifted
 		}
-		xSeries, err := loadAnalyzerSeries(ctx, clients, metricX, window, grain, args.Sport, unitSystem, false)
+		customFieldCodes, err := selectedActivityCustomFieldCodes(ctx, clients.customFields, clients.customFieldCache, args.CustomFields)
+		if err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return Result{}, err
+			}
+			return Result{}, NewUserError(invalidAnalyzeCorrelationArgs, err)
+		}
+		xSeries, err := loadAnalyzerSeries(ctx, clients, metricX, window, grain, args.Sport, unitSystem, customFieldCodes, false)
 		if err != nil {
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 				return Result{}, err
 			}
 			return Result{}, NewUserError(fetchAnalyzeCorrelationMsg, err)
 		}
-		ySeries, err := loadAnalyzerSeries(ctx, clients, metricY, yWindow, grain, args.Sport, unitSystem, false)
+		ySeries, err := loadAnalyzerSeries(ctx, clients, metricY, yWindow, grain, args.Sport, unitSystem, customFieldCodes, false)
 		if err != nil {
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 				return Result{}, err
@@ -107,5 +115,5 @@ func analyzeCorrelationHandler(clients analyzerClients, profileClient ProfileCli
 }
 
 func analyzeCorrelationInputSchema() map[string]any {
-	return map[string]any{"type": "object", "additionalProperties": false, "required": []string{"metric_x", "metric_y", "window"}, "properties": map[string]any{"metric_x": analyzerMetricProperty("X metric."), "metric_y": analyzerMetricProperty("Y metric."), "window": analyzerWindowSchema("Inclusive athlete-local anchor window for metric_x."), "method": map[string]any{"type": "string", "enum": []string{analysis.CorrelationPearson, analysis.CorrelationSpearman}, "default": analysis.CorrelationPearson}, "pairing_grain": map[string]any{"type": "string", "enum": []string{"daily", "activity"}, "default": "daily"}, "lag_days": map[string]any{"type": "integer", "minimum": -30, "maximum": 30, "default": 0, "description": "Positive lag pairs x on D with y on D+lag."}, "sport": map[string]any{"type": "string", "description": "Optional sport/category filter for activity-backed metrics."}, "include_full": map[string]any{"type": "boolean", "default": false, "description": "When true, include paired samples; terse mode omits raw rows."}}}
+	return map[string]any{"type": "object", "additionalProperties": false, "required": []string{"metric_x", "metric_y", "window"}, "properties": map[string]any{"metric_x": analyzerMetricProperty("X metric."), "metric_y": analyzerMetricProperty("Y metric."), "window": analyzerWindowSchema("Inclusive athlete-local anchor window for metric_x."), "method": map[string]any{"type": "string", "enum": []string{analysis.CorrelationPearson, analysis.CorrelationSpearman}, "default": analysis.CorrelationPearson}, "pairing_grain": map[string]any{"type": "string", "enum": []string{"daily", "activity"}, "default": "daily"}, "lag_days": map[string]any{"type": "integer", "minimum": -30, "maximum": 30, "default": 0, "description": "Positive lag pairs x on D with y on D+lag."}, "sport": map[string]any{"type": "string", "description": "Optional sport/category filter for activity-backed metrics."}, "custom_fields": map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "maxItems": 20, "description": "Optional athlete-defined activity custom field codes to fetch for activity-backed correlation metrics; defaults to none."}, "include_full": map[string]any{"type": "boolean", "default": false, "description": "When true, include paired samples; terse mode omits raw rows."}}}
 }

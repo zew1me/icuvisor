@@ -309,14 +309,8 @@ func eventRowsBefore(left, right getEventsRow) bool {
 	return left.EventID < right.EventID
 }
 
-func todayCustomFieldCodes(ctx context.Context, client ActivityCustomFieldClient, cache *customFieldCache) []string {
-	if client == nil {
-		return nil
-	}
-	if cache == nil {
-		cache = newCustomFieldCache()
-	}
-	return cache.activityFieldCodes(ctx, client)
+func todayCustomFieldCodes(_ context.Context, _ ActivityCustomFieldClient, _ *customFieldCache) []string {
+	return nil
 }
 
 func targetAthleteID(ctx context.Context) string {

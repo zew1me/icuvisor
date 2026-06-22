@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"slices"
 	"testing"
 
 	"github.com/ricardocabral/icuvisor/internal/analysis"
@@ -36,7 +37,7 @@ func TestLoadAnalyzerSeriesLoadsDerivedWeeklyMetrics(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse window: %v", err)
 	}
-	series, err := loadAnalyzerSeries(context.Background(), analyzerClients{fitness: client}, analysis.Metric("weekly_tss"), window, analysis.SampleGrainDaily, "", response.UnitSystemMetric, true)
+	series, err := loadAnalyzerSeries(context.Background(), analyzerClients{fitness: client}, analysis.Metric("weekly_tss"), window, analysis.SampleGrainDaily, "", response.UnitSystemMetric, nil, true)
 	if err != nil {
 		t.Fatalf("load weekly series: %v", err)
 	}
@@ -45,6 +46,26 @@ func TestLoadAnalyzerSeriesLoadsDerivedWeeklyMetrics(t *testing.T) {
 	}
 	if series.MissingDays != 18 || series.Assumptions["sample_grain"] != string(analysis.SampleGrainWeekly) {
 		t.Fatalf("weekly metadata missing=%d assumptions=%#v", series.MissingDays, series.Assumptions)
+	}
+}
+
+func TestAnalyzeCorrelationFetchesExplicitCustomFieldsForActivityMetrics(t *testing.T) {
+	t.Parallel()
+
+	client := newFakeActivitiesClient(t, []string{
+		`{"id":"a1","name":"Ride 1","type":"Ride","start_date_local":"2026-05-01T07:00:00","icu_training_load":50,"moving_time":3600,"vo2max_est":51.2}`,
+		`{"id":"a2","name":"Ride 2","type":"Ride","start_date_local":"2026-05-02T07:00:00","icu_training_load":70,"moving_time":4200,"vo2max_est":52.1}`,
+		`{"id":"a3","name":"Ride 3","type":"Ride","start_date_local":"2026-05-03T07:00:00","icu_training_load":65,"moving_time":3900,"vo2max_est":51.8}`,
+	}, "metric")
+	client.customItems = decodeCustomItems(t, `{"id":"c1","type":"ACTIVITY_FIELD","content":{"field":"vo2max_est"}}`)
+	tool := newAnalyzeCorrelationTool(nil, nil, client, client, "test", "UTC", false)
+
+	_, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"metric_x":"training_load","metric_y":"moving_time_seconds","window":{"start_date":"2026-05-01","end_date":"2026-05-03"},"pairing_grain":"activity","custom_fields":["vo2max_est"]}`)})
+	if err != nil {
+		t.Fatalf("Handler() error = %v", err)
+	}
+	if len(client.listCalls) == 0 || !slices.Contains(client.listCalls[0].Fields, "vo2max_est") {
+		t.Fatalf("ListActivities fields = %#v, want explicit custom field", client.listCalls)
 	}
 }
 

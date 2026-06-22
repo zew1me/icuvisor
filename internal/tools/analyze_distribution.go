@@ -27,7 +27,7 @@ type analyzeDistributionRequest struct {
 
 func newAnalyzeDistributionTool(fitness FitnessClient, wellness WellnessClient, activities ActivitiesClient, profileClient ProfileClient, version string, timezoneFallback string, debugMetadata bool, shaping ...responseShaping) Tool {
 	shapeCfg := responseShapingOrDefault(shaping)
-	clients := analyzerClients{fitness: fitness, wellness: wellness, activities: activities}
+	clients := newAnalyzerClients(fitness, wellness, activities)
 	return fullTool(Tool{Name: analyzeDistributionName, Description: analyzeDistributionDescription, InputSchema: analyzeDistributionInputSchema(), OutputSchema: genericOutputSchema("Analyzer distribution stats, quantiles, histogram buckets, and analyzer _meta."), Handler: analyzeDistributionHandler(clients, profileClient, version, timezoneFallback, debugMetadata, shapeCfg)})
 }
 
@@ -75,7 +75,7 @@ func analyzeDistributionHandler(clients analyzerClients, profileClient ProfileCl
 		if err == nil && selection.Source.Family == analysis.SourceActivityRow {
 			grain = analysis.SampleGrainActivity
 		}
-		series, err := loadAnalyzerSeries(ctx, clients, metric, window, grain, args.Sport, unitSystem, true)
+		series, err := loadAnalyzerSeries(ctx, clients, metric, window, grain, args.Sport, unitSystem, nil, true)
 		if err != nil {
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 				return Result{}, err

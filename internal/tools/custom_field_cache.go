@@ -36,24 +36,32 @@ func newCustomFieldCache() *customFieldCache {
 // and caching them on first use. A nil client yields no codes; a fetch failure
 // degrades to no codes so activity reads still succeed without custom fields.
 func (c *customFieldCache) activityFieldCodes(ctx context.Context, client ActivityCustomFieldClient) []string {
-	if client == nil || ctx.Err() != nil {
+	codes, err := c.lookupActivityFieldCodes(ctx, client)
+	if err != nil {
 		return nil
+	}
+	return codes
+}
+
+func (c *customFieldCache) lookupActivityFieldCodes(ctx context.Context, client ActivityCustomFieldClient) ([]string, error) {
+	if client == nil || ctx.Err() != nil {
+		return nil, ctx.Err()
 	}
 	key, err := customFieldCacheKey(ctx)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	if c != nil {
 		c.mu.RLock()
 		cached, ok := c.entries[key]
 		c.mu.RUnlock()
 		if ok {
-			return append([]string(nil), cached...)
+			return append([]string(nil), cached...), nil
 		}
 	}
 	items, err := client.ListCustomItems(ctx)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	codes := activityCustomFieldCodes(items)
 	if c != nil {
@@ -61,7 +69,55 @@ func (c *customFieldCache) activityFieldCodes(ctx context.Context, client Activi
 		c.entries[key] = append([]string(nil), codes...)
 		c.mu.Unlock()
 	}
-	return codes
+	return codes, nil
+}
+
+func selectedActivityCustomFieldCodes(ctx context.Context, client ActivityCustomFieldClient, cache *customFieldCache, requested []string) ([]string, error) {
+	requested = compactCustomFieldCodes(requested)
+	if len(requested) == 0 {
+		return nil, nil
+	}
+	seenRequested := make(map[string]bool, len(requested))
+	selected := make([]string, 0, len(requested))
+	for _, code := range requested {
+		if seenRequested[code] {
+			continue
+		}
+		seenRequested[code] = true
+		selected = append(selected, code)
+	}
+	if client == nil {
+		return selected, nil
+	}
+	available, err := cache.lookupActivityFieldCodes(ctx, client)
+	if err != nil {
+		return nil, err
+	}
+	availableSet := make(map[string]bool, len(available))
+	for _, code := range available {
+		availableSet[code] = true
+	}
+	unknown := make([]string, 0)
+	for _, code := range selected {
+		if !availableSet[code] {
+			unknown = append(unknown, code)
+		}
+	}
+	if len(unknown) > 0 {
+		return nil, fmt.Errorf("unknown activity custom field(s): %s; available custom fields: %s", strings.Join(unknown, ", "), strings.Join(available, ", "))
+	}
+	return selected, nil
+}
+
+func compactCustomFieldCodes(values []string) []string {
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return out
 }
 
 func customFieldCacheKey(ctx context.Context) (string, error) {

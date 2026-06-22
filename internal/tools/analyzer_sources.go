@@ -70,13 +70,13 @@ func analyzerUnsupportedMetricError(sources []analysis.MetricSource) error {
 	return errors.New("metric is not supported by this analyzer")
 }
 
-func loadAllAnalyzerActivities(ctx context.Context, client ActivitiesClient, oldest string, newest string) ([]intervals.Activity, error) {
+func loadAllAnalyzerActivities(ctx context.Context, client ActivitiesClient, oldest string, newest string, customFieldCodes []string) ([]intervals.Activity, error) {
 	args := GetActivitiesRequest{Oldest: oldest, Newest: newest, IncludeUnnamed: true, PageSize: maxActivitiesPageSize}
 	var token *activitiesPageToken
 	var out []intervals.Activity
 	seenTokens := map[string]bool{}
 	for pages := 0; pages < 100; pages++ {
-		rows, nextToken, err := fetchActivitiesPage(ctx, client, args, token, "", nil)
+		rows, nextToken, err := fetchActivitiesPage(ctx, client, args, token, "", customFieldCodes)
 		if err != nil {
 			if errors.Is(err, errActivitiesPaginationBoundary) {
 				return nil, errors.New(analyzerActivityWindowTooLargeMessage)

@@ -12,7 +12,7 @@ import (
 
 const (
 	getActivitiesName                    = "get_activities"
-	getActivitiesDescription             = "Scan an athlete-local date window and return a paginated activity index: terse unit-disambiguated summary rows with IDs, source/device hints, tags, custom_fields, and Strava-unavailable markers. Rows include calories_burned as active/exercise calories (distinct from wellness kcal_consumed), carbs_ingested_g for athlete-logged carb intake, carbs_used_g for upstream carbs-burned estimate, athlete-defined activity custom fields, historical activity weather when Intervals.icu provides it, and opaque pagination. Weather values are completed-activity historical context with provenance, not forecast conditions. Use this before details, intervals, streams, splits, or messages when a prompt describes an activity by date, relative date, or recent training."
+	getActivitiesDescription             = "Scan an athlete-local date window and return a paginated activity index: terse unit-disambiguated summary rows with IDs, source/device hints, tags, explicitly requested custom_fields, and Strava-unavailable markers. Rows include calories_burned as active/exercise calories (distinct from wellness kcal_consumed), carbs_ingested_g for athlete-logged carb intake, carbs_used_g for upstream carbs-burned estimate, selected athlete-defined activity custom fields, historical activity weather when Intervals.icu provides it, and opaque pagination. Weather values are completed-activity historical context with provenance, not forecast conditions. Use this before details, intervals, streams, splits, or messages when a prompt describes an activity by date, relative date, or recent training."
 	invalidGetActivitiesArgumentsMessage = "invalid get_activities arguments; provide oldest/newest dates or a valid next_page_token"
 	fetchActivitiesMessage               = "could not fetch activities; check intervals.icu credentials, athlete ID, and date range"
 	activitiesPaginationBoundaryMessage  = "activity pagination hit too many same-timestamp filtered rows; narrow the date range or set include_unnamed true"
@@ -62,13 +62,14 @@ type ActivitiesClient interface {
 
 // GetActivitiesRequest contains get_activities arguments.
 type GetActivitiesRequest struct {
-	Oldest         string `json:"oldest,omitempty"`
-	Newest         string `json:"newest,omitempty"`
-	RouteID        int64  `json:"route_id,omitempty"`
-	IncludeUnnamed bool   `json:"include_unnamed,omitempty"`
-	PageSize       int    `json:"page_size,omitempty"`
-	NextPageToken  string `json:"next_page_token,omitempty"`
-	IncludeFull    bool   `json:"include_full,omitempty"`
+	Oldest         string   `json:"oldest,omitempty"`
+	Newest         string   `json:"newest,omitempty"`
+	RouteID        int64    `json:"route_id,omitempty"`
+	IncludeUnnamed bool     `json:"include_unnamed,omitempty"`
+	PageSize       int      `json:"page_size,omitempty"`
+	NextPageToken  string   `json:"next_page_token,omitempty"`
+	CustomFields   []string `json:"custom_fields,omitempty"`
+	IncludeFull    bool     `json:"include_full,omitempty"`
 }
 
 type getActivitiesResponse struct {
@@ -195,7 +196,13 @@ func getActivitiesHandler(activityClient ActivitiesClient, profileClient Profile
 		if token != nil && token.AthleteID != targetAthleteID {
 			return Result{}, NewUserError(invalidGetActivitiesArgumentsMessage, errors.New("next_page_token athlete does not match resolved athlete"))
 		}
-		customFieldCodes := customFieldCache.activityFieldCodes(ctx, customFieldClient)
+		customFieldCodes, err := selectedActivityCustomFieldCodes(ctx, customFieldClient, customFieldCache, args.CustomFields)
+		if err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return Result{}, err
+			}
+			return Result{}, NewUserError(invalidGetActivitiesArgumentsMessage, err)
+		}
 		activities, nextToken, err := fetchActivitiesPage(ctx, activityClient, args, token, targetAthleteID, customFieldCodes)
 		if err != nil {
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
@@ -229,10 +236,11 @@ func getActivitiesInputSchema() map[string]any {
 		"include_unnamed": map[string]any{"type": "boolean", "default": false, "description": "When false, drop rows with an empty activity name after bounded pagination."},
 		"page_size":       map[string]any{"type": "integer", "default": defaultActivitiesPageSize, "minimum": 1, "maximum": maxActivitiesPageSize, "description": "Number of terse rows to return per page; values above 200 are capped."},
 		"next_page_token": map[string]any{"type": "string", "description": "Opaque token from _meta.next_page_token for the next page. Do not edit."},
+		"custom_fields":   map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "maxItems": 20, "description": "Optional athlete-defined activity custom field codes to fetch and expose under custom_fields; defaults to none to keep terse responses small."},
 		"include_full":    map[string]any{"type": "boolean", "default": false, "description": "When true, include raw upstream activity fields and preserve upstream nulls; default terse rows are unit-disambiguated and null-stripped."},
 	}}
 }
 
 func getActivitiesOutputSchema() map[string]any {
-	return map[string]any{"type": "object", "additionalProperties": true, "description": "Paginated activities with unit-disambiguated terse rows, upstream tags when intervals.icu returns a string-array tags field, calories_burned for active/exercise calories (distinct from wellness kcal_consumed intake), carbs_ingested_g for athlete-logged carb intake during activity, carbs_used_g for upstream carbs-burned estimate, Strava unavailable markers, gear_id/gear_name when upstream permits, and gear_resolution values resolved/name_missing/unresolved/lookup_unavailable so unresolved IDs are never guessed. custom_fields holds athlete-defined activity custom field values keyed by the upstream field code when intervals.icu returns them. activities[].weather is emitted only when Intervals.icu returns has_weather=true for a completed activity; it contains historical activity weather with provenance, temperatures in degrees C, wind speed/gust in m/s, wind direction in degrees, and headwind/tailwind percentages. Do not treat activities[].weather as a forecast for planned events or future workouts. Each row's timezone is the IANA zone its start_date_local is in, and _meta.timezone is the athlete's configured timezone; start_date_utc is UTC. When the requested range includes the athlete-local current day, _meta also includes as_of, as_of_date, and as_of_weekday. Derive calendar dates from these timezones so activities are not reported on the wrong day."}
+	return map[string]any{"type": "object", "additionalProperties": true, "description": "Paginated activities with unit-disambiguated terse rows, upstream tags when intervals.icu returns a string-array tags field, calories_burned for active/exercise calories (distinct from wellness kcal_consumed intake), carbs_ingested_g for athlete-logged carb intake during activity, carbs_used_g for upstream carbs-burned estimate, Strava unavailable markers, gear_id/gear_name when upstream permits, and gear_resolution values resolved/name_missing/unresolved/lookup_unavailable so unresolved IDs are never guessed. custom_fields holds explicitly requested athlete-defined activity custom field values keyed by the upstream field code when intervals.icu returns them. activities[].weather is emitted only when Intervals.icu returns has_weather=true for a completed activity; it contains historical activity weather with provenance, temperatures in degrees C, wind speed/gust in m/s, wind direction in degrees, and headwind/tailwind percentages. Do not treat activities[].weather as a forecast for planned events or future workouts. Each row's timezone is the IANA zone its start_date_local is in, and _meta.timezone is the athlete's configured timezone; start_date_utc is UTC. When the requested range includes the athlete-local current day, _meta also includes as_of, as_of_date, and as_of_weekday. Derive calendar dates from these timezones so activities are not reported on the wrong day."}
 }

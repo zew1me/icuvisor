@@ -28,9 +28,16 @@ func (w analyzerWindowRequest) analysisWindow() analysis.Window {
 }
 
 type analyzerClients struct {
-	fitness    FitnessClient
-	wellness   WellnessClient
-	activities ActivitiesClient
+	fitness          FitnessClient
+	wellness         WellnessClient
+	activities       ActivitiesClient
+	customFields     ActivityCustomFieldClient
+	customFieldCache *customFieldCache
+}
+
+func newAnalyzerClients(fitness FitnessClient, wellness WellnessClient, activities ActivitiesClient) analyzerClients {
+	customFieldClient, _ := activities.(ActivityCustomFieldClient)
+	return analyzerClients{fitness: fitness, wellness: wellness, activities: activities, customFields: customFieldClient, customFieldCache: newCustomFieldCache()}
 }
 
 func decodeAnalyzerStrict[T any](raw json.RawMessage) (T, error) {
@@ -41,7 +48,7 @@ func decodeAnalyzerStrict[T any](raw json.RawMessage) (T, error) {
 	return DecodeStrict[T](raw)
 }
 
-func loadAnalyzerSeries(ctx context.Context, clients analyzerClients, metric analysis.Metric, window analysis.ParsedWindow, grain analysis.SampleGrain, sport string, unitSystem response.UnitSystem, allowWeekly bool) (analyzerSampleSeries, error) {
+func loadAnalyzerSeries(ctx context.Context, clients analyzerClients, metric analysis.Metric, window analysis.ParsedWindow, grain analysis.SampleGrain, sport string, unitSystem response.UnitSystem, customFieldCodes []string, allowWeekly bool) (analyzerSampleSeries, error) {
 	selection, err := selectAnalyzerMetricSource(metric, grain, allowWeekly)
 	if err != nil {
 		return analyzerSampleSeries{}, err
@@ -99,7 +106,7 @@ func loadAnalyzerSeries(ctx context.Context, clients analyzerClients, metric ana
 		if clients.activities == nil {
 			return series, errors.New("missing activities client")
 		}
-		rows, err := loadAllAnalyzerActivities(ctx, clients.activities, window.StartDate, window.EndDate)
+		rows, err := loadAllAnalyzerActivities(ctx, clients.activities, window.StartDate, window.EndDate, customFieldCodes)
 		if err != nil {
 			return series, err
 		}

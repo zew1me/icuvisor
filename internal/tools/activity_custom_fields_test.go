@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/ricardocabral/icuvisor/internal/intervals"
@@ -89,7 +90,7 @@ func TestGetActivitiesSurfacesCustomFieldsAndTimezone(t *testing.T) {
 	)
 	tool := newGetActivitiesToolWithGear(client, client, nil, nil, client, newCustomFieldCache(), "test", "UTC", false)
 
-	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"oldest":"2026-01-01"}`)})
+	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"oldest":"2026-01-01","custom_fields":["fueling_score","breakfast","empty_custom"]}`)})
 	if err != nil {
 		t.Fatalf("Handler() error = %v", err)
 	}
@@ -132,7 +133,7 @@ func TestGetActivityDetailsSurfacesCustomFieldsAndTimezone(t *testing.T) {
 	)
 	tool := newGetActivityDetailsToolWithGear(client, client, nil, nil, client, newCustomFieldCache(), "test", "UTC", false)
 
-	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"activity_id":"a1"}`)})
+	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"activity_id":"a1","custom_fields":["fueling_score","notes_field"]}`)})
 	if err != nil {
 		t.Fatalf("Handler() error = %v", err)
 	}
@@ -153,7 +154,7 @@ func TestGetActivityDetailsSurfacesCustomFieldsAndTimezone(t *testing.T) {
 	}
 }
 
-func TestGetActivitiesCustomFieldLookupFailureDegrades(t *testing.T) {
+func TestGetActivitiesDefaultOmitsCustomFieldLookup(t *testing.T) {
 	t.Parallel()
 
 	client := newFakeActivitiesClient(t, []string{
@@ -168,7 +169,49 @@ func TestGetActivitiesCustomFieldLookupFailureDegrades(t *testing.T) {
 	}
 	row := resultMap(t, result)["activities"].([]any)[0].(map[string]any)
 	if _, ok := row["custom_fields"]; ok {
-		t.Fatalf("custom_fields should be absent when the definition lookup fails: %#v", row)
+		t.Fatalf("custom_fields should be absent by default: %#v", row)
+	}
+	if client.customItemsCalls != 0 {
+		t.Fatalf("ListCustomItems calls = %d, want 0 without explicit custom_fields", client.customItemsCalls)
+	}
+}
+
+func TestGetActivitiesKnownButAbsentCustomFieldIsOmitted(t *testing.T) {
+	t.Parallel()
+
+	client := newFakeActivitiesClient(t, []string{
+		`{"id":"a1","name":"Ride","type":"Ride","start_date_local":"2026-01-03T07:00:00"}`,
+	}, "metric")
+	client.customItems = decodeCustomItems(t, `{"id":"c1","type":"ACTIVITY_FIELD","content":{"field":"vo2max_est"}}`)
+	tool := newGetActivitiesToolWithGear(client, client, nil, nil, client, newCustomFieldCache(), "test", "UTC", false)
+
+	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"oldest":"2026-01-01","custom_fields":["vo2max_est"]}`)})
+	if err != nil {
+		t.Fatalf("Handler() error = %v", err)
+	}
+	row := resultMap(t, result)["activities"].([]any)[0].(map[string]any)
+	if _, ok := row["custom_fields"]; ok {
+		t.Fatalf("absent custom field should be omitted: %#v", row)
+	}
+}
+
+func TestGetActivitiesUnknownCustomFieldHintsAvailableFields(t *testing.T) {
+	t.Parallel()
+
+	client := newFakeActivitiesClient(t, []string{
+		`{"id":"a1","name":"Ride","type":"Ride","start_date_local":"2026-01-03T07:00:00"}`,
+	}, "metric")
+	client.customItems = decodeCustomItems(t, `{"id":"c1","type":"ACTIVITY_FIELD","content":{"field":"vo2max_est"}}`)
+	tool := newGetActivitiesToolWithGear(client, client, nil, nil, client, newCustomFieldCache(), "test", "UTC", false)
+
+	_, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"oldest":"2026-01-01","custom_fields":["unknown_field"]}`)})
+	message, ok := PublicErrorMessage(err)
+	if !ok || message != invalidGetActivitiesArgumentsMessage {
+		t.Fatalf("Handler() error = %v, public=%q ok=%v", err, message, ok)
+	}
+	cause := errors.Unwrap(err)
+	if cause == nil || !strings.Contains(cause.Error(), "unknown_field") || !strings.Contains(cause.Error(), "vo2max_est") {
+		t.Fatalf("cause = %v, want unknown field and available hint", cause)
 	}
 }
 
@@ -182,7 +225,7 @@ func TestCustomFieldCacheMemoizesPerAthlete(t *testing.T) {
 	tool := newGetActivitiesToolWithGear(client, client, nil, nil, client, newCustomFieldCache(), "test", "UTC", false)
 
 	for i := 0; i < 3; i++ {
-		if _, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"oldest":"2026-01-01"}`)}); err != nil {
+		if _, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"oldest":"2026-01-01","custom_fields":["fueling_score"]}`)}); err != nil {
 			t.Fatalf("Handler() error = %v", err)
 		}
 	}

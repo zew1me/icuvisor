@@ -17,9 +17,9 @@ import (
 const (
 	getActivityDetailsName              = "get_activity_details"
 	getActivityIntervalsName            = "get_activity_intervals"
-	getActivityDetailsDescription       = "Get one activity's terse metadata and metrics by activity_id, including upstream activity tags when returned, calories_burned as active/exercise calories (distinct from wellness kcal_consumed), carbs_ingested_g for athlete-logged carb intake, carbs_used_g for upstream carbs-burned estimate, and custom_fields for athlete-defined activity custom fields when upstream provides them. This detail payload does not prove lap/rep execution source; before analyzing laps, reps, or interval execution, call get_activity_intervals and check _meta.interval_source/_meta.auto_lap_suspected. If the user described an activity by date/name instead of ID, resolve it with get_activities over the athlete-local date window first. Use include_full only when raw upstream fields are needed; Strava-blocked activities return an unavailable marker instead of sparse N/A rows."
+	getActivityDetailsDescription       = "Get one activity's terse metadata and metrics by activity_id, including upstream activity tags when returned, calories_burned as active/exercise calories (distinct from wellness kcal_consumed), carbs_ingested_g for athlete-logged carb intake, carbs_used_g for upstream carbs-burned estimate, and explicitly requested athlete-defined custom_fields when upstream provides them. This detail payload does not prove lap/rep execution source; before analyzing laps, reps, or interval execution, call get_activity_intervals and check _meta.interval_source/_meta.auto_lap_suspected. If the user described an activity by date/name instead of ID, resolve it with get_activities over the athlete-local date window first. Use include_full only when raw upstream fields are needed; Strava-blocked activities return an unavailable marker instead of sparse N/A rows."
 	getActivityIntervalsDescription     = "Get analyzed intervals for one activity by activity_id, including scalar custom interval fields such as lactate under custom_fields when upstream includes them. For reps/laps in a described or date-based activity, resolve the activity with get_activities first and pass the returned activity_id. Check _meta.interval_source (structured_workout, device_laps, manual_added, mixed, or unknown) and _meta.auto_lap_suspected before making lap/rep execution claims; device_laps means the rows look like device/Garmin laps or auto-laps, manual_added means raw interval rows lack upstream group_id markers, and mixed means grouped and ungrouped row evidence appears together. Interval units are normalized to the canonical intervals.icu unit enum and raw interval payloads require include_full."
-	invalidActivityReadArgumentsMessage = "invalid activity read arguments; provide activity_id and optional include_full"
+	invalidActivityReadArgumentsMessage = "invalid activity read arguments; provide activity_id, optional custom_fields, and optional include_full"
 	fetchActivityDetailsMessage         = "could not fetch activity details; check activity_id and intervals.icu credentials"
 )
 
@@ -34,8 +34,9 @@ type ActivityIntervalsClient interface {
 }
 
 type activityReadRequest struct {
-	ActivityID  string `json:"activity_id"`
-	IncludeFull bool   `json:"include_full,omitempty"`
+	ActivityID   string   `json:"activity_id"`
+	CustomFields []string `json:"custom_fields,omitempty"`
+	IncludeFull  bool     `json:"include_full,omitempty"`
 }
 
 type getActivityDetailsResponse struct {
@@ -139,7 +140,13 @@ func getActivityDetailsHandler(client ActivityDetailsClient, profileClient Profi
 		if err != nil {
 			return Result{}, err
 		}
-		customFieldCodes := customFieldCache.activityFieldCodes(ctx, customFieldClient)
+		customFieldCodes, err := selectedActivityCustomFieldCodes(ctx, customFieldClient, customFieldCache, args.CustomFields)
+		if err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return Result{}, err
+			}
+			return Result{}, NewUserError(invalidActivityReadArgumentsMessage, err)
+		}
 		activityTimezone := profileTimezone(profile.Timezone, timezoneFallback)
 		row := activityRow(activity, args.IncludeFull, activityTimezone, unitSystem, gearResolutions[activity.ID], customFieldCodes)
 		payload := getActivityDetailsResponse{Activity: row, Meta: activityReadMeta{ServerVersion: normalizeVersion(version), IncludeFull: args.IncludeFull, Timezone: activityTimezone, FieldSemantics: activityFieldSemantics([]getActivitiesRow{row})}}
@@ -351,9 +358,9 @@ func shapeActivityIntervalGroup(group intervals.IntervalGroup, includeFull bool)
 }
 
 func activityReadInputSchema() map[string]any {
-	return map[string]any{"type": "object", "additionalProperties": false, "required": []string{"activity_id"}, "properties": map[string]any{"activity_id": map[string]any{"type": "string", "description": "intervals.icu activity ID."}, "include_full": map[string]any{"type": "boolean", "default": false, "description": "Include raw upstream fields; default terse mode strips nulls and returns normalized fields."}}}
+	return map[string]any{"type": "object", "additionalProperties": false, "required": []string{"activity_id"}, "properties": map[string]any{"activity_id": map[string]any{"type": "string", "description": "intervals.icu activity ID."}, "custom_fields": map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "maxItems": 20, "description": "Optional athlete-defined activity custom field codes to expose under custom_fields; defaults to none to keep terse responses small."}, "include_full": map[string]any{"type": "boolean", "default": false, "description": "Include raw upstream fields; default terse mode strips nulls and returns normalized fields."}}}
 }
 
 func activityReadOutputSchema() map[string]any {
-	return map[string]any{"type": "object", "additionalProperties": true, "description": "Activity detail or interval response. Activity detail rows include upstream tags when intervals.icu returns a string-array tags field, calories_burned (active/exercise calories, distinct from wellness kcal_consumed intake), carbs_ingested_g (athlete-logged carb intake in grams), carbs_used_g (upstream carbs-burned estimate in grams), gear_id/gear_name when upstream permits, and gear_resolution values resolved/name_missing/unresolved/lookup_unavailable so unresolved IDs are never guessed. custom_fields holds athlete-defined activity custom field values keyed by the upstream field code when intervals.icu returns them. On activity detail responses the activity's timezone field and _meta.timezone give the IANA zone start_date_local is in; start_date_utc is UTC. Derive the calendar date from that timezone so the activity is not reported on the wrong day. For lap/rep or interval-execution analysis, use get_activity_intervals and inspect _meta.interval_source plus _meta.auto_lap_suspected; get_activity_details alone does not identify whether intervals are structured_workout, device_laps/auto-laps, manual_added, mixed, or unknown rows."}
+	return map[string]any{"type": "object", "additionalProperties": true, "description": "Activity detail or interval response. Activity detail rows include upstream tags when intervals.icu returns a string-array tags field, calories_burned (active/exercise calories, distinct from wellness kcal_consumed intake), carbs_ingested_g (athlete-logged carb intake in grams), carbs_used_g (upstream carbs-burned estimate in grams), gear_id/gear_name when upstream permits, and gear_resolution values resolved/name_missing/unresolved/lookup_unavailable so unresolved IDs are never guessed. custom_fields holds explicitly requested athlete-defined activity custom field values keyed by the upstream field code when intervals.icu returns them. On activity detail responses the activity's timezone field and _meta.timezone give the IANA zone start_date_local is in; start_date_utc is UTC. Derive the calendar date from that timezone so the activity is not reported on the wrong day. For lap/rep or interval-execution analysis, use get_activity_intervals and inspect _meta.interval_source plus _meta.auto_lap_suspected; get_activity_details alone does not identify whether intervals are structured_workout, device_laps/auto-laps, manual_added, mixed, or unknown rows."}
 }

@@ -25,6 +25,7 @@ type activitiesPageToken struct {
 	PageSize             int      `json:"page_size"`
 	AthleteID            string   `json:"athlete_id,omitempty"`
 	Fields               []string `json:"fields,omitempty"`
+	CustomFields         []string `json:"custom_fields,omitempty"`
 	BeforeStartDateLocal string   `json:"before_start_date_local,omitempty"`
 	BeforeID             string   `json:"before_id,omitempty"`
 	SkipIDsAtBoundary    []string `json:"skip_ids_at_boundary,omitempty"`
@@ -66,6 +67,7 @@ func decodeGetActivitiesRequest(raw json.RawMessage) (GetActivitiesRequest, *act
 	args.IncludeUnnamed = token.IncludeUnnamed
 	args.IncludeFull = token.IncludeFull
 	args.PageSize = token.PageSize
+	args.CustomFields = append([]string(nil), token.CustomFields...)
 	return args, token, nil
 }
 
@@ -80,12 +82,13 @@ func normalizeActivitiesPageSize(pageSize int) int {
 }
 
 type activitiesTokenArgs struct {
-	Oldest         *string `json:"oldest"`
-	Newest         *string `json:"newest"`
-	RouteID        *int64  `json:"route_id"`
-	IncludeUnnamed *bool   `json:"include_unnamed"`
-	PageSize       *int    `json:"page_size"`
-	IncludeFull    *bool   `json:"include_full"`
+	Oldest         *string   `json:"oldest"`
+	Newest         *string   `json:"newest"`
+	RouteID        *int64    `json:"route_id"`
+	IncludeUnnamed *bool     `json:"include_unnamed"`
+	PageSize       *int      `json:"page_size"`
+	IncludeFull    *bool     `json:"include_full"`
+	CustomFields   *[]string `json:"custom_fields"`
 }
 
 func validateActivitiesTokenArgs(args GetActivitiesRequest, token *activitiesPageToken, supplied activitiesTokenArgs) error {
@@ -112,6 +115,9 @@ func validateActivitiesTokenArgs(args GetActivitiesRequest, token *activitiesPag
 	}
 	if supplied.IncludeFull != nil && args.IncludeFull != token.IncludeFull {
 		return errors.New("include_full does not match next_page_token")
+	}
+	if supplied.CustomFields != nil && !slices.Equal(compactCustomFieldCodes(args.CustomFields), compactCustomFieldCodes(token.CustomFields)) {
+		return errors.New("custom_fields does not match next_page_token")
 	}
 	return nil
 }
@@ -233,7 +239,7 @@ type pageCursor struct {
 
 func newPageCursor(args GetActivitiesRequest, token *activitiesPageToken, targetAthleteID string, customFieldCodes []string) pageCursor {
 	cursor := pageCursor{
-		token:      activitiesPageToken{Version: 1, Oldest: args.Oldest, Newest: args.Newest, RouteID: args.RouteID, IncludeUnnamed: args.IncludeUnnamed, IncludeFull: args.IncludeFull, PageSize: args.PageSize, AthleteID: targetAthleteID},
+		token:      activitiesPageToken{Version: 1, Oldest: args.Oldest, Newest: args.Newest, RouteID: args.RouteID, IncludeUnnamed: args.IncludeUnnamed, IncludeFull: args.IncludeFull, PageSize: args.PageSize, AthleteID: targetAthleteID, CustomFields: append([]string(nil), customFieldCodes...)},
 		fetchLimit: min(args.PageSize*2+1, maxActivityFetchLimit),
 	}
 	if !args.IncludeFull {
@@ -244,6 +250,7 @@ func newPageCursor(args GetActivitiesRequest, token *activitiesPageToken, target
 		cursor.token.BeforeID = token.BeforeID
 		cursor.token.SkipIDsAtBoundary = append([]string(nil), token.SkipIDsAtBoundary...)
 		cursor.token.Fields = append([]string(nil), token.Fields...)
+		cursor.token.CustomFields = append([]string(nil), token.CustomFields...)
 	}
 	return cursor
 }
