@@ -208,10 +208,7 @@ func getAnnualTrainingPlanHandler(client EventsClient, profileClient ProfileClie
 		if err != nil {
 			return Result{}, NewUserError(fetchAnnualTrainingPlanMessage, err)
 		}
-		payload, err := shapeAnnualTrainingPlanResponse(events, args, timezoneName, asOf.AsOfDate, truncated)
-		if err != nil {
-			return Result{}, fmt.Errorf("shaping get_annual_training_plan response: %w", err)
-		}
+		payload := shapeAnnualTrainingPlanResponse(events, args, timezoneName, asOf.AsOfDate, truncated)
 		return encodeShaped(payload, args.IncludeFull, nil, version, debugMetadata, getAnnualTrainingPlanName, unitSystem, shapeCfg)
 	}
 }
@@ -249,13 +246,21 @@ func decodeAnnualTrainingPlanRequest(raw json.RawMessage) (annualTrainingPlanReq
 	return args, nil
 }
 
-func shapeAnnualTrainingPlanResponse(events []intervals.Event, args annualTrainingPlanRequest, timezoneName string, asOfDate string, truncated bool) (annualTrainingPlanResponse, error) {
+func shapeAnnualTrainingPlanResponse(events []intervals.Event, args annualTrainingPlanRequest, timezoneName string, asOfDate string, truncated bool) annualTrainingPlanResponse {
 	oldest, _ := time.Parse(time.DateOnly, args.Oldest)
 	newest, _ := time.Parse(time.DateOnly, args.Newest)
 	classified := annualTrainingPlanPeriodizationEvents(events)
-	phases, phaseCaveats := annualTrainingPlanPhases(classified.plans, args.IncludeFull, oldest, newest)
-	notes := annualTrainingPlanNotes(classified.notes, phases, oldest, newest, args.IncludeFull)
-	weeks, weekCaveats := annualTrainingPlanWeeks(classified.targets, phases, notes, oldest, newest, args.IncludeFull)
+	periodizationCount := len(classified.plans) + len(classified.targets) + len(classified.notes)
+	phases := []annualTrainingPlanPhase{}
+	weeks := []annualTrainingPlanWeek{}
+	notes := []annualTrainingPlanNote{}
+	phaseCaveats := []string{}
+	weekCaveats := []string{}
+	if periodizationCount > 0 {
+		phases, phaseCaveats = annualTrainingPlanPhases(classified.plans, args.IncludeFull, oldest, newest)
+		notes = annualTrainingPlanNotes(classified.notes, phases, oldest, newest, args.IncludeFull)
+		weeks, weekCaveats = annualTrainingPlanWeeks(classified.targets, phases, notes, oldest, newest, args.IncludeFull)
+	}
 	bridge := annualTrainingPlanBridge(weeks)
 	caveats := []string{"upstream athlete-level periodization parameters such as ramp rate, recovery cadence, taper percent, and intensity distribution are not exposed; this summarizes calendar PLAN/TARGET/NOTE events only"}
 	caveats = append(caveats, phaseCaveats...)
@@ -267,7 +272,6 @@ func shapeAnnualTrainingPlanResponse(events []intervals.Event, args annualTraini
 	if truncated {
 		caveats = append(caveats, "event scan reached the requested limit; additional periodization events may exist")
 	}
-	periodizationCount := len(classified.plans) + len(classified.targets) + len(classified.notes)
 	summary := annualTrainingPlanSummary{PhaseCount: len(phases), WeekCount: len(weeks), NoteCount: len(notes), TargetEventCount: len(classified.targets), DateRange: dateRangeMeta{Oldest: args.Oldest, Newest: args.Newest}}
 	for _, week := range weeks {
 		if week.LoadTarget != nil {
@@ -296,7 +300,7 @@ func shapeAnnualTrainingPlanResponse(events []intervals.Event, args annualTraini
 	if periodizationCount == 0 {
 		payload.Unavailable = &annualTrainingPlanUnavailable{Reason: "no_periodization_events", Detail: "no PLAN, TARGET, or NOTE calendar events were returned for the requested range"}
 	}
-	return payload, nil
+	return payload
 }
 
 func annualTrainingPlanPeriodizationEvents(events []intervals.Event) annualTrainingPlanEvents {
@@ -517,7 +521,8 @@ func annualTrainingPlanTimeTarget(event intervals.Event) *int {
 }
 
 func annualTrainingPlanRecoveryHint(event annualTrainingPlanEvent) bool {
-	parts := []string{stringValue(event.event.Name), stringValue(event.event.Type), stringValue(event.event.Description)}
+	parts := make([]string, 0, len(event.tags)+3)
+	parts = append(parts, stringValue(event.event.Name), stringValue(event.event.Type), stringValue(event.event.Description))
 	parts = append(parts, event.tags...)
 	text := strings.ToLower(strings.Join(parts, " "))
 	for _, needle := range []string{"recovery", "rest", "taper", "deload"} {
