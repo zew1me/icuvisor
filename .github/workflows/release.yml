@@ -431,7 +431,7 @@ jobs:
   publish-winget:
     name: Submit manifests to winget-pkgs
     runs-on: windows-latest
-    needs: publish
+    needs: finalize
     if: ${{ !contains(github.event.inputs.tag || github.ref_name, '-') }}
     steps:
       - name: Guard on WINGET_PAT secret
