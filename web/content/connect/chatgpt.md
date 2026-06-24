@@ -1,17 +1,54 @@
 ---
 title: "Connect ChatGPT"
-description: "Minimal ChatGPT MCP connection notes for icuvisor."
+description: "Connect ChatGPT to icuvisor with a hosted custom connector or a local MCP surface."
+weight: 5
 ---
 
-ChatGPT MCP support is evolving across local and remote connector surfaces. Use local mode when ChatGPT can run a local MCP server by stdio or connect to loopback Streamable HTTP. Use hosted mode when ChatGPT asks for a remote HTTPS connector URL.
+ChatGPT has two different setup paths:
 
-## Before you start
+- **Hosted connector**: use this for ChatGPT web at `chatgpt.com` when it asks for a remote HTTPS connector URL.
+- **Local MCP surface**: use this only when your ChatGPT client explicitly supports launching a local MCP server by stdio or connecting to loopback HTTP.
+
+## Hosted connector for ChatGPT web
+
+Use hosted mode for ChatGPT's custom connector/app flow. ChatGPT connects from OpenAI's infrastructure, so it cannot reach `http://127.0.0.1:8765/mcp` on your laptop.
+
+1. In ChatGPT, open your profile menu and go to **Settings > Apps & Connectors**.
+2. Open **Advanced settings** at the bottom of the page and enable **Developer mode** if your account or workspace allows it.
+3. Go to **Settings > Connectors > Create**.
+4. Fill in the connector metadata:
+
+   | Field | Value |
+   | --- | --- |
+   | Connector name | `icuvisor` |
+   | Description | `Connects ChatGPT to my intervals.icu training data through hosted icuvisor. Use for athlete profile, fitness, wellness, activities, events, training plans, workouts, and safe write workflows. Do not invent unavailable data.` |
+   | Connector URL | `https://connect.icuvisor.app/mcp` |
+
+5. Click **Create**.
+6. Complete the hosted icuvisor authorization flow, choose hosted preferences, continue to Intervals.icu, and approve the requested OAuth scopes.
+7. Start a new ChatGPT conversation, click **+**, choose **More**, and add the icuvisor connector to the chat.
+
+Verify with:
+
+```text
+Use icuvisor to tell me my current FTP and timezone. Do not estimate.
+```
+
+Hosted mode uses Intervals.icu OAuth. Do not paste an Intervals API key into ChatGPT, the connector metadata, or chat.
+
+Provider reference: [OpenAI: Connect from ChatGPT](https://developers.openai.com/apps-sdk/deploy/connect-chatgpt).
+
+## Local MCP surfaces
+
+Use this section only when the ChatGPT surface you are using explicitly supports local MCP servers. ChatGPT web custom connectors should use the hosted flow above.
+
+### Before you start
 
 - Install icuvisor and run setup.
 - Confirm the binary starts with `icuvisor version`.
 - Know your non-secret athlete ID and timezone.
 
-## Stdio configuration shape
+### Stdio configuration shape
 
 Use the same stdio server definition as the Claude clients when ChatGPT asks for a local MCP server command:
 
@@ -51,7 +88,7 @@ Windows:
 
 If your ChatGPT MCP surface expects a single server object rather than a full `mcpServers` map, use the `icuvisor` object from the example as that server definition.
 
-## HTTP alternative
+### HTTP alternative
 
 If your ChatGPT MCP surface expects an HTTP URL, start icuvisor with Streamable HTTP on loopback:
 
@@ -76,19 +113,7 @@ http://127.0.0.1:8765/mcp
 
 Do not bind icuvisor to a LAN address unless you intentionally want other machines to reach the unauthenticated local MCP server. The HTTP transport guide covers the security tradeoff in more detail.
 
-## Remote connector UI
-
-ChatGPT-style remote custom connector UIs are different from local MCP client configuration. They run from the provider's infrastructure and require an HTTPS MCP endpoint that is reachable from that infrastructure. They cannot call `http://127.0.0.1:8765/mcp` on your laptop.
-
-Use the hosted connector URL:
-
-```text
-https://connect.icuvisor.app/mcp
-```
-
-The hosted flow signs in with Intervals.icu OAuth and lets you choose the hosted tool preferences before the client receives a grant. Do not tunnel the local server with cloudflared, ngrok, or a similar public tunnel; that would expose an unauthenticated MCP endpoint using the intervals.icu credentials configured for the local process.
-
-See [Hosted connector]({{< relref "hosted" >}}) for the full hosted path.
+If a ChatGPT UI asks only for a remote HTTPS connector URL, use the hosted connector instead. Do not tunnel the local server with cloudflared, ngrok, or a similar public tunnel; that would expose an unauthenticated MCP endpoint using the intervals.icu credentials configured for the local process.
 
 ## Verify
 

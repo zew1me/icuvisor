@@ -16,6 +16,7 @@ Pick the path that matches your client.
 
 {{< cards >}}
   {{< card link="hosted" title="Hosted connector" subtitle="Use the public HTTPS MCP URL for clients that cannot run a local server." >}}
+  {{< card link="claude-ai" title="Claude.ai" subtitle="Add hosted icuvisor from Claude's custom connector settings." >}}
   {{< card link="claude-desktop" title="Claude Desktop" subtitle="Install as a Desktop Extension or configure the MCP stdio server by hand." >}}
   {{< card link="claude-code" title="Claude Code" subtitle="Start icuvisor over MCP stdio from Claude Code." >}}
   {{< card link="codex-cli" title="Codex CLI" subtitle="Register icuvisor with Codex MCP config or the codex mcp command." >}}

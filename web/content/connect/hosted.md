@@ -8,6 +8,19 @@ Use hosted mode when your AI client cannot run a local `icuvisor` process and ne
 
 If your client can run a local process or connect to loopback HTTP, use [local mode]({{< relref "/connect" >}}) instead. Local mode keeps your Intervals.icu API key on your machine.
 
+## Connector URL
+
+Paste this URL wherever your AI client asks for a remote MCP server, connector URL, or MCP endpoint:
+
+```text
+https://connect.icuvisor.app/mcp
+```
+
+Use the provider-specific pages when you want exact UI labels:
+
+- [Claude.ai]({{< relref "claude-ai" >}}): **Customize > Connectors > + > Add custom connector**.
+- [ChatGPT]({{< relref "chatgpt" >}}): enable developer mode, then use **Settings > Connectors > Create**.
+
 ## Connect in hosted mode
 
 1. Add this MCP server URL to your client as a custom connector:
