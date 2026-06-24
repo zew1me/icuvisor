@@ -41,10 +41,10 @@
 
       <section class="card hero col-12" aria-labelledby="hero-title">
         <h1 id="hero-title">Talk to your <span style="background:linear-gradient(120deg,var(--primary),var(--secondary));-webkit-background-clip:text;background-clip:text;color:transparent;">intervals.icu</span> training data from Claude, ChatGPT, or any MCP client.</h1>
-        <p class="lead">icuvisor is a small open-source app that runs on your own computer. It lets your AI assistant read your intervals.icu training data without creating an icuvisor cloud account.</p>
+        <p class="lead">Run icuvisor locally when your client supports it, or use the hosted HTTPS connector when your client needs a public MCP endpoint.</p>
         <div class="actions">
-          <a class="btn" href="#install">Install icuvisor</a>
-          <a class="btn btn-ghost" href="{{ "/connect/" | relURL }}">Connect a client</a>
+          <a class="btn" href="#install">Set up local mode</a>
+          <a class="btn btn-ghost" href="{{ "/connect/hosted/" | relURL }}">Use hosted mode</a>
           <a class="btn btn-ghost" href="{{ .Site.Params.github }}" rel="noopener">GitHub</a>
         </div>
       </section>
@@ -52,13 +52,13 @@
       <section class="card proof-card col-4" id="features" aria-labelledby="install-like-app-title">
         <span class="tag">Install</span>
         <h2 id="install-like-app-title">Installs like an app.</h2>
-        <p>One signed binary for macOS, Windows, and Linux. No Python, Docker, or hosted connector account.</p>
+        <p>Local mode uses one signed binary for macOS, Windows, and Linux. No Python, Docker, or hosted account required.</p>
       </section>
 
       <section class="card proof-card col-4" aria-labelledby="privacy-title">
         <span class="tag">Privacy</span>
         <h2 id="privacy-title">Private by default.</h2>
-        <p>Your intervals.icu API key stays on your computer. icuvisor does not store your training data or send it through an icuvisor server.</p>
+        <p>In local mode, your intervals.icu API key stays on your computer and icuvisor does not relay tool calls through an icuvisor server.</p>
       </section>
 
       <section class="card proof-card col-4" aria-labelledby="context-title">
@@ -157,7 +157,7 @@
           </a>
           <a class="doc-card" href="{{ "/connect/" | relURL }}">
             <h3>Connect a client</h3>
-            <p>Claude Desktop, Claude Code, ChatGPT, Cursor, and other MCP clients.</p>
+            <p>Choose local mode or hosted mode, then connect Claude, ChatGPT, Cursor, and other MCP clients.</p>
           </a>
           <a class="doc-card" href="{{ "/cookbook/" | relURL }}">
             <h3>Cookbook</h3>

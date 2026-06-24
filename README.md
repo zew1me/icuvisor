@@ -13,7 +13,7 @@
 <!-- [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/ricardocabral/icuvisor/badge)](https://securityscorecards.dev/viewer/?uri=github.com/ricardocabral/icuvisor) -->
 
 
-> icuvisor is an open-source, local-first [Model Context Protocol](https://modelcontextprotocol.io) server for [intervals.icu](https://intervals.icu), shipped as a single signed Go binary so athletes and coaches can talk to their training data from Claude, ChatGPT, Cursor, and other MCP-compatible clients. Your intervals.icu API key stays in the OS keychain, not in an icuvisor cloud service or MCP tool argument. There is no icuvisor-hosted account, onboarding credit, SaaS quota, or subscription gate. Usage limits from your AI client or model provider, GitHub/package downloads, and intervals.icu account are separate. End-user docs live at <https://icuvisor.app>.
+> icuvisor is an open-source [Model Context Protocol](https://modelcontextprotocol.io) server for [intervals.icu](https://intervals.icu), shipped as a single signed Go binary so athletes and coaches can talk to their training data from Claude, ChatGPT, Cursor, and other MCP-compatible clients. Local mode runs on your machine and keeps your intervals.icu API key in the OS keychain. Hosted mode is optional and uses `https://connect.icuvisor.app/mcp` for clients that need a public HTTPS MCP endpoint. Usage limits from your AI client or model provider, GitHub/package downloads, and intervals.icu account are separate. End-user docs live at <https://icuvisor.app>.
 
 ## For users
 
@@ -22,6 +22,7 @@
 icuvisor is designed to keep training-data access simple, local, and easy for an AI assistant to use correctly:
 
 - **Local-first by default:** your intervals.icu API key is read by the local `icuvisor` process from the OS keychain or an explicit headless fallback, not passed as an MCP tool argument.
+- **Hosted when required:** if your AI client cannot run a local MCP server and needs a public HTTPS connector, use `https://connect.icuvisor.app/mcp` and Intervals.icu OAuth instead of an API key.
 - **One binary to install:** the server ships as a Go binary with shell installers and package-manager paths, so setup does not depend on a language runtime in the user's AI chat.
 - **Structured, terse responses:** read tools return compact JSON-shaped results by default, with fuller payloads behind explicit `include_full` options for cases such as raw streams.
 - **Gear names when they are knowable:** activity summaries and details include `gear_id` plus `gear_name` for bikes, shoes, and other gear when intervals.icu exposes a resolvable gear item; unresolved IDs keep an explicit `gear_resolution` status instead of inventing a name.

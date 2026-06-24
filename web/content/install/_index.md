@@ -7,9 +7,9 @@ cascade:
   type: docs
 ---
 
-Install the icuvisor binary for your operating system. Pick your platform below, then head to [Connect]({{< relref "/connect" >}}) to wire it into an AI client.
+Install the icuvisor binary for local mode. Pick your platform below, then head to [Connect]({{< relref "/connect" >}}) to wire it into an AI client.
 
-icuvisor itself is [MIT-licensed and open source](https://github.com/ricardocabral/icuvisor/blob/main/LICENSE), free to install and use: there is no icuvisor-hosted account, onboarding credit, subscription, or icuvisor SaaS quota. Your AI client, model provider, download source, and intervals.icu account may still have their own terms or limits.
+icuvisor itself is [MIT-licensed and open source](https://github.com/ricardocabral/icuvisor/blob/main/LICENSE), free to install and use. Local mode does not require an icuvisor-hosted account, onboarding credit, subscription, or icuvisor SaaS quota. If your MCP client needs a public HTTPS endpoint instead of a local process, use [hosted mode]({{< relref "../connect/hosted" >}}). Your AI client, model provider, download source, hosted connector, and intervals.icu account may still have their own terms or limits.
 
 ## Quick install
 

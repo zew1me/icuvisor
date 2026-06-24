@@ -3,13 +3,13 @@ title: "Privacy posture"
 description: "What icuvisor keeps local, what still leaves your machine, and what it does not claim."
 ---
 
-icuvisor is designed for athletes and coaches who want a small local trust boundary around their intervals.icu data. This page explains the privacy posture behind the local install; it is not legal advice and it is not a certification of GDPR or other regulatory compliance.
+icuvisor supports a local binary and an optional hosted HTTPS connector. This page explains the privacy posture behind the local install; for hosted mode, see the hosted privacy page at <https://connect.icuvisor.app/privacy>. This is not legal advice and it is not a certification of GDPR or other regulatory compliance.
 
 For vulnerability reporting, release integrity, and hardening details, see the repository [Security Policy](https://github.com/ricardocabral/icuvisor/blob/main/SECURITY.md).
 
 ## Local trust boundary
 
-In the normal local setup, icuvisor runs as a binary on your computer. It reads intervals.icu through the public API using the credential you configured, returns the requested MCP tool response to the AI client you chose, and does not create an icuvisor-hosted athlete database or icuvisor SaaS account.
+In local mode, icuvisor runs as a binary on your computer. It reads intervals.icu through the public API using the credential you configured, returns the requested MCP tool response to the AI client you chose, and does not create an icuvisor-hosted athlete database or icuvisor SaaS account.
 
 That keeps the icuvisor-operated trust boundary small: your machine, your configured MCP client, intervals.icu as the upstream training-data service, and optional icuvisor release-update hosts when you install or update the binary.
 

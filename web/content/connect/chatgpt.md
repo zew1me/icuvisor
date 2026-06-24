@@ -3,7 +3,7 @@ title: "Connect ChatGPT"
 description: "Minimal ChatGPT MCP connection notes for icuvisor."
 ---
 
-ChatGPT MCP support is evolving across client and developer-mode surfaces. Use this page only for ChatGPT surfaces that explicitly run a local MCP server by stdio or connect to a loopback Streamable HTTP URL. Remote custom connector UIs are different and are covered below.
+ChatGPT MCP support is evolving across local and remote connector surfaces. Use local mode when ChatGPT can run a local MCP server by stdio or connect to loopback Streamable HTTP. Use hosted mode when ChatGPT asks for a remote HTTPS connector URL.
 
 ## Before you start
 
@@ -76,13 +76,19 @@ http://127.0.0.1:8765/mcp
 
 Do not bind icuvisor to a LAN address unless you intentionally want other machines to reach the unauthenticated local MCP server. The HTTP transport guide covers the security tradeoff in more detail.
 
-## Remote connector UIs are not supported yet
+## Remote connector UI
 
-ChatGPT-style remote custom connector UIs are different from local MCP client configuration. They run from the provider's infrastructure and require an HTTPS MCP endpoint that is reachable from that infrastructure. They cannot call `http://127.0.0.1:8765/mcp` on your laptop, and icuvisor intentionally does not add legacy SSE or a generic cloudflared/ngrok recipe for this.
+ChatGPT-style remote custom connector UIs are different from local MCP client configuration. They run from the provider's infrastructure and require an HTTPS MCP endpoint that is reachable from that infrastructure. They cannot call `http://127.0.0.1:8765/mcp` on your laptop.
 
-This is a product safety boundary, not a bug in the Streamable HTTP transport. Tunneling the local server would make an unauthenticated MCP endpoint reachable from the public internet. Anyone who can reach that endpoint could invoke the tools registered in your icuvisor process using the intervals.icu credentials configured for that process.
+Use the hosted connector URL:
 
-Remote ChatGPT connectors are out of scope until the vNext hosted relay or a future explicit secure-tunnel design. Use local ChatGPT MCP surfaces that accept stdio or loopback Streamable HTTP for now.
+```text
+https://connect.icuvisor.app/mcp
+```
+
+The hosted flow signs in with Intervals.icu OAuth and lets you choose the hosted tool preferences before the client receives a grant. Do not tunnel the local server with cloudflared, ngrok, or a similar public tunnel; that would expose an unauthenticated MCP endpoint using the intervals.icu credentials configured for the local process.
+
+See [Hosted connector]({{< relref "hosted" >}}) for the full hosted path.
 
 ## Verify
 

@@ -1,0 +1,39 @@
+---
+title: "Hosted connector"
+description: "Use hosted ICU Visor when your MCP client needs a public HTTPS endpoint."
+weight: 1
+---
+
+Use hosted mode when your AI client cannot run a local `icuvisor` process and needs a public HTTPS MCP endpoint.
+
+If your client can run a local process or connect to loopback HTTP, use [local mode]({{< relref "/connect" >}}) instead. Local mode keeps your Intervals.icu API key on your machine.
+
+## Connect in hosted mode
+
+1. Add this MCP server URL to your client as a custom connector:
+
+   ```text
+   https://connect.icuvisor.app/mcp
+   ```
+
+2. When the authorization page opens, choose the hosted preferences:
+   - **Toolset**: `core` for daily use, `full` for the broader catalog.
+   - **Write safety**: read-only by default; enable writes or deletes only when you need them.
+   - **Calendar and wellness writes**: opt in only when you want Intervals write scopes.
+   - **Timezone**: used for hosted date handling.
+3. Continue to Intervals.icu and approve the requested OAuth scopes.
+4. Return to your MCP client and finish its connector flow.
+
+Hosted mode uses Intervals OAuth. Do not paste an Intervals API key into the hosted connector or into chat.
+
+## Manage hosted access
+
+Open hosted settings at:
+
+```text
+https://connect.icuvisor.app/settings
+```
+
+From settings you can change hosted preferences, start re-consent when broader Intervals scopes are needed, revoke client grants, log out of the settings session, or delete the hosted account.
+
+For hosted privacy details, see <https://connect.icuvisor.app/privacy>.

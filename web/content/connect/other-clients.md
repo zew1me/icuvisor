@@ -11,6 +11,8 @@ Most MCP clients need the same three pieces of information:
 
 Keep the intervals.icu API key out of client JSON. Store it with `icuvisor setup` or provide it through a process environment only for deliberate headless fallback.
 
+If the client cannot run a local process and requires a public HTTPS connector URL, use [hosted mode]({{< relref "hosted" >}}) instead.
+
 ## Standard stdio JSON
 
 Use this shape for clients that accept a Claude-style `mcpServers` map, including Cursor and many local-agent clients:
@@ -58,7 +60,7 @@ For clients that ask for only one server entry, copy the inner `icuvisor` object
 | Cursor                         | Add an MCP server named `icuvisor` with the command path and non-secret environment values above. Restart the relevant workspace or MCP session. |
 | Continue                       | Add the server to Continue's MCP configuration using the same command/env shape. Restart Continue after editing config.                          |
 | Zed                            | Add icuvisor as a local MCP server. Use an absolute binary path and non-secret environment variables.                                            |
-| Pi or another MCP-aware client | If it supports local stdio servers, use the stdio JSON. If it requires an HTTP URL, use Streamable HTTP on loopback.                             |
+| Pi or another MCP-aware client | If it supports local stdio servers, use the stdio JSON. If it requires local HTTP, use Streamable HTTP on loopback. If it requires public HTTPS, use hosted mode. |
 
 ## HTTP URL for clients that require it
 
