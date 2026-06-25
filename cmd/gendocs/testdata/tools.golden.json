@@ -24,6 +24,14 @@
     "anchor": "get_activities"
   },
   {
+    "name": "get_activities_around",
+    "group": "activities",
+    "tier": "core",
+    "safety": "read",
+    "summary": "Find activities recorded near or around a known reference activity_id without asking the model to invent a date window.",
+    "anchor": "get_activities_around"
+  },
+  {
     "name": "get_activity_details",
     "group": "activities",
     "tier": "core",

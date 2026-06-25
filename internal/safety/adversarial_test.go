@@ -44,6 +44,7 @@ var v03ToolCatalog = []catalogToolSpec{
 	{name: "delete_sport_settings", requirement: tools.RequirementDelete},
 	{name: "delete_workout", requirement: tools.RequirementDelete},
 	{name: "get_activities", requirement: tools.RequirementRead},
+	{name: "get_activities_around", requirement: tools.RequirementRead},
 	{name: "get_activity_details", requirement: tools.RequirementRead},
 	{name: "get_activity_histogram", requirement: tools.RequirementRead},
 	{name: "get_activity_intervals", requirement: tools.RequirementRead},
