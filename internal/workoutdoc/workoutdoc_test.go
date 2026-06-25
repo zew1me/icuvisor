@@ -250,23 +250,28 @@ func TestSerializeWithOptionsDeviceTargetPriorityOrdersEmitStructuredZoneTargets
 	}
 }
 
-func TestSerializeRejectsUnsupportedAbsolutePaceUnits(t *testing.T) {
+func TestSerializeAbsolutePaceUnitsEmitStructuredPaceTargets(t *testing.T) {
 	t.Parallel()
 
-	for _, unit := range []string{"MINS_KM", "MINS_MILE"} {
-		t.Run(unit, func(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		step Step
+		want string
+	}{
+		{name: "minutes per km scalar", step: Step{Description: "Metric pace", Duration: 300, Pace: targetValue(300, "MINS_KM")}, want: "- Metric pace 5m 5:00/km Pace"},
+		{name: "minutes per km range", step: Step{Description: "Metric range", Duration: 300, Pace: targetRange(285, 300, "MINS_KM")}, want: "- Metric range 5m 4:45-5:00/km Pace"},
+		{name: "minutes per mile scalar", step: Step{Description: "Imperial pace", Duration: 480, Pace: targetValue(480, "MINS_MILE")}, want: "- Imperial pace 8m 8:00/mi Pace"},
+		{name: "minutes per mile range", step: Step{Description: "Imperial range", Duration: 480, Pace: targetRange(465, 480, "MINS_MILE")}, want: "- Imperial range 8m 7:45-8:00/mi Pace"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			_, err := Serialize(WorkoutDoc{Steps: []Step{{Description: "Absolute pace", Duration: 300, Pace: targetValue(5, unit)}}})
-			if err == nil {
-				t.Fatal("Serialize() error = nil, want unsupported pace unit error")
+			got, err := Serialize(WorkoutDoc{Steps: []Step{tc.step}})
+			if err != nil {
+				t.Fatalf("Serialize() error = %v", err)
 			}
-			var unsupported *UnsupportedStepError
-			if !errors.As(err, &unsupported) {
-				t.Fatalf("Serialize() error = %T, want *UnsupportedStepError", err)
-			}
-			if !strings.Contains(unsupported.Reason, "unsupported pace target units") {
-				t.Fatalf("UnsupportedStepError.Reason = %q, want unsupported pace unit", unsupported.Reason)
+			if got != tc.want {
+				t.Fatalf("Serialize() = %q, want %q", got, tc.want)
 			}
 		})
 	}
