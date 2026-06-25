@@ -21,6 +21,9 @@ type fakeActivitiesProfileClient struct {
 	rejectInvalidRange bool
 	listCalls          []intervals.ListActivitiesParams
 	listErr            error
+	aroundActivities   []intervals.Activity
+	aroundCalls        []intervals.ActivitiesAroundParams
+	aroundErr          error
 	customItems        []intervals.CustomItem
 	customItemsErr     error
 	customItemsCalls   int
@@ -40,6 +43,14 @@ func (f *fakeActivitiesProfileClient) ListGear(ctx context.Context) ([]intervals
 		return f.gearByTarget[target], nil
 	}
 	return f.gear, nil
+}
+
+func (f *fakeActivitiesProfileClient) ListActivitiesAround(ctx context.Context, params intervals.ActivitiesAroundParams) ([]intervals.Activity, error) {
+	f.aroundCalls = append(f.aroundCalls, params)
+	if f.aroundErr != nil {
+		return nil, f.aroundErr
+	}
+	return append([]intervals.Activity(nil), f.aroundActivities...), nil
 }
 
 func (f *fakeActivitiesProfileClient) ListActivities(ctx context.Context, params intervals.ListActivitiesParams) ([]intervals.Activity, error) {

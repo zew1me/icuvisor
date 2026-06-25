@@ -30,6 +30,7 @@ const (
 	DeleteSportSettings              = "delete_sport_settings"
 	DeleteWorkout                    = "delete_workout"
 	GetActivities                    = "get_activities"
+	GetActivitiesAround              = "get_activities_around"
 	GetActivityDetails               = "get_activity_details"
 	GetAnnualTrainingPlan            = "get_annual_training_plan"
 	GetActivityHistogram             = "get_activity_histogram"
@@ -96,6 +97,7 @@ var athleteScopedToolNames = []string{
 	DeleteSportSettings,
 	DeleteWorkout,
 	GetActivities,
+	GetActivitiesAround,
 	GetActivityDetails,
 	GetAnnualTrainingPlan,
 	GetActivityHistogram,

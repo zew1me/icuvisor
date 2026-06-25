@@ -93,6 +93,7 @@ func registryBaseTools(client *intervals.Client, opts registryToolOptions) []Too
 		newGetHRCurvesTool(client, opts.version, opts.debugMetadata, opts.shaping),
 		newGetPaceCurvesTool(client, client, opts.version, opts.debugMetadata, opts.shaping),
 		newGetActivitiesToolWithGear(client, client, client, opts.gearCache, client, opts.customFieldCache, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
+		newGetActivitiesAroundTool(client, client, client, opts.gearCache, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newGetEventsTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newGetEventByIDTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newAddOrUpdateEventTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
@@ -156,7 +157,7 @@ func toolCatalogGroup(name string) string {
 		return "fitness"
 	case getWellnessDataName, updateWellnessName:
 		return "wellness"
-	case getActivitiesName, getActivityDetailsName, getActivityIntervalsName, getActivityStreamsName, getActivitySplitsName, getActivityHistogramName, getActivityMessagesName, addActivityMessageName, getExtendedMetricsName, deleteActivityName, updateActivityName, setActivityIntervalsName:
+	case getActivitiesName, getActivitiesAroundName, getActivityDetailsName, getActivityIntervalsName, getActivityStreamsName, getActivitySplitsName, getActivityHistogramName, getActivityMessagesName, addActivityMessageName, getExtendedMetricsName, deleteActivityName, updateActivityName, setActivityIntervalsName:
 		return "activities"
 	case computeActivitySegmentStatsName, analyzeTrendName, analyzeDistributionName, analyzeCorrelationName, analyzeEffortsDeltaName, computeZoneTimeName, computeLoadBalanceName, computeBaselineName, computeComplianceRateName:
 		return "analyzers"

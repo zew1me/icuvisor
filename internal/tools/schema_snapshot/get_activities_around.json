@@ -1,0 +1,29 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "activity_id": {
+      "description": "Required intervals.icu reference activity ID. Use get_activities first if the prompt only describes the activity by date, name, or recent context.",
+      "type": "string"
+    },
+    "athlete_id": {
+      "description": "Target athlete; defaults to selected athlete in coach mode, or the only athlete otherwise. Format: i12345 or 12345.",
+      "type": "string"
+    },
+    "include_full": {
+      "default": false,
+      "description": "When true, include raw upstream activity fields and preserve upstream nulls; default terse rows are unit-disambiguated and null-stripped.",
+      "type": "boolean"
+    },
+    "limit": {
+      "default": 10,
+      "description": "Maximum number of nearby activities to return. Omitted defaults to 10; values outside 1..50 are rejected.",
+      "maximum": 50,
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "activity_id"
+  ],
+  "type": "object"
+}
