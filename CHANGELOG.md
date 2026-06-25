@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Clarified planning and race-week taper prompts/docs to resolve relative dates, weekdays, and countdowns with `resolve_calendar_dates` before planning, and to use `get_fitness_projection` for race-day form assumptions.
 
+### Fixed
+
+- WorkoutDoc run pace targets now serialize absolute `MINS_KM` and `MINS_MILE` values as explicit `mm:ss/km Pace` and `mm:ss/mi Pace` structured workout targets instead of requiring pace text labels.
+
 ## [1.2.0] - 2026-06-23
 
 ### Added
