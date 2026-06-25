@@ -189,6 +189,33 @@
       "toolset": "full",
       "delete_mode": "safe",
       "notes": "Contrast: explicit future fitness projection should choose get_fitness_projection rather than summarizing ATP phases first."
+    },
+    {
+      "id": "date-anchor-tomorrow-planning-first-tool",
+      "prompt": "Plan tomorrow's workout around my current calendar and fitness. Resolve tomorrow in my athlete timezone before using any date, then use that resolved date for the plan.",
+      "expected_first_tool": "resolve_calendar_dates",
+      "catalog_mode": "full_safe",
+      "toolset": "full",
+      "delete_mode": "safe",
+      "notes": "Relative future planning must start by resolving athlete-local tomorrow via resolve_calendar_dates; do not compute tomorrow from model, UTC, or client-local time."
+    },
+    {
+      "id": "date-anchor-future-weekday-first-tool",
+      "prompt": "What should I do next Friday? First resolve the next Friday date in my athlete-local timezone, then inspect any planned events for that date.",
+      "expected_first_tool": "resolve_calendar_dates",
+      "catalog_mode": "core_safe",
+      "toolset": "core",
+      "delete_mode": "safe",
+      "notes": "Future weekday prompts are ambiguous without the athlete-local calendar anchor and should call resolve_calendar_dates before get_events or planning tools."
+    },
+    {
+      "id": "date-anchor-countdown-first-tool",
+      "prompt": "I race in 12 days; resolve the athlete-local race date first, verify the weekday, then summarize the taper window.",
+      "expected_first_tool": "resolve_calendar_dates",
+      "catalog_mode": "full_safe",
+      "toolset": "full",
+      "delete_mode": "safe",
+      "notes": "Countdown planning should use resolve_calendar_dates output as the anchor instead of model arithmetic or UTC/client-time date math."
     }
   ]
 }

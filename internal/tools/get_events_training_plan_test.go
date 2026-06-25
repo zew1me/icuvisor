@@ -245,6 +245,35 @@ func TestGetEventsCurrentDayRangeAddsAsOfMetadata(t *testing.T) {
 	}
 }
 
+func TestGetEventsRowsUseAthleteLocalDateWhenUTCDateDiffers(t *testing.T) {
+	t.Parallel()
+
+	client := &fakeEventsTrainingPlanClient{
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "America/Sao_Paulo"}},
+		events:            decodeToolEvents(t, `{"id":"late-event","name":"Late local workout","category":"WORKOUT","type":"Ride","start_date_local":"2026-05-24T23:30:00","updated":"2026-05-25T02:35:00Z"}`),
+	}
+	tool := newGetEventsToolWithClock(client, client, "test", "UTC", false, fixedTodayClock())
+
+	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"oldest":"2026-05-24","newest":"2026-05-24","limit":10}`)})
+	if err != nil {
+		t.Fatalf("Handler() error = %v", err)
+	}
+	if len(client.listCalls) != 1 || client.listCalls[0].Oldest != "2026-05-24" || client.listCalls[0].Newest != "2026-05-24" {
+		t.Fatalf("ListEvents calls = %#v, want athlete-local date window", client.listCalls)
+	}
+	out := resultMap(t, result)
+	meta := out["_meta"].(map[string]any)
+	assertSaoPauloAsOfMeta(t, meta)
+	rows := out["events"].([]any)
+	if len(rows) != 1 {
+		t.Fatalf("events = %#v, want one local-day row", rows)
+	}
+	row := rows[0].(map[string]any)
+	if row["event_id"] != "late-event" || row["start_date_local"] != "2026-05-24T23:30:00" || row["updated_local"] != "2026-05-24T23:35:00-03:00" || row["workout_status"] != workoutStatusPlanned {
+		t.Fatalf("event row = %#v, want local-today event and planned status despite UTC date 2026-05-25", row)
+	}
+}
+
 func TestGetEventsWorkoutStatusMatrixUsesAthleteLocalAsOf(t *testing.T) {
 	t.Parallel()
 
