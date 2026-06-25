@@ -19,6 +19,12 @@ type ListActivitiesParams struct {
 	Fields  []string
 }
 
+// ActivitiesAroundParams contains query parameters for finding activities around a reference activity.
+type ActivitiesAroundParams struct {
+	ActivityID string
+	Limit      int
+}
+
 // LinkActivityToEventParams contains the IDs needed to pair an activity with a planned event.
 type LinkActivityToEventParams struct {
 	ActivityID string
@@ -133,6 +139,25 @@ func (c *Client) ListActivities(ctx context.Context, params ListActivitiesParams
 	var activities []Activity
 	if err := c.doJSONQuery(ctx, &activities, query, "athlete", c.athleteID, "activities"); err != nil {
 		return nil, fmt.Errorf("listing activities: %w", err)
+	}
+	return activities, nil
+}
+
+// ListActivitiesAround lists activities near a reference activity for the configured athlete.
+func (c *Client) ListActivitiesAround(ctx context.Context, params ActivitiesAroundParams) ([]Activity, error) {
+	activityID := strings.TrimSpace(params.ActivityID)
+	if activityID == "" {
+		return nil, fmt.Errorf("listing activities around activity: activity ID is required")
+	}
+	query := url.Values{}
+	query.Set("activity_id", activityID)
+	if params.Limit > 0 {
+		query.Set("limit", strconv.Itoa(params.Limit))
+	}
+
+	var activities []Activity
+	if err := c.doJSONQuery(ctx, &activities, query, "athlete", c.athleteID, "activities-around"); err != nil {
+		return nil, fmt.Errorf("listing activities around activity %s: %w", activityID, err)
 	}
 	return activities, nil
 }
