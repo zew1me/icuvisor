@@ -12,7 +12,7 @@ import (
 func TestAnalysisFormulasMarkdownGolden(t *testing.T) {
 	t.Parallel()
 
-	const wantSHA256 = "dc54f711a071af0239fb2891ffeb84adc901c7c619eddbb1a730fdae87d83e62"
+	const wantSHA256 = "ce86e6bda44cca59f2e40de83ff5bd46b13136f8e14eed1b416f68548f2458dd"
 
 	got := AnalysisFormulasMarkdown()
 	want, err := os.ReadFile("testdata/analysis_formulas.md")
