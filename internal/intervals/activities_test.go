@@ -83,6 +83,68 @@ func TestListActivitiesRequiresOldest(t *testing.T) {
 	}
 }
 
+func TestListActivitiesAroundSendsActivityIDAndLimit(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got, want := r.URL.Path, "/athlete/i12345/activities-around"; got != want {
+			t.Fatalf("path = %q, want %q", got, want)
+		}
+		query := r.URL.Query()
+		checks := map[string]string{
+			"activity_id": "a-ref",
+			"limit":       "7",
+		}
+		for key, want := range checks {
+			if got := query.Get(key); got != want {
+				t.Fatalf("query %s = %q, want %q", key, got, want)
+			}
+		}
+		for _, key := range []string{"id", "count", "activityId"} {
+			if got := query.Get(key); got != "" {
+				t.Fatalf("query %s = %q, want absent", key, got)
+			}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[
+			{"id":"near1","name":null,"type":"Ride","start_date_local":"2026-01-30T07:00:00","stream_types":["time"],"custom_metric":123},
+			{"id":"near2","source":"strava","_note":"Strava activity hidden"}
+		]`))
+	}))
+	defer server.Close()
+
+	client := newTestClient(t, server.URL, server.Client(), RetryConfig{})
+	activities, err := client.ListActivitiesAround(context.Background(), ActivitiesAroundParams{ActivityID: " a-ref ", Limit: 7})
+	if err != nil {
+		t.Fatalf("ListActivitiesAround() error = %v", err)
+	}
+	if len(activities) != 2 {
+		t.Fatalf("activity count = %d, want 2", len(activities))
+	}
+	if activities[0].Name != nil {
+		t.Fatalf("Name = %q, want nil pointer for upstream null", *activities[0].Name)
+	}
+	if rawName, ok := activities[0].Raw["name"]; !ok || rawName != nil {
+		rawJSON, _ := json.Marshal(activities[0].Raw)
+		t.Fatalf("raw name = %#v (present %v), raw = %s; want present nil", rawName, ok, rawJSON)
+	}
+	if got := activities[0].Raw["custom_metric"]; got != float64(123) {
+		t.Fatalf("raw custom_metric = %#v, want preserved unknown field", got)
+	}
+	if activities[1].Source == nil || *activities[1].Source != "strava" {
+		t.Fatalf("Source = %#v, want strava", activities[1].Source)
+	}
+}
+
+func TestListActivitiesAroundRequiresActivityID(t *testing.T) {
+	t.Parallel()
+
+	client := newTestClient(t, "https://example.invalid", http.DefaultClient, RetryConfig{})
+	if _, err := client.ListActivitiesAround(context.Background(), ActivitiesAroundParams{}); err == nil {
+		t.Fatal("ListActivitiesAround() error = nil, want required activity ID error")
+	}
+}
+
 func TestLinkActivityToEventUsesPutActivityPairedEventID(t *testing.T) {
 	t.Parallel()
 

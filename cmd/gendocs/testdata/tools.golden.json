@@ -24,6 +24,14 @@
     "anchor": "get_activities"
   },
   {
+    "name": "get_activities_around",
+    "group": "activities",
+    "tier": "core",
+    "safety": "read",
+    "summary": "Find activities recorded near or around a known reference activity_id without asking the model to invent a date window.",
+    "anchor": "get_activities_around"
+  },
+  {
     "name": "get_activity_details",
     "group": "activities",
     "tier": "core",
@@ -326,6 +334,14 @@
     "safety": "read",
     "summary": "Get upstream-computed pace best-effort curves for a date range.",
     "anchor": "get_pace_curves"
+  },
+  {
+    "name": "get_performance_potential",
+    "group": "fitness",
+    "tier": "full",
+    "safety": "read",
+    "summary": "Summarize per-sport performance potential from explicit athlete profile thresholds plus upstream power, pace, and heart-rate curve anchors.",
+    "anchor": "get_performance_potential"
   },
   {
     "name": "get_power_curves",

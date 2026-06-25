@@ -11,6 +11,15 @@
       "notes": "Confusable read case: details for one known activity should route to get_activity_details before streams or lists."
     },
     {
+      "id": "activity-around-known-reference",
+      "prompt": "For activity 123456, show me the activities recorded around it so I can compare nearby workouts without choosing dates myself.",
+      "expected_first_tool": "get_activities_around",
+      "catalog_mode": "core_safe",
+      "toolset": "core",
+      "delete_mode": "safe",
+      "notes": "Known reference activity prompts asking for nearby/around context should use get_activities_around rather than inventing a date window or fetching one activity's details."
+    },
+    {
       "id": "activity-window-explicit-date-range",
       "prompt": "List all my activities from 2025-06-01 through 2025-11-30 so I can review that historical block.",
       "expected_first_tool": "get_activities",
@@ -216,6 +225,33 @@
       "toolset": "full",
       "delete_mode": "safe",
       "notes": "Countdown planning should use resolve_calendar_dates output as the anchor instead of model arithmetic or UTC/client-time date math."
+    },
+    {
+      "id": "performance-potential-per-sport-chart",
+      "prompt": "Build a per-sport performance potential chart for Ride, Run, and Swim using my current thresholds and best power/pace/HR curve anchors from the last 90 days.",
+      "expected_first_tool": "get_performance_potential",
+      "catalog_mode": "full_safe",
+      "toolset": "full",
+      "delete_mode": "safe",
+      "notes": "Performance-potential chart prompts should use the deterministic full-tier summary rather than separate profile and curve calls or a proprietary score."
+    },
+    {
+      "id": "performance-potential-threshold-context",
+      "prompt": "What aerobic and anaerobic threshold context is available for each sport? Be explicit when aerobic threshold is unsupported instead of estimating it.",
+      "expected_first_tool": "get_performance_potential",
+      "catalog_mode": "full_safe",
+      "toolset": "full",
+      "delete_mode": "safe",
+      "notes": "Threshold-context prompts should route to get_performance_potential because it exposes explicit anaerobic proxies and unavailable aerobic-threshold caveats."
+    },
+    {
+      "id": "performance-potential-aerobic-anaerobic-chart",
+      "prompt": "Compare my cycling FTP, run threshold pace, heart-rate anchors, and any aerobic/anaerobic threshold caveats in one per-sport potential summary.",
+      "expected_first_tool": "get_performance_potential",
+      "catalog_mode": "full_safe",
+      "toolset": "full",
+      "delete_mode": "safe",
+      "notes": "Mixed FTP/pace/HR potential requests should start with get_performance_potential in full catalog mode, keeping sport units separate."
     }
   ]
 }

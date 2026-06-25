@@ -29,6 +29,7 @@ func TestRegisteredToolTierMembership(t *testing.T) {
 	expected := map[string]safety.Toolset{
 		getAthleteProfileName:           safety.ToolsetCore,
 		getActivitiesName:               safety.ToolsetCore,
+		getActivitiesAroundName:         safety.ToolsetCore,
 		getActivityDetailsName:          safety.ToolsetCore,
 		getActivityIntervalsName:        safety.ToolsetCore,
 		getActivitySplitsName:           safety.ToolsetCore,
@@ -51,6 +52,7 @@ func TestRegisteredToolTierMembership(t *testing.T) {
 		listAdvancedCapabilitiesName:    safety.ToolsetCore,
 		checkServerVersionName:          safety.ToolsetCore,
 		getPowerCurvesName:              safety.ToolsetFull,
+		getPerformancePotentialName:     safety.ToolsetFull,
 		analyzeTrendName:                safety.ToolsetCore,
 		analyzeDistributionName:         safety.ToolsetFull,
 		analyzeCorrelationName:          safety.ToolsetFull,

@@ -115,24 +115,37 @@ func TestCreateWorkoutRunPowerOrderSerializesPowerZoneSuffix(t *testing.T) {
 	}
 }
 
-func TestCreateWorkoutRunPaceTargetSerializesStructuredPaceDSL(t *testing.T) {
+func TestCreateWorkoutRunPacePrioritySerializesStructuredPaceDSL(t *testing.T) {
 	t.Parallel()
 
-	client := &fakeWorkoutCreatorClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC", SportSettings: []intervals.SportSettings{{Type: "Run", Types: []string{"Run"}, WorkoutOrder: "PACE_HR_POWER"}}}},
-		workout:           decodeToolWorkouts(t, `{"id":"w-run-pace","name":"Cruise","type":"Run","folder_id":"f-run","workout_doc":{"steps":[{"description":"Cruise","duration":1200,"pace":{"value":95,"units":"PERCENT_THRESHOLD"}}]}}`)[0],
-	}
-	tool := newCreateWorkoutTool(client, client, "test", "UTC", false)
+	for _, tc := range []struct {
+		name       string
+		workoutDoc string
+		want       string
+	}{
+		{name: "threshold percent", workoutDoc: `{"steps":[{"description":"Cruise","duration":1200,"pace":{"value":95,"units":"PERCENT_THRESHOLD"}}]}`, want: "- Cruise 20m 95% Pace"},
+		{name: "pace zone", workoutDoc: `{"steps":[{"description":"Steady","duration":900,"pace":{"min":2,"max":3,"units":"PACE_ZONE"}}]}`, want: "- Steady 15m Z2-Z3 Pace"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-	_, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"name":"Cruise","folder_id":"f-run","sport":"Run","workout_doc":{"steps":[{"description":"Cruise","duration":1200,"pace":{"value":95,"units":"PERCENT_THRESHOLD"}}]}}`)})
-	if err != nil {
-		t.Fatalf("Handler() error = %v", err)
-	}
-	if len(client.calls) != 1 || client.calls[0].Description == nil {
-		t.Fatalf("write calls = %#v, want one serialized workout_doc", client.calls)
-	}
-	if got, want := *client.calls[0].Description, "- Cruise 20m 95% Pace"; got != want {
-		t.Fatalf("description DSL = %q, want %q", got, want)
+			client := &fakeWorkoutCreatorClient{
+				fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC", SportSettings: []intervals.SportSettings{{Type: "Run", Types: []string{"Run"}, WorkoutOrder: "PACE_HR_POWER"}}}},
+				workout:           decodeToolWorkouts(t, `{"id":"w-run-pace","name":"Run Pace","type":"Run","folder_id":"f-run","workout_doc":`+tc.workoutDoc+`}`)[0],
+			}
+			tool := newCreateWorkoutTool(client, client, "test", "UTC", false)
+
+			_, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"name":"Run Pace","folder_id":"f-run","sport":"Run","workout_doc":` + tc.workoutDoc + `}`)})
+			if err != nil {
+				t.Fatalf("Handler() error = %v", err)
+			}
+			if len(client.calls) != 1 || client.calls[0].Description == nil {
+				t.Fatalf("write calls = %#v, want one serialized workout_doc", client.calls)
+			}
+			if got := *client.calls[0].Description; got != tc.want {
+				t.Fatalf("description DSL = %q, want %q", got, tc.want)
+			}
+		})
 	}
 }
 
@@ -236,6 +249,33 @@ func TestCreateWorkoutMergesDescriptionAndWorkoutDoc(t *testing.T) {
 	want := "Coach note before.\n- Warmup 10m 60%\nFuel after."
 	if len(client.calls) != 1 || client.calls[0].Description == nil || *client.calls[0].Description != want {
 		t.Fatalf("description = %#v, want merged DSL %q", client.calls, want)
+	}
+}
+
+func TestCreateWorkoutMergesDescriptionWithStructuredRunPaceTarget(t *testing.T) {
+	t.Parallel()
+
+	client := &fakeWorkoutCreatorClient{
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "miles", Timezone: "UTC", SportSettings: []intervals.SportSettings{{Type: "Run", Types: []string{"Run"}, WorkoutOrder: "PACE_HR_POWER"}}}},
+		workout:           decodeToolWorkouts(t, `{"id":"w-merge-pace","name":"Pace Notes","type":"Run","folder_id":"f-run","workout_doc":{"steps":[{"duration":600}]}}`)[0],
+	}
+	tool := newCreateWorkoutTool(client, client, "test", "UTC", false)
+	prose := "Coach note before.\n" + workoutdoc.StepsSentinel + "\nFuel after."
+	rawArgs := mustMarshalArgs(t, map[string]any{
+		"name":        "Pace Notes",
+		"folder_id":   "f-run",
+		"sport":       "Run",
+		"description": prose,
+		"workout_doc": map[string]any{"steps": []any{map[string]any{"description": "Cruise", "duration": 600, "pace": map[string]any{"value": 480, "units": "MINS_MILE"}}}},
+	})
+
+	_, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(rawArgs)})
+	if err != nil {
+		t.Fatalf("Handler() error = %v", err)
+	}
+	want := "Coach note before.\n- Cruise 10m 8:00/mi Pace\nFuel after."
+	if len(client.calls) != 1 || client.calls[0].Description == nil || *client.calls[0].Description != want {
+		t.Fatalf("description = %#v, want merged structured pace DSL %q", client.calls, want)
 	}
 }
 

@@ -12,7 +12,7 @@ import (
 func TestAnalysisFormulasMarkdownGolden(t *testing.T) {
 	t.Parallel()
 
-	const wantSHA256 = "92904b4d2165d5d153d894b2c62de4d54d7cd487a1ed4f5238b345c1c7b328d2"
+	const wantSHA256 = "ce86e6bda44cca59f2e40de83ff5bd46b13136f8e14eed1b416f68548f2458dd"
 
 	got := AnalysisFormulasMarkdown()
 	want, err := os.ReadFile("testdata/analysis_formulas.md")
@@ -72,6 +72,12 @@ func TestAnalysisFormulasMarkdownPinsRequiredFormulaRefs(t *testing.T) {
 			formula:  "(current_value - baseline_mean) / sample_standard_deviation",
 			boundary: "standard deviation is zero",
 			citation: "NIST/SEMATECH",
+		},
+		{
+			ref:      AnalysisFormulaRefPerformancePotential,
+			formula:  "copy only explicit athlete-profile threshold fields",
+			boundary: "never zero-fill missing thresholds",
+			citation: "get_power_curves",
 		},
 	}
 	for _, check := range checks {
