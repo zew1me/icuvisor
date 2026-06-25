@@ -4,7 +4,7 @@ import "strings"
 
 const (
 	// PerformancePotentialFormulaRef documents that the surface summarizes explicit upstream fields without estimating hidden thresholds.
-	PerformancePotentialFormulaRef = "icuvisor.performance_potential.v1.explicit_profile_thresholds_plus_upstream_curves"
+	PerformancePotentialFormulaRef = "icuvisor://analysis-formulas#performance_potential"
 )
 
 // PerformancePotentialUnavailable describes an unavailable source, threshold, or estimate without inventing a value.

@@ -225,6 +225,33 @@
       "toolset": "full",
       "delete_mode": "safe",
       "notes": "Countdown planning should use resolve_calendar_dates output as the anchor instead of model arithmetic or UTC/client-time date math."
+    },
+    {
+      "id": "performance-potential-per-sport-chart",
+      "prompt": "Build a per-sport performance potential chart for Ride, Run, and Swim using my current thresholds and best power/pace/HR curve anchors from the last 90 days.",
+      "expected_first_tool": "get_performance_potential",
+      "catalog_mode": "full_safe",
+      "toolset": "full",
+      "delete_mode": "safe",
+      "notes": "Performance-potential chart prompts should use the deterministic full-tier summary rather than separate profile and curve calls or a proprietary score."
+    },
+    {
+      "id": "performance-potential-threshold-context",
+      "prompt": "What aerobic and anaerobic threshold context is available for each sport? Be explicit when aerobic threshold is unsupported instead of estimating it.",
+      "expected_first_tool": "get_performance_potential",
+      "catalog_mode": "full_safe",
+      "toolset": "full",
+      "delete_mode": "safe",
+      "notes": "Threshold-context prompts should route to get_performance_potential because it exposes explicit anaerobic proxies and unavailable aerobic-threshold caveats."
+    },
+    {
+      "id": "performance-potential-aerobic-anaerobic-chart",
+      "prompt": "Compare my cycling FTP, run threshold pace, heart-rate anchors, and any aerobic/anaerobic threshold caveats in one per-sport potential summary.",
+      "expected_first_tool": "get_performance_potential",
+      "catalog_mode": "full_safe",
+      "toolset": "full",
+      "delete_mode": "safe",
+      "notes": "Mixed FTP/pace/HR potential requests should start with get_performance_potential in full catalog mode, keeping sport units separate."
     }
   ]
 }
