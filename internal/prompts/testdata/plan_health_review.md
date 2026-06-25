@@ -1,9 +1,9 @@
 Prompt: Plan health review
 Scope: planned_start=2026-05-18, planned_end=2026-06-01, completed_lookback_days=21, race_date=2026-06-07, race_name=A Race.
 Resources: icuvisor://athlete-profile, icuvisor://event-categories, icuvisor://analysis-formulas.
-Tools: get_athlete_profile, get_events, get_training_plan, get_activities, compute_compliance_rate, get_fitness, get_training_summary, compute_load_balance, get_fitness_projection, get_wellness_data, icuvisor_list_advanced_capabilities.
+Tools: get_athlete_profile, resolve_calendar_dates, get_events, get_training_plan, get_activities, compute_compliance_rate, get_fitness, get_training_summary, compute_load_balance, get_fitness_projection, get_wellness_data, icuvisor_list_advanced_capabilities.
 Do:
-- Read profile first for timezone, units, sport settings, and today's athlete-local date; convert all windows before comparing days.
+- Read profile first for timezone, units, sport settings, and today's athlete-local date; call resolve_calendar_dates for relative planned windows, weekdays, countdowns, or stale conversations, then compare only returned athlete-local dates instead of UTC, client-time, or model arithmetic.
 - Separate completed-lookback, planned-window, and race-scenario dates; do not mix current-day or post-window wellness into completed adherence evidence.
 - Read events and training plan for planned workouts and races; if no race event is found, say so and treat any supplied race_date as a scenario anchor only.
 - Use compute_compliance_rate for scheduled-vs-completed adherence; interpret workout_status, missed/planned/future/completed status counts, and caveats before calling anything skipped, missed, or completed, then get_fitness, get_training_summary, compute_load_balance, and get_fitness_projection for load/form trajectory and future assumptions.
