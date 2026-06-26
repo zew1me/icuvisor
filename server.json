@@ -6,15 +6,15 @@
     "url": "https://github.com/ricardocabral/icuvisor",
     "source": "github"
   },
-  "version": "1.2.0",
+  "version": "1.2.1",
   "websiteUrl": "https://icuvisor.app",
   "packages": [
     {
       "registryType": "mcpb",
       "registryBaseUrl": "https://github.com",
-      "identifier": "https://github.com/ricardocabral/icuvisor/releases/download/v1.2.0/icuvisor_1.2.0_darwin_universal.mcpb",
-      "version": "1.2.0",
-      "fileSha256": "7bad9f3d88d771d1137576a4995c348a8336c4cba160bd13e55a743bd17d643c",
+      "identifier": "https://github.com/ricardocabral/icuvisor/releases/download/v1.2.1/icuvisor_1.2.1_darwin_universal.mcpb",
+      "version": "1.2.1",
+      "fileSha256": "3854be175e526733abf9abaa0ef6b7acd84c0c0a1c30005a83e695087d37b953",
       "transport": {
         "type": "stdio"
       }
