@@ -41,6 +41,7 @@ type Options struct {
 // OAuthBearerOptions configures an OAuth Bearer client.
 type OAuthBearerOptions struct {
 	AccessToken string
+	AthleteID   string
 	APIBaseURL  string
 	Version     string
 	HTTPClient  *http.Client
@@ -154,9 +155,13 @@ func NewOAuthBearerClient(opts OAuthBearerOptions) (*Client, error) {
 	if httpTimeout == 0 {
 		httpTimeout = config.DefaultHTTPTimeout
 	}
+	athleteID := strings.TrimSpace(opts.AthleteID)
+	if athleteID == "" {
+		athleteID = "0"
+	}
 	return NewClient(Options{
 		Config: config.Config{
-			AthleteID:   "0",
+			AthleteID:   athleteID,
 			APIBaseURL:  opts.APIBaseURL,
 			HTTPTimeout: httpTimeout,
 		},

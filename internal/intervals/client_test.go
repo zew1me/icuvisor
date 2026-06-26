@@ -79,6 +79,37 @@ func TestNewOAuthBearerClientSetsBearerAuthUserAgentAndDefaults(t *testing.T) {
 	}
 }
 
+func TestNewOAuthBearerClientUsesConfiguredAthleteID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got, want := r.URL.Path, "/athlete/i12345"; got != want {
+			http.Error(w, "wrong athlete", http.StatusUnauthorized)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":"i12345","name":"Bearer Athlete"}`))
+	}))
+	defer server.Close()
+
+	client, err := NewOAuthBearerClient(OAuthBearerOptions{
+		AccessToken: "hosted-token",
+		AthleteID:   "i12345",
+		APIBaseURL:  server.URL,
+		HTTPClient:  server.Client(),
+	})
+	if err != nil {
+		t.Fatalf("NewOAuthBearerClient() error = %v", err)
+	}
+	got, err := client.GetAthleteProfile(context.Background())
+	if err != nil {
+		t.Fatalf("GetAthleteProfile() error = %v", err)
+	}
+	if got.ID != "i12345" {
+		t.Fatalf("decoded athlete ID = %q, want i12345", got.ID)
+	}
+}
+
 func TestNewOAuthBearerClientRequiresAccessToken(t *testing.T) {
 	t.Parallel()
 

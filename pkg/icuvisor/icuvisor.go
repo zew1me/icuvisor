@@ -95,6 +95,7 @@ type APIKeyClientOptions struct {
 // BearerClientOptions configures an OAuth Bearer Intervals client.
 type BearerClientOptions struct {
 	AccessToken string
+	AthleteID   string
 	APIBaseURL  string
 	Version     string
 	HTTPClient  *http.Client
@@ -113,7 +114,7 @@ func NewAPIKeyClient(opts APIKeyClientOptions) (*Client, error) {
 
 // NewBearerClient constructs an Intervals client using OAuth Bearer auth.
 func NewBearerClient(opts BearerClientOptions) (*Client, error) {
-	client, err := intervals.NewOAuthBearerClient(intervals.OAuthBearerOptions{AccessToken: opts.AccessToken, APIBaseURL: opts.APIBaseURL, Version: opts.Version, HTTPClient: opts.HTTPClient, HTTPTimeout: opts.HTTPTimeout, Retry: opts.Retry.toInternal()})
+	client, err := intervals.NewOAuthBearerClient(intervals.OAuthBearerOptions{AccessToken: opts.AccessToken, AthleteID: opts.AthleteID, APIBaseURL: opts.APIBaseURL, Version: opts.Version, HTTPClient: opts.HTTPClient, HTTPTimeout: opts.HTTPTimeout, Retry: opts.Retry.toInternal()})
 	if err != nil {
 		return nil, err
 	}

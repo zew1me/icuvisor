@@ -55,6 +55,37 @@ func TestBearerClientFacadeUsesBearerAuth(t *testing.T) {
 	}
 }
 
+func TestBearerClientFacadePassesConfiguredAthleteID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got, want := r.URL.Path, "/athlete/i12345"; got != want {
+			http.Error(w, "wrong athlete", http.StatusUnauthorized)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":"i12345","name":"Hosted Bearer"}`))
+	}))
+	defer server.Close()
+
+	client, err := NewBearerClient(BearerClientOptions{
+		AccessToken: "public-bearer-token",
+		AthleteID:   "i12345",
+		APIBaseURL:  server.URL,
+		HTTPClient:  server.Client(),
+	})
+	if err != nil {
+		t.Fatalf("NewBearerClient() error = %v", err)
+	}
+	profile, err := client.inner.GetAthleteProfile(context.Background())
+	if err != nil {
+		t.Fatalf("GetAthleteProfile() error = %v", err)
+	}
+	if profile.ID != "i12345" {
+		t.Fatalf("profile ID = %q, want i12345", profile.ID)
+	}
+}
+
 func TestAPIKeyClientFacadeMatchesInternalBasicAuth(t *testing.T) {
 	t.Parallel()
 
