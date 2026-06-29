@@ -240,7 +240,7 @@ func fullTool(tool Tool) Tool {
 // values default to full so new/unmarked tools do not silently expand core.
 func (t Tool) EffectiveToolset() safety.Toolset {
 	switch t.Toolset {
-	case safety.ToolsetCore, safety.ToolsetFull:
+	case safety.ToolsetCompact, safety.ToolsetCore, safety.ToolsetFull:
 		return t.Toolset
 	default:
 		return safety.ToolsetFull

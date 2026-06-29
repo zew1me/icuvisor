@@ -139,6 +139,28 @@ var athleteScopedToolNames = []string{
 
 var allToolNames = append(append([]string{}, athleteScopedToolNames...), ICUvisorCheckServerVersion, ICUvisorListAdvancedCapabilities, ListAthletes, SelectAthlete, ValidateWorkout)
 
+var compactToolNames = []string{
+	GetActivities,
+	GetActivityDetails,
+	GetActivityIntervals,
+	GetActivityStreams,
+	GetAthleteProfile,
+	GetEventByID,
+	GetEvents,
+	GetFitness,
+	GetPlanningContext,
+	GetToday,
+	GetTrainingPlan,
+	GetTrainingSummary,
+	GetWellnessData,
+	ICUvisorCheckServerVersion,
+	ICUvisorListAdvancedCapabilities,
+	ListAthletes,
+	ResolveCalendarDates,
+	SelectAthlete,
+	ValidateWorkout,
+}
+
 // AthleteScopedToolNames returns the canonical sorted names accepted by per-athlete ACLs.
 func AthleteScopedToolNames() []string {
 	return sortedCopy(athleteScopedToolNames)
@@ -147,6 +169,16 @@ func AthleteScopedToolNames() []string {
 // AllToolNames returns every canonical MCP tool name known to icuvisor.
 func AllToolNames() []string {
 	return sortedCopy(allToolNames)
+}
+
+// CompactToolNames returns the deterministic allow-list for ICUVISOR_TOOLSET=compact.
+func CompactToolNames() []string {
+	return sortedCopy(compactToolNames)
+}
+
+// IsCompactTool reports whether name is exposed by ICUVISOR_TOOLSET=compact.
+func IsCompactTool(name string) bool {
+	return contains(compactToolNames, strings.TrimSpace(name))
 }
 
 // IsKnownTool reports whether name is in the canonical MCP catalog.

@@ -11,6 +11,8 @@ const EnvToolset = "ICUVISOR_TOOLSET"
 type Toolset string
 
 const (
+	// ToolsetCompact exposes the smallest model-compatible tool catalog.
+	ToolsetCompact Toolset = "compact"
 	// ToolsetCore exposes the curated daily-use tool catalog.
 	ToolsetCore Toolset = "core"
 	// ToolsetFull exposes the full tool catalog.
@@ -21,6 +23,8 @@ const (
 // intentionally fall back to core so misconfiguration preserves the token-saving default.
 func ParseToolset(value string) Toolset {
 	switch strings.ToLower(strings.TrimSpace(value)) {
+	case string(ToolsetCompact):
+		return ToolsetCompact
 	case string(ToolsetFull):
 		return ToolsetFull
 	case string(ToolsetCore), "":
@@ -48,7 +52,7 @@ func LogResolvedToolset(logger *slog.Logger, toolset Toolset) {
 
 func (t Toolset) String() string {
 	switch t {
-	case ToolsetFull, ToolsetCore:
+	case ToolsetCompact, ToolsetFull, ToolsetCore:
 		return string(t)
 	default:
 		return string(ToolsetCore)

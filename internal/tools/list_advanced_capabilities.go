@@ -9,6 +9,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/ricardocabral/icuvisor/internal/safety"
+	"github.com/ricardocabral/icuvisor/internal/toolcatalog"
 )
 
 const (
@@ -39,7 +40,7 @@ type advancedCapabilitiesMeta struct {
 }
 
 func newListAdvancedCapabilitiesTool(catalog []Tool, activeToolset safety.Toolset, shaping ...responseShaping) Tool {
-	capabilities := fullOnlyCapabilities(catalog)
+	capabilities := hiddenCapabilities(catalog, activeToolset)
 	shapeCfg := responseShapingOrDefault(shaping)
 	return coreTool(Tool{
 		Name:         listAdvancedCapabilitiesName,
@@ -60,13 +61,18 @@ func listAdvancedCapabilitiesInputSchema() map[string]any {
 }
 
 func fullOnlyCapabilities(catalog []Tool) []advancedCapabilityRow {
-	return filteredFullOnlyCapabilities(catalog, nil)
+	return filteredHiddenCapabilities(catalog, safety.ToolsetCore, nil)
 }
 
-func filteredFullOnlyCapabilities(catalog []Tool, include func(Tool) bool) []advancedCapabilityRow {
+func hiddenCapabilities(catalog []Tool, activeToolset safety.Toolset) []advancedCapabilityRow {
+	return filteredHiddenCapabilities(catalog, activeToolset, nil)
+}
+
+func filteredHiddenCapabilities(catalog []Tool, activeToolset safety.Toolset, include func(Tool) bool) []advancedCapabilityRow {
+	activeToolset = safety.ParseToolset(activeToolset.String())
 	rows := make([]advancedCapabilityRow, 0, len(catalog))
 	for _, tool := range catalog {
-		if tool.Name == listAdvancedCapabilitiesName || tool.EffectiveToolset() != safety.ToolsetFull {
+		if !isHiddenCapability(tool, activeToolset) {
 			continue
 		}
 		if include != nil && !include(tool) {
@@ -76,6 +82,16 @@ func filteredFullOnlyCapabilities(catalog []Tool, include func(Tool) bool) []adv
 	}
 	sort.Slice(rows, func(i, j int) bool { return rows[i].Name < rows[j].Name })
 	return rows
+}
+
+func isHiddenCapability(tool Tool, activeToolset safety.Toolset) bool {
+	if tool.Name == listAdvancedCapabilitiesName || tool.Name == checkServerVersionName {
+		return false
+	}
+	if activeToolset == safety.ToolsetCompact {
+		return !toolcatalog.IsCompactTool(tool.Name)
+	}
+	return tool.EffectiveToolset() == safety.ToolsetFull
 }
 
 func listAdvancedCapabilitiesHandler(capabilities []advancedCapabilityRow, activeToolset safety.Toolset, shapeCfg responseShaping) Handler {
@@ -102,7 +118,7 @@ func NewFilteredAdvancedCapabilitiesHandler(catalog []Tool, activeToolset safety
 		if err := validateListAdvancedCapabilitiesArguments(req.Arguments); err != nil {
 			return Result{}, err
 		}
-		capabilities := filteredFullOnlyCapabilities(catalog, func(tool Tool) bool {
+		capabilities := filteredHiddenCapabilities(catalog, toolset, func(tool Tool) bool {
 			return include == nil || include(ctx, tool)
 		})
 		return filteredAdvancedCapabilitiesResult(capabilities, toolset), nil
@@ -121,14 +137,11 @@ func filteredAdvancedCapabilitiesResult(capabilities []advancedCapabilityRow, to
 	for _, capability := range capabilities {
 		rows = append(rows, map[string]any{"name": capability.Name, "summary": capability.Summary, "requirement": capability.Requirement})
 	}
-	status := "The default core toolset is active; full-only tools are hidden from tools/list."
-	if toolset == safety.ToolsetFull {
-		status = "The full toolset is already enabled; these full-only tools should already be visible when delete-mode also allows them."
-	}
+	status, instruction := advancedCapabilitiesStatus(toolset)
 	return TextResult(map[string]any{
 		"current_toolset":       toolset.String(),
 		"status":                status,
-		"enable_instruction":    "Set ICUVISOR_TOOLSET=full in the MCP client/server environment to expose the full icuvisor toolset, and ICUVISOR_DELETE_MODE=full to additionally enable delete tools. restart icuvisor after changing either.",
+		"enable_instruction":    instruction,
 		"advanced_capabilities": rows,
 		"_meta": map[string]any{
 			"count":            len(rows),
@@ -139,15 +152,23 @@ func filteredAdvancedCapabilitiesResult(capabilities []advancedCapabilityRow, to
 	})
 }
 
-func encodeAdvancedCapabilitiesResult(capabilities []advancedCapabilityRow, toolset safety.Toolset, shapeCfg responseShaping) (Result, error) {
-	status := "The default core toolset is active; full-only tools are hidden from tools/list."
-	if toolset == safety.ToolsetFull {
-		status = "The full toolset is already enabled; these full-only tools should already be visible when delete-mode also allows them."
+func advancedCapabilitiesStatus(toolset safety.Toolset) (string, string) {
+	switch toolset {
+	case safety.ToolsetCompact:
+		return "The compact model-compatible toolset is active; tools outside the compact allow-list are hidden from tools/list.", "Set ICUVISOR_TOOLSET=core to expose the default daily-use toolset, or ICUVISOR_TOOLSET=full to expose the expert/all-tools catalog. ICUVISOR_DELETE_MODE=full is still required for delete tools; restart icuvisor after changing either setting."
+	case safety.ToolsetFull:
+		return "The full toolset is already enabled; these full-only tools should already be visible when delete-mode also allows them.", listAdvancedCapabilitiesInstruction
+	default:
+		return "The default core toolset is active; full-only tools are hidden from tools/list.", listAdvancedCapabilitiesInstruction
 	}
+}
+
+func encodeAdvancedCapabilitiesResult(capabilities []advancedCapabilityRow, toolset safety.Toolset, shapeCfg responseShaping) (Result, error) {
+	status, instruction := advancedCapabilitiesStatus(toolset)
 	response := listAdvancedCapabilitiesResponse{
 		CurrentToolset:       toolset.String(),
 		Status:               status,
-		EnableInstruction:    listAdvancedCapabilitiesInstruction,
+		EnableInstruction:    instruction,
 		AdvancedCapabilities: append([]advancedCapabilityRow(nil), capabilities...),
 		Meta: advancedCapabilitiesMeta{
 			Count:          len(capabilities),

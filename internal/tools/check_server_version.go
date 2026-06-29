@@ -11,6 +11,7 @@ import (
 
 	"github.com/ricardocabral/icuvisor/internal/response"
 	"github.com/ricardocabral/icuvisor/internal/safety"
+	"github.com/ricardocabral/icuvisor/internal/toolcatalog"
 )
 
 const (
@@ -147,10 +148,14 @@ func diagnosticCapabilityAllows(tool Tool, capability safety.Capability) bool {
 }
 
 func diagnosticToolsetAllows(tool Tool, active safety.Toolset) bool {
-	if active == safety.ToolsetFull {
+	switch active {
+	case safety.ToolsetFull:
 		return true
+	case safety.ToolsetCompact:
+		return toolcatalog.IsCompactTool(tool.Name)
+	default:
+		return tool.EffectiveToolset() == safety.ToolsetCore
 	}
-	return tool.EffectiveToolset() == safety.ToolsetCore
 }
 
 func descriptionCatalogFingerprint(catalog []Tool) (string, error) {

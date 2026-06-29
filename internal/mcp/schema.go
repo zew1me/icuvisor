@@ -69,7 +69,7 @@ func stripAthleteID(raw json.RawMessage) (json.RawMessage, string, bool, error) 
 
 func validateToolset(tool tools.Tool) error {
 	switch tool.Toolset {
-	case "", safety.ToolsetCore, safety.ToolsetFull:
+	case "", safety.ToolsetCompact, safety.ToolsetCore, safety.ToolsetFull:
 		return nil
 	default:
 		return fmt.Errorf("tool %q has invalid toolset %q", tool.Name, tool.Toolset)
