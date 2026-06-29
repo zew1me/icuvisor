@@ -19,8 +19,9 @@ const (
 	invalidGetDataQualityReportArgumentsMessage = "invalid get_data_quality_report arguments; provide start_date/end_date as YYYY-MM-DD, optional sport, and optional include_full"
 	fetchDataQualityReportMessage               = "could not fetch data quality inputs; check intervals.icu credentials, athlete ID, and date range"
 
-	dataQualityActivityFetchLimit = maxActivityFetchLimit
-	dataQualityEventFetchLimit    = maxEventsLimit
+	dataQualityActivityFetchLimit    = maxActivityFetchLimit
+	dataQualityEventFetchLimit       = maxEventsLimit
+	dataQualityFutureEventHorizonDay = 90
 )
 
 type dataQualityReportClient interface {
@@ -167,7 +168,7 @@ func getDataQualityReportHandler(client dataQualityReportClient, version string,
 			return Result{}, NewUserError(fetchDataQualityReportMessage, err)
 		}
 		resolve := true
-		events, err := client.ListEvents(ctx, intervals.ListEventsParams{Oldest: args.StartDate, Newest: args.EndDate, Limit: dataQualityEventFetchLimit, Resolve: &resolve})
+		events, err := client.ListEvents(ctx, intervals.ListEventsParams{Oldest: args.StartDate, Newest: dataQualityEventProbeEnd(args.EndDate), Limit: dataQualityEventFetchLimit, Resolve: &resolve})
 		if err != nil {
 			if isContextError(err) {
 				return Result{}, err
@@ -226,7 +227,7 @@ func shapeDataQualityReport(in dataQualityReportInputs) dataQualityReportRespons
 		StreamAvailability: dataQualityStreamAvailabilitySection(in.activities),
 		SourceRestrictions: dataQualitySourceRestrictionsSection(in.activities),
 		LoadBasis:          dataQualityLoadBasisSection(in.summaries, in.args.Sport),
-		ThresholdsZones:    dataQualityThresholdsSection(profileResponse.Meta.Warnings),
+		ThresholdsZones:    dataQualityThresholdsSection(filterDataQualityReadinessWarnings(profileResponse.Meta.Warnings, in.args.Sport)),
 		WellnessFreshness:  dataQualityWellnessSection(in.wellness, in.args.EndDate),
 		CalendarRaceData:   dataQualityCalendarSection(in.events),
 	}
@@ -322,7 +323,7 @@ func dataQualitySourceRestrictionsSection(activities []intervals.Activity) dataQ
 }
 
 func dataQualityLoadBasisSection(rows []intervals.SummaryWithCats, sport string) dataQualitySection {
-	evidence := map[string]any{"summary_days": len(rows), "dates": dataQualitySummaryDates(rows)}
+	evidence := dataQualityDateEvidence("summary_days", dataQualitySummaryDates(rows))
 	section := dataQualitySection{Status: "ok", Severity: "info", Message: "Training-load and fitness summary fields are visible.", Evidence: evidence}
 	if len(rows) == 0 {
 		section.Status = "critical"
@@ -380,6 +381,24 @@ func dataQualityCategoryLoadDiagnostics(rows []intervals.SummaryWithCats) []data
 	return diagnostics
 }
 
+func filterDataQualityReadinessWarnings(warnings []athleteprofile.ReadinessWarning, sport string) []athleteprofile.ReadinessWarning {
+	trimmed := strings.ToLower(strings.TrimSpace(sport))
+	if trimmed == "" {
+		return warnings
+	}
+	out := []athleteprofile.ReadinessWarning{}
+	for _, warning := range warnings {
+		for _, sportType := range warning.SportTypes {
+			normalized := strings.ToLower(strings.TrimSpace(sportType))
+			if normalized == trimmed || strings.Contains(normalized, trimmed) || strings.Contains(trimmed, normalized) {
+				out = append(out, warning)
+				break
+			}
+		}
+	}
+	return out
+}
+
 func dataQualityThresholdsSection(warnings []athleteprofile.ReadinessWarning) dataQualitySection {
 	evidence := map[string]any{"warning_count": len(warnings)}
 	section := dataQualitySection{Status: "ok", Severity: "info", Message: "Sport thresholds and zones look ready for common coaching analysis.", Evidence: evidence}
@@ -398,7 +417,7 @@ func dataQualityThresholdsSection(warnings []athleteprofile.ReadinessWarning) da
 func dataQualityWellnessSection(rows []intervals.Wellness, endDate string) dataQualitySection {
 	dates := dataQualityWellnessDates(rows)
 	staleBridge := dataQualityStaleWellnessRows(rows)
-	evidence := map[string]any{"wellness_days": len(rows), "dates": dates}
+	evidence := dataQualityDateEvidence("wellness_days", dates)
 	section := dataQualitySection{Status: "ok", Severity: "info", Message: "Wellness data is visible and current for the requested window.", Evidence: evidence}
 	if len(rows) == 0 {
 		section.Status = "critical"
@@ -417,11 +436,11 @@ func dataQualityWellnessSection(rows []intervals.Wellness, endDate string) dataQ
 	latest := dates[len(dates)-1]
 	evidence["latest_wellness_date"] = latest
 	if len(staleBridge) > 0 {
-		evidence["stale_bridge_rows"] = staleBridge
+		evidence["stale_bridge_count"] = len(staleBridge)
 		section.Status = "warning"
 		section.Severity = "warning"
 		section.Message = "Wellness data is visible, but provider bridge metadata indicates stale sync."
-		section.Diagnostics = append(section.Diagnostics, dataQualityDiagnostic{Code: "stale_wellness_bridge", Severity: "warning", Message: "At least one wellness row has provider/bridge fetched-at metadata older than 24h for that wellness date.", Evidence: map[string]any{"stale_bridge_rows": staleBridge}, Recommendation: dataQualityRecommendation{Action: "Refresh the upstream wellness bridge and re-check get_wellness_data provenance metadata.", Tool: getWellnessDataName}})
+		section.Diagnostics = append(section.Diagnostics, dataQualityDiagnostic{Code: "stale_wellness_bridge", Severity: "warning", Message: "At least one wellness row has provider/bridge fetched-at metadata older than 24h for that wellness date.", Evidence: map[string]any{"stale_bridge_count": len(staleBridge), "sample": boundedMapEvidence(staleBridge, 3)}, Recommendation: dataQualityRecommendation{Action: "Refresh the upstream wellness bridge and re-check get_wellness_data provenance metadata.", Tool: getWellnessDataName}})
 	}
 	if dayGap(latest, endDate) > 1 {
 		section.Status = "warning"
@@ -565,6 +584,16 @@ func dataQualityActivitySamples(activities []intervals.Activity) []dataQualityAc
 	return out
 }
 
+func dataQualityDateEvidence(countKey string, dates []string) map[string]any {
+	evidence := map[string]any{countKey: len(dates)}
+	if len(dates) == 0 {
+		return evidence
+	}
+	evidence["oldest_date"] = dates[0]
+	evidence["newest_date"] = dates[len(dates)-1]
+	return evidence
+}
+
 func dataQualitySummaryDates(rows []intervals.SummaryWithCats) []string {
 	dates := make([]string, 0, len(rows))
 	for _, row := range rows {
@@ -629,6 +658,13 @@ func dataQualityUpdatedStale(row intervals.Wellness) (string, bool) {
 	return fetchedAt, ok && wellnessFetchedAtIsStale(row, parsed)
 }
 
+func boundedMapEvidence(values []map[string]any, limit int) []map[string]any {
+	if limit <= 0 || len(values) <= limit {
+		return values
+	}
+	return values[:limit]
+}
+
 func dataQualityEventSamples(events []intervals.Event) []dataQualityEventEvidence {
 	limit := min(len(events), 20)
 	out := make([]dataQualityEventEvidence, 0, limit)
@@ -674,6 +710,14 @@ func dataAvailabilityEvidence(diagnostic dataAvailabilityDiagnostic) map[string]
 		evidence["dates"] = diagnostic.Dates
 	}
 	return evidence
+}
+
+func dataQualityEventProbeEnd(endDate string) string {
+	parsed, err := time.Parse(time.DateOnly, endDate)
+	if err != nil {
+		return endDate
+	}
+	return parsed.AddDate(0, 0, dataQualityFutureEventHorizonDay).Format(time.DateOnly)
 }
 
 func dayGap(startDate string, endDate string) int {
