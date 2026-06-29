@@ -79,7 +79,7 @@ If you prefer manual configuration, add this to `~/.cursor/mcp.json` and leave `
 
 `server.json` in this repository describes icuvisor for MCP Registry-style discovery and points to the signed MCPB release artifact. No Glama badge is shown until Glama exposes a stable public icuvisor page; speculative discovery links are intentionally omitted.
 
-Learn more on how to connect your AI assistant, read the tool catalog, and troubleshoot stale conversations or cached tool catalogs at <https://icuvisor.app>.
+Learn how to connect your AI assistant, try beginner prompt examples, read the tool catalog, and troubleshoot stale conversations or cached tool catalogs at <https://icuvisor.app>.
 
 ### Fitness projection with ATP/periodization targets
 

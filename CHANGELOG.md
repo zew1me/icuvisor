@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added a beginner "what can I ask icuvisor?" prompt guide, setup/connect cross-links, LLM discovery links, and expanded troubleshooting for Strava-restricted data, missing streams, HR/TRIMP load, stale activities, and client tool-selection confusion.
 - Added data-availability diagnostics for Strava-restricted activity streams and missing stream channels, plus load diagnostics that preserve HR/TRIMP `training_load` without relabeling it as TSS.
 
 ## [1.2.1] - 2026-06-26
