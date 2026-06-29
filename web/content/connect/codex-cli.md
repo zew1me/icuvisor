@@ -40,6 +40,7 @@ codex mcp add icuvisor \
   --env INTERVALS_ICU_ATHLETE_ID=i12345 \
   --env ICUVISOR_TIMEZONE=America/Sao_Paulo \
   --env ICUVISOR_TRANSPORT=stdio \
+  --env ICUVISOR_TOOLSET=compact \
   -- /absolute/path/to/icuvisor
 ```
 
@@ -69,9 +70,10 @@ command = "/absolute/path/to/icuvisor"
 INTERVALS_ICU_ATHLETE_ID = "i12345"
 ICUVISOR_TIMEZONE = "America/Sao_Paulo"
 ICUVISOR_TRANSPORT = "stdio"
+ICUVISOR_TOOLSET = "compact"
 ```
 
-`ICUVISOR_TRANSPORT=stdio` is optional because stdio is icuvisor's default transport, but keeping it explicit makes the config easier to audit.
+`ICUVISOR_TRANSPORT=stdio` is optional because stdio is icuvisor's default transport, but keeping it explicit makes the config easier to audit. `ICUVISOR_TOOLSET=compact` is recommended when using Codex with smaller/local-compatible model surfaces because it exposes a reduced read-focused catalog; switch to `core` for the normal daily catalog or `full` for expert workflows after basic routing works.
 
 ## Verify the connection
 

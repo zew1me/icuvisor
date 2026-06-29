@@ -43,6 +43,19 @@ func TestLoadFixture(t *testing.T) {
 	if got := seen["event-delete-full-mode"].ExpectedFirstTool; got == nil || *got != toolcatalog.DeleteEvent {
 		t.Fatalf("full-mode delete expected tool = %v, want %s", got, toolcatalog.DeleteEvent)
 	}
+	compactCases := map[string]string{
+		"compact-activity-stream-read":              toolcatalog.GetActivityStreams,
+		"compact-event-write-hidden":                toolcatalog.ICUvisorListAdvancedCapabilities,
+		"compact-planning-training-plan-assignment": toolcatalog.GetTrainingPlan,
+	}
+	for id, want := range compactCases {
+		if got := seen[id].ExpectedFirstTool; got == nil || *got != want {
+			t.Fatalf("%s expected tool = %v, want %s", id, got, want)
+		}
+		if seen[id].CatalogMode != "compact_safe" || seen[id].Toolset != "compact" {
+			t.Fatalf("%s catalog fields = %s/%s, want compact_safe/compact", id, seen[id].CatalogMode, seen[id].Toolset)
+		}
+	}
 	for _, id := range []string{"race-a-event-create", "race-b-event-create", "race-c-event-create"} {
 		if got := seen[id].ExpectedFirstTool; got == nil || *got != toolcatalog.AddOrUpdateEvent {
 			t.Fatalf("%s expected tool = %v, want %s", id, got, toolcatalog.AddOrUpdateEvent)

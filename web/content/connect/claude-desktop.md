@@ -24,7 +24,7 @@ Install:
    - `api_key`: your intervals.icu API key. The manifest marks this field as sensitive, so Claude Desktop stores it in its secure extension configuration instead of writing it to `claude_desktop_config.json`.
    - `athlete_id`: your intervals.icu athlete ID, such as `i12345`.
    - `timezone`: an IANA timezone such as `UTC`, `America/Sao_Paulo`, or `Europe/London`.
-   - `toolset`: keep `core` unless you intentionally want the larger `full` catalog.
+   - `toolset`: keep `core` for normal Claude Desktop use, choose `compact` only if a weaker/local-compatible model surface struggles with the catalog, or choose `full` when you intentionally want the larger expert catalog.
 4. Enable the extension and restart Claude Desktop if it asks you to.
 5. Start a new chat so Claude refreshes the MCP tool catalog.
 
@@ -93,7 +93,8 @@ macOS:
       "env": {
         "INTERVALS_ICU_ATHLETE_ID": "i12345",
         "ICUVISOR_TIMEZONE": "America/Sao_Paulo",
-        "ICUVISOR_TRANSPORT": "stdio"
+        "ICUVISOR_TRANSPORT": "stdio",
+        "ICUVISOR_TOOLSET": "core"
       }
     }
   }
@@ -110,7 +111,8 @@ Windows:
       "env": {
         "INTERVALS_ICU_ATHLETE_ID": "i12345",
         "ICUVISOR_TIMEZONE": "Europe/Brussels",
-        "ICUVISOR_TRANSPORT": "stdio"
+        "ICUVISOR_TRANSPORT": "stdio",
+        "ICUVISOR_TOOLSET": "core"
       }
     }
   }
@@ -121,6 +123,7 @@ Notes:
 
 - Do not put your intervals.icu API key in `claude_desktop_config.json`; the manual path reads it from the OS credential store.
 - `ICUVISOR_TRANSPORT=stdio` is optional because stdio is the default, but keeping it explicit makes the config easier to audit.
+- `ICUVISOR_TOOLSET=core` is the default. Use `compact` only for reduced-catalog compatibility experiments, or `full` when you need the broad expert catalog.
 - Use a real IANA timezone such as `UTC`, `America/Sao_Paulo`, or `Europe/London`.
 - If you installed the app somewhere else, update `command` to the absolute path to `icuvisor.app/Contents/MacOS/icuvisor` or `icuvisor.exe`.
 

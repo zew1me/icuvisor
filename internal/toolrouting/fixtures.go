@@ -115,13 +115,13 @@ func validateFixture(fixture Fixture, knownTools map[string]struct{}) error {
 }
 
 func validateCatalogFields(c Case) error {
-	if !slices.Contains([]string{"core_safe", "core_full_delete", "full_safe", "full_full_delete"}, c.CatalogMode) {
+	if !slices.Contains([]string{"compact_safe", "compact_full_delete", "core_safe", "core_full_delete", "full_safe", "full_full_delete"}, c.CatalogMode) {
 		return fmt.Errorf("%w %q", errUnknownCatalogMode, c.CatalogMode)
 	}
 	switch c.Toolset {
-	case "core", "full":
+	case "compact", "core", "full":
 	default:
-		return fmt.Errorf("toolset = %q, want core or full", c.Toolset)
+		return fmt.Errorf("toolset = %q, want compact, core, or full", c.Toolset)
 	}
 	switch c.DeleteMode {
 	case "safe", "full":

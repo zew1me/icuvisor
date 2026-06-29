@@ -34,7 +34,8 @@ From the project directory where you run Claude Code, create or edit `.mcp.json`
       "env": {
         "INTERVALS_ICU_ATHLETE_ID": "i12345",
         "ICUVISOR_TIMEZONE": "America/Sao_Paulo",
-        "ICUVISOR_TRANSPORT": "stdio"
+        "ICUVISOR_TRANSPORT": "stdio",
+        "ICUVISOR_TOOLSET": "core"
       }
     }
   }
@@ -44,6 +45,7 @@ From the project directory where you run Claude Code, create or edit `.mcp.json`
 Notes:
 
 - `ICUVISOR_TRANSPORT=stdio` is optional because stdio is the default.
+- `ICUVISOR_TOOLSET=core` is the recommended Claude Code profile. Use `compact` only for reduced-catalog compatibility checks, or `full` for expert workflows that need the complete tool catalog.
 - Keep `.mcp.json` out of commits if it contains personal athlete IDs or local-only paths.
 - If your team commits a shared `.mcp.json`, use placeholders and document that each user must add their own non-secret athlete ID locally.
 - If you installed the app somewhere else, update `command` to the absolute path to `icuvisor.app/Contents/MacOS/icuvisor`.

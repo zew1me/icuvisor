@@ -46,6 +46,7 @@ export INTERVALS_ICU_API_KEY="YOUR_INTERVALS_ICU_API_KEY"
 export INTERVALS_ICU_ATHLETE_ID="i12345"
 # Optional:
 export ICUVISOR_TIMEZONE="America/Sao_Paulo"
+export ICUVISOR_TOOLSET="compact"
 ```
 
 A local untracked `.env` can also be used for maintainer smoke testing as the same fallback category, but do not display or commit it. Before committing, verify only its git status, not its contents:
@@ -58,7 +59,7 @@ git status --short .env
 
 Codex supports MCP servers under `mcp_servers.<name>` in TOML config. For validation, prefer per-command overrides instead of `codex mcp add`, so no MCP server entry or secret is written to `~/.codex/config.toml`.
 
-Use `env_vars` to pass non-secret variable names through from the Codex process environment. After `icuvisor setup`, pass only values such as `INTERVALS_ICU_ATHLETE_ID` and `ICUVISOR_TIMEZONE`; the API key is read from the OS keychain by the local icuvisor process. Include `INTERVALS_ICU_API_KEY` in `env_vars` only for the deliberate headless fallback described above, and never paste the key value into Codex config or prompts.
+Use `env_vars` to pass non-secret variable names through from the Codex process environment. After `icuvisor setup`, pass only values such as `INTERVALS_ICU_ATHLETE_ID`, `ICUVISOR_TIMEZONE`, and `ICUVISOR_TOOLSET`; the API key is read from the OS keychain by the local icuvisor process. For Codex/local-model compatibility checks, set `ICUVISOR_TOOLSET=compact` to expose the reduced read-focused catalog before trying `core` or `full`. Include `INTERVALS_ICU_API_KEY` in `env_vars` only for the deliberate headless fallback described above, and never paste the key value into Codex config or prompts.
 
 ```bash
 CODEX=/Users/YOU/Library/pnpm/codex
@@ -74,7 +75,7 @@ REPO=/absolute/path/to/icuvisor
   -c 'sandbox_mode="danger-full-access"' \
   -c "mcp_servers.icuvisor.command=\"$ICUVISOR\"" \
   -c "mcp_servers.icuvisor.cwd=\"$REPO\"" \
-  -c 'mcp_servers.icuvisor.env_vars=["INTERVALS_ICU_ATHLETE_ID","ICUVISOR_TIMEZONE"]' \
+  -c 'mcp_servers.icuvisor.env_vars=["INTERVALS_ICU_ATHLETE_ID","ICUVISOR_TIMEZONE","ICUVISOR_TOOLSET"]' \
   'List the icuvisor MCP tools by name only. Do not print environment variables.'
 ```
 
@@ -100,7 +101,7 @@ Ask Codex to list the icuvisor tools:
   -c 'sandbox_mode="danger-full-access"' \
   -c "mcp_servers.icuvisor.command=\"$ICUVISOR\"" \
   -c "mcp_servers.icuvisor.cwd=\"$REPO\"" \
-  -c 'mcp_servers.icuvisor.env_vars=["INTERVALS_ICU_ATHLETE_ID","ICUVISOR_TIMEZONE"]' \
+  -c 'mcp_servers.icuvisor.env_vars=["INTERVALS_ICU_ATHLETE_ID","ICUVISOR_TIMEZONE","ICUVISOR_TOOLSET"]' \
   'List the MCP tools available from the icuvisor MCP server by name only. Do not run shell commands.'
 ```
 
@@ -126,7 +127,7 @@ After running `icuvisor setup` and keeping the API key in the OS keychain, run:
   -c 'sandbox_mode="danger-full-access"' \
   -c "mcp_servers.icuvisor.command=\"$ICUVISOR\"" \
   -c "mcp_servers.icuvisor.cwd=\"$REPO\"" \
-  -c 'mcp_servers.icuvisor.env_vars=["INTERVALS_ICU_ATHLETE_ID","ICUVISOR_TIMEZONE"]' \
+  -c 'mcp_servers.icuvisor.env_vars=["INTERVALS_ICU_ATHLETE_ID","ICUVISOR_TIMEZONE","ICUVISOR_TOOLSET"]' \
   'Use icuvisor to fetch my intervals.icu athlete profile. Summarize only non-sensitive fields and the response shape; do not include raw athlete IDs, API keys, or detailed training values.'
 ```
 

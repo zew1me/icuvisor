@@ -56,6 +56,15 @@
       "notes": "Analyzer helper should be selected instead of fetching raw streams into chat."
     },
     {
+      "id": "compact-activity-stream-read",
+      "prompt": "For activity 123456, fetch the power and heart-rate streams so I can inspect the samples available for that workout.",
+      "expected_first_tool": "get_activity_streams",
+      "catalog_mode": "compact_safe",
+      "toolset": "compact",
+      "delete_mode": "safe",
+      "notes": "Compact exposes get_activity_streams for explicit raw-sample reads but not heavier analyzer or write tools."
+    },
+    {
       "id": "event-write-upsert",
       "prompt": "Add a planned bike workout called Endurance 60 on 2026-06-01 with a one hour endurance description.",
       "expected_first_tool": "add_or_update_event",
@@ -63,6 +72,15 @@
       "toolset": "core",
       "delete_mode": "safe",
       "notes": "Write/update event routing should use the event upsert tool."
+    },
+    {
+      "id": "compact-event-write-hidden",
+      "prompt": "Add a planned bike workout called Endurance 60 on 2026-06-01 with a one hour endurance description.",
+      "expected_first_tool": "icuvisor_list_advanced_capabilities",
+      "catalog_mode": "compact_safe",
+      "toolset": "compact",
+      "delete_mode": "safe",
+      "notes": "Compact hides write-capable event tools; the discoverability tool should explain switching to core or full rather than inventing add_or_update_event."
     },
     {
       "id": "event-write-with-external-id",
@@ -189,6 +207,15 @@
       "toolset": "full",
       "delete_mode": "safe",
       "notes": "Contrast: asking for the assigned training-plan object or template metadata should route to get_training_plan, not the ATP calendar summary."
+    },
+    {
+      "id": "compact-planning-training-plan-assignment",
+      "prompt": "Which training plan is currently assigned to me, and what plan metadata or assigned dates does Intervals have for it?",
+      "expected_first_tool": "get_training_plan",
+      "catalog_mode": "compact_safe",
+      "toolset": "compact",
+      "delete_mode": "safe",
+      "notes": "Compact keeps the safe assigned-training-plan read while omitting ATP/projection specialist tools."
     },
     {
       "id": "planning-fitness-projection",

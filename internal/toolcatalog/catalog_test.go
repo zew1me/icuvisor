@@ -44,6 +44,21 @@ func TestValidateACLPattern(t *testing.T) {
 func TestToolSets(t *testing.T) {
 	t.Parallel()
 
+	compact := CompactToolNames()
+	if len(compact) == 0 {
+		t.Fatal("compact tool names should not be empty")
+	}
+	for _, name := range compact {
+		if !IsCompactTool(name) || !IsKnownTool(name) {
+			t.Fatalf("compact tool %q should be compact and known", name)
+		}
+	}
+	for _, hidden := range []string{AddOrUpdateEvent, AnalyzeTrend, GetWorkoutLibrary, UpdateWellness} {
+		if IsCompactTool(hidden) {
+			t.Fatalf("%s should not be in compact allow-list", hidden)
+		}
+	}
+
 	if !IsKnownTool(SelectAthlete) || IsAthleteScopedTool(SelectAthlete) {
 		t.Fatal("select_athlete should be known but outside per-athlete ACLs")
 	}

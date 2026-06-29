@@ -30,7 +30,7 @@ Use the provider-specific pages when you want exact UI labels:
    ```
 
 2. When the authorization page opens, choose the hosted preferences:
-   - **Toolset**: `core` for daily use, `full` for the broader catalog.
+   - **Toolset**: `core` for Claude.ai and ChatGPT daily use, `compact` for smaller/local-compatible clients that need a reduced tool catalog, or `full` for the broader expert catalog.
    - **Write safety**: read-only by default; enable writes or deletes only when you need them.
    - **Calendar and wellness writes**: opt in only when you want Intervals write scopes.
    - **Timezone**: used for hosted date handling.

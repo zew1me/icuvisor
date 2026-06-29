@@ -27,7 +27,8 @@ macOS:
       "env": {
         "INTERVALS_ICU_ATHLETE_ID": "i12345",
         "ICUVISOR_TIMEZONE": "America/Sao_Paulo",
-        "ICUVISOR_TRANSPORT": "stdio"
+        "ICUVISOR_TRANSPORT": "stdio",
+        "ICUVISOR_TOOLSET": "core"
       }
     }
   }
@@ -44,22 +45,37 @@ Windows:
       "env": {
         "INTERVALS_ICU_ATHLETE_ID": "i12345",
         "ICUVISOR_TIMEZONE": "Europe/Brussels",
-        "ICUVISOR_TRANSPORT": "stdio"
+        "ICUVISOR_TRANSPORT": "stdio",
+        "ICUVISOR_TOOLSET": "core"
       }
     }
   }
 }
 ```
 
-For clients that ask for only one server entry, copy the inner `icuvisor` object.
+For clients that ask for only one server entry, copy the inner `icuvisor` object. `ICUVISOR_TOOLSET=core` is the default and is shown explicitly so you can change profiles deliberately.
+
+## Choose a tool profile
+
+`ICUVISOR_TOOLSET` controls how many tools the model sees:
+
+| Profile | Use it for | What changes |
+| --- | --- | --- |
+| `core` | Claude, ChatGPT local surfaces, Cursor, Cline, Continue, and most daily training chats. | Default balanced catalog with common reads and safe write workflows. |
+| `compact` | Local/Ollama/OpenRouter-style clients, smaller models, or any client that starts choosing nonexistent tools or arguments from a large catalog. | Smaller read-focused catalog for status, activities, streams, wellness, calendar reads, and safe planning context. Write/delete and specialist analyzer tools stay hidden. |
+| `full` | Expert workflows on capable clients when you need the complete icuvisor surface. | Broadest catalog, including specialist analyzers and advanced management tools subject to write/delete safety settings. |
+
+If you switch between `compact`, `core`, and `full`, restart the MCP server and open a new client conversation so the client reloads the catalog.
 
 ## Client notes
 
 | Client                         | What to configure                                                                                                                                |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Cursor                         | Add an MCP server named `icuvisor` with the command path and non-secret environment values above. Restart the relevant workspace or MCP session. |
-| Continue                       | Add the server to Continue's MCP configuration using the same command/env shape. Restart Continue after editing config.                          |
+| Cursor                         | Add an MCP server named `icuvisor` with the command path and non-secret environment values above. Use `core` unless you see tool-selection confusion, then try `compact`. Restart the relevant workspace or MCP session. |
+| Cline                          | Add the same stdio server object to Cline's MCP settings. Start with `core`; use `compact` for smaller/local model providers.                    |
+| Continue                       | Add the server to Continue's MCP configuration using the same command/env shape. Use `compact` when pairing Continue with local/Ollama-style models that struggle with larger catalogs. Restart Continue after editing config. |
 | Zed                            | Add icuvisor as a local MCP server. Use an absolute binary path and non-secret environment variables.                                            |
+| Local/Ollama/OpenRouter-style clients | Prefer `ICUVISOR_TOOLSET=compact` first; move to `core` only after basic profile, activity, wellness, and calendar reads route reliably. |
 | Pi or another MCP-aware client | If it supports local stdio servers, use the stdio JSON. If it requires local HTTP, use Streamable HTTP on loopback. If it requires public HTTPS, use hosted mode. |
 
 ## HTTP URL for clients that require it

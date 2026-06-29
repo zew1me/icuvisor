@@ -13,6 +13,8 @@ func TestParseToolsetDefaultsToCore(t *testing.T) {
 		{name: "empty", value: "", want: ToolsetCore},
 		{name: "core", value: "core", want: ToolsetCore},
 		{name: "core uppercase", value: " CORE ", want: ToolsetCore},
+		{name: "compact", value: "compact", want: ToolsetCompact},
+		{name: "compact mixed case", value: " CoMpAcT ", want: ToolsetCompact},
 		{name: "full", value: "full", want: ToolsetFull},
 		{name: "full mixed case", value: " FuLl ", want: ToolsetFull},
 		{name: "unknown", value: "everything", want: ToolsetCore},
@@ -36,6 +38,7 @@ func TestToolsetStringDefaultsToCore(t *testing.T) {
 		in   Toolset
 		want string
 	}{
+		{name: "compact", in: ToolsetCompact, want: "compact"},
 		{name: "core", in: ToolsetCore, want: "core"},
 		{name: "full", in: ToolsetFull, want: "full"},
 		{name: "invalid", in: Toolset("surprise"), want: "core"},

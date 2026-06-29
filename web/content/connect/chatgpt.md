@@ -25,7 +25,7 @@ Use hosted mode for ChatGPT's custom connector/app flow. ChatGPT connects from O
    | Connector URL | `https://connect.icuvisor.app/mcp` |
 
 5. Click **Create**.
-6. Complete the hosted icuvisor authorization flow, choose hosted preferences, continue to Intervals.icu, and approve the requested OAuth scopes.
+6. Complete the hosted icuvisor authorization flow, choose hosted preferences, continue to Intervals.icu, and approve the requested OAuth scopes. Choose `core` for normal ChatGPT use; use `compact` only if a smaller/local-compatible ChatGPT surface struggles with the tool catalog, or `full` for expert workflows that need every tool.
 7. Start a new ChatGPT conversation, click **+**, choose **More**, and add the icuvisor connector to the chat.
 
 Verify with:
@@ -62,7 +62,8 @@ macOS:
       "env": {
         "INTERVALS_ICU_ATHLETE_ID": "i12345",
         "ICUVISOR_TIMEZONE": "America/Sao_Paulo",
-        "ICUVISOR_TRANSPORT": "stdio"
+        "ICUVISOR_TRANSPORT": "stdio",
+        "ICUVISOR_TOOLSET": "core"
       }
     }
   }
@@ -79,14 +80,15 @@ Windows:
       "env": {
         "INTERVALS_ICU_ATHLETE_ID": "i12345",
         "ICUVISOR_TIMEZONE": "Europe/Brussels",
-        "ICUVISOR_TRANSPORT": "stdio"
+        "ICUVISOR_TRANSPORT": "stdio",
+        "ICUVISOR_TOOLSET": "core"
       }
     }
   }
 }
 ```
 
-If your ChatGPT MCP surface expects a single server object rather than a full `mcpServers` map, use the `icuvisor` object from the example as that server definition.
+If your ChatGPT MCP surface expects a single server object rather than a full `mcpServers` map, use the `icuvisor` object from the example as that server definition. `ICUVISOR_TOOLSET=core` is the recommended default for ChatGPT; switch to `compact` for reduced-catalog compatibility only after starting a fresh conversation.
 
 ### HTTP alternative
 
