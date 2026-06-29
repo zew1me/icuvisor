@@ -1,6 +1,6 @@
 ---
 title: "Guides"
-description: "Step-by-step icuvisor guides."
+description: "Step-by-step guides for using icuvisor with Claude, ChatGPT, and other MCP clients to connect intervals.icu training data safely."
 weight: 40
 type: docs
 cascade:

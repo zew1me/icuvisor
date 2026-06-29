@@ -1,15 +1,16 @@
 <!doctype html>
 <html lang="en">
 <head>
+  {{- $homeTitle := .Site.Params.homeTitle | default .Site.Title -}}
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{{ .Site.Title }}</title>
+  <title>{{ $homeTitle }}</title>
   <meta name="description" content="{{ .Site.Params.description }}" />
   <link rel="icon" href="{{ "favicon.ico" | relURL }}" sizes="any" />
   <link rel="icon" href="{{ "favicon-32.png" | relURL }}" type="image/png" sizes="32x32" />
   <link rel="icon" href="{{ "favicon-192.png" | relURL }}" type="image/png" sizes="192x192" />
   <link rel="apple-touch-icon" href="{{ "apple-touch-icon.png" | relURL }}" />
-  <meta property="og:title" content="{{ .Site.Title }}" />
+  <meta property="og:title" content="{{ $homeTitle }}" />
   <meta property="og:description" content="{{ .Site.Params.description }}" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="{{ .Site.BaseURL }}" />

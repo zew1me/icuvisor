@@ -1,6 +1,6 @@
 ---
 title: "Reference"
-description: "Generated icuvisor reference pages."
+description: "Reference docs for the icuvisor intervals.icu MCP server: tool catalog, resources, prompts, CLI flags, config fields, and safety modes."
 weight: 50
 type: docs
 cascade:

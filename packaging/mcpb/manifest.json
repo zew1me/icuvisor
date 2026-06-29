@@ -14,8 +14,8 @@
     "type": "git",
     "url": "https://github.com/ricardocabral/icuvisor.git"
   },
-  "homepage": "https://icuvisor.dev",
-  "documentation": "https://icuvisor.dev/connect/claude-desktop/",
+  "homepage": "https://icuvisor.app",
+  "documentation": "https://icuvisor.app/connect/claude-desktop/",
   "support": "https://github.com/ricardocabral/icuvisor/issues",
   "icon": "assets/icon.png",
   "license": "MIT",

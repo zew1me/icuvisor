@@ -1,6 +1,6 @@
 ---
 title: "Explanation"
-description: "Concepts behind icuvisor's design."
+description: "Understand how icuvisor connects intervals.icu training data to AI clients with MCP, local credentials, privacy controls, and terse tool responses."
 weight: 60
 type: docs
 cascade:

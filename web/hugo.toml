@@ -1,10 +1,15 @@
 baseURL = "https://icuvisor.app/"
 locale = "en-us"
-title = "icuvisor — Talk to your intervals.icu data"
+title = "icuvisor"
 enableRobotsTXT = true
+enableGitInfo = true
 disableKinds = ["taxonomy", "term", "RSS"]
 
+[frontmatter]
+lastmod = [":git", "lastmod", "date", "publishDate"]
+
 [params]
+homeTitle = "icuvisor — Talk to your intervals.icu data"
 description = "Open-source MCP server that connects intervals.icu training data to Claude, ChatGPT, and other AI assistants. Run it locally by default, or use the hosted HTTPS connector when a client requires it."
 github = "https://github.com/ricardocabral/icuvisor"
 intervals = "https://intervals.icu"

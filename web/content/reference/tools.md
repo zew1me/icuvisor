@@ -1,6 +1,6 @@
 ---
 title: "Tool reference"
-description: "Generated MCP tool catalog for icuvisor."
+description: "Explore the intervals.icu MCP server tool reference for icuvisor, including activities, wellness, fitness, calendar tools, arguments, and examples."
 tool_catalog: true
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: "Linux install status"
-description: "Linux package status for icuvisor."
+description: "Current Linux install options for the icuvisor intervals.icu MCP server, including source builds, libsecret credentials, and config references."
 ---
 
 Linux packages are planned for v1.0. Until `.deb`, `.rpm`, or another packaged install path is available, Linux users can build icuvisor from source if they are comfortable with Go tooling.

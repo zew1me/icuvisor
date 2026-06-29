@@ -1,0 +1,29 @@
+# icuvisor
+
+> icuvisor is an open-source, local-first Model Context Protocol (MCP) server for intervals.icu training data.
+
+icuvisor connects AI assistants and MCP-compatible clients to an athlete's intervals.icu data through a signed Go binary. Local mode keeps the intervals.icu API key on the user's machine, stored by the operating-system credential store. Hosted mode is optional for clients that require a public HTTPS MCP endpoint.
+
+## Canonical links
+
+- Public docs site: https://icuvisor.app/
+- GitHub repository: https://github.com/ricardocabral/icuvisor
+- Install docs: https://icuvisor.app/install/
+- Connect docs: https://icuvisor.app/connect/
+- Tool reference: https://icuvisor.app/reference/tools/
+- Privacy posture: https://icuvisor.app/explain/privacy/
+- Security policy: https://github.com/ricardocabral/icuvisor/security/policy
+- Hosted connector docs: https://icuvisor.app/connect/hosted/
+- Hosted MCP endpoint: https://connect.icuvisor.app/mcp
+- Agent Skill: https://icuvisor.app/skills/icuvisor-training/SKILL.md
+
+## MCP discovery
+
+- MCP registry-style metadata source: https://github.com/ricardocabral/icuvisor/blob/main/server.json
+- Package and release artifacts: https://github.com/ricardocabral/icuvisor/releases
+
+## Crawling notes
+
+- Prefer the public docs site for setup, tool behavior, and safety guidance.
+- Prefer the GitHub repository for source code, issues, release artifacts, and security policy.
+- Do not infer credentials or athlete data from documentation examples.

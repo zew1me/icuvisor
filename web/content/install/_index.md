@@ -1,6 +1,6 @@
 ---
 title: "Install icuvisor"
-description: "Choose the right icuvisor install path for your computer."
+description: "Install the icuvisor intervals.icu MCP server on macOS, Linux, Windows, or CI before connecting Claude, ChatGPT, or another MCP client."
 weight: 10
 type: docs
 cascade:

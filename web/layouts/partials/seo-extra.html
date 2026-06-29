@@ -1,9 +1,11 @@
 {{- $description := .Description | default .Site.Params.description -}}
-{{- $title := cond .IsHome .Site.Title (printf "%s | icuvisor" .Title) -}}
+{{- $siteTitle := .Site.Title -}}
+{{- $homeTitle := .Site.Params.homeTitle | default $siteTitle -}}
+{{- $title := cond .IsHome $homeTitle (printf "%s | %s" .Title $siteTitle) -}}
 {{- $image := "og-image.png" | absURL -}}
 {{- $publisher := dict
   "@type" "Organization"
-  "name" "icuvisor"
+  "name" $siteTitle
   "url" .Site.BaseURL
   "logo" ("favicon-192.png" | absURL)
   "sameAs" (slice .Site.Params.github)
@@ -15,7 +17,7 @@
 {{- else }}
   <meta property="og:image:secure_url" content="{{ $image }}" />
 {{- end }}
-  <meta property="og:site_name" content="icuvisor" />
+  <meta property="og:site_name" content="{{ $siteTitle }}" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="icuvisor logo with the text Local-first MCP for intervals.icu training data" />
@@ -27,7 +29,7 @@
   "name" $title
   "description" $description
   "url" .Permalink
-  "isPartOf" (dict "@type" "WebSite" "name" "icuvisor" "url" .Site.BaseURL)
+  "isPartOf" (dict "@type" "WebSite" "name" $siteTitle "url" .Site.BaseURL)
   "publisher" $publisher
 | jsonify (dict "indent" "  ") | safeJS }}
   </script>
