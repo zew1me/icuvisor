@@ -168,7 +168,7 @@ func getDataQualityReportHandler(client dataQualityReportClient, version string,
 			return Result{}, NewUserError(fetchDataQualityReportMessage, err)
 		}
 		resolve := true
-		events, err := client.ListEvents(ctx, intervals.ListEventsParams{Oldest: args.StartDate, Newest: dataQualityEventProbeEnd(args.EndDate), Limit: dataQualityEventFetchLimit, Resolve: &resolve})
+		events, err := client.ListEvents(ctx, intervals.ListEventsParams{Oldest: args.StartDate, Newest: dataQualityEventProbeEnd(args.StartDate, args.EndDate), Limit: dataQualityEventFetchLimit, Resolve: &resolve})
 		if err != nil {
 			if isContextError(err) {
 				return Result{}, err
@@ -231,7 +231,7 @@ func shapeDataQualityReport(in dataQualityReportInputs) dataQualityReportRespons
 		LoadBasis:          dataQualityLoadBasisSection(in.summaries, in.args.Sport),
 		ThresholdsZones:    dataQualityThresholdsSection(filterDataQualityReadinessWarnings(profileResponse.Meta.Warnings, in.args.Sport)),
 		WellnessFreshness:  dataQualityWellnessSection(in.wellness, in.args.EndDate),
-		CalendarRaceData:   dataQualityCalendarSection(in.events),
+		CalendarRaceData:   dataQualityCalendarSection(in.events, in.args.EndDate),
 	}
 	payload := dataQualityReportResponse{Sections: sections, Meta: dataQualityMeta{ServerVersion: normalizeVersion(in.version), StartDate: in.args.StartDate, EndDate: in.args.EndDate, Timezone: profileTimezone(in.profile.Timezone, in.timezoneFallback), Sport: in.args.Sport, IncludeFull: in.args.IncludeFull, ReadOnly: true, StreamPolicy: "uses activity stream_types and summary fields only; does not fetch raw stream samples by default", ActivityLimit: dataQualityActivityFetchLimit, EventLimit: dataQualityEventFetchLimit}}
 	payload.Diagnostics = collectDataQualityDiagnostics(sections)
@@ -475,20 +475,31 @@ func dataQualityWellnessSection(rows []intervals.Wellness, endDate string) dataQ
 	return section
 }
 
-func dataQualityCalendarSection(events []intervals.Event) dataQualitySection {
-	raceCount := 0
+func dataQualityCalendarSection(events []intervals.Event, endDate string) dataQualitySection {
+	inWindowCount := 0
+	futureCount := 0
+	futureRaceCount := 0
 	for _, event := range events {
-		if dataQualityRaceLikeEvent(event) {
-			raceCount++
+		date := dataQualityEventDate(event)
+		if date != "" && date > endDate {
+			futureCount++
+			if dataQualityRaceLikeEvent(event) {
+				futureRaceCount++
+			}
+			continue
 		}
+		inWindowCount++
 	}
-	evidence := map[string]any{"calendar_event_count": len(events), "race_like_event_count": raceCount}
+	evidence := map[string]any{"in_window_event_count": inWindowCount, "future_event_count": futureCount, "future_race_like_event_count": futureRaceCount, "future_horizon_days": dataQualityFutureEventHorizonDay}
 	section := dataQualitySection{Status: "ok", Severity: "info", Message: "Calendar events are visible for this window.", Evidence: evidence}
-	if len(events) == 0 {
+	if inWindowCount == 0 {
 		section.Status = "warning"
 		section.Severity = "warning"
-		section.Message = "No calendar events are visible for this window."
-		section.Diagnostics = append(section.Diagnostics, dataQualityDiagnostic{Code: "no_calendar_events", Severity: "warning", Message: "No planned workouts, notes, races, or calendar annotations were returned.", Evidence: evidence, Recommendation: dataQualityRecommendation{Action: "Use get_events over a planning/race window if calendar context should exist.", Tool: getEventsName}})
+		section.Message = "No calendar events are visible inside this report window."
+		if futureCount > 0 {
+			section.Message = "No calendar events are visible inside this report window, but bounded future calendar context exists."
+		}
+		section.Diagnostics = append(section.Diagnostics, dataQualityDiagnostic{Code: "no_calendar_events", Severity: "warning", Message: "No planned workouts, notes, races, or calendar annotations were returned inside the requested window.", Evidence: evidence, Recommendation: dataQualityRecommendation{Action: "Use get_events over the exact planning/race window if calendar context should exist.", Tool: getEventsName}})
 	}
 	return section
 }
@@ -753,12 +764,18 @@ func dataAvailabilityEvidence(diagnostic dataAvailabilityDiagnostic) map[string]
 	return evidence
 }
 
-func dataQualityEventProbeEnd(endDate string) string {
-	parsed, err := time.Parse(time.DateOnly, endDate)
-	if err != nil {
+func dataQualityEventProbeEnd(startDate string, endDate string) string {
+	start, startErr := time.Parse(time.DateOnly, startDate)
+	end, endErr := time.Parse(time.DateOnly, endDate)
+	if startErr != nil || endErr != nil {
 		return endDate
 	}
-	return parsed.AddDate(0, 0, dataQualityFutureEventHorizonDay).Format(time.DateOnly)
+	futureEnd := end.AddDate(0, 0, dataQualityFutureEventHorizonDay)
+	maxEnd := start.AddDate(0, 0, maxEventsRangeDays-1)
+	if futureEnd.After(maxEnd) {
+		return maxEnd.Format(time.DateOnly)
+	}
+	return futureEnd.Format(time.DateOnly)
 }
 
 func dayGap(startDate string, endDate string) int {
