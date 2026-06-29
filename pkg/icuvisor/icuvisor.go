@@ -40,6 +40,8 @@ const (
 type Toolset string
 
 const (
+	// ToolsetCompact exposes the smallest model-compatible tool catalog.
+	ToolsetCompact Toolset = "compact"
 	// ToolsetCore exposes the curated daily-use tool catalog.
 	ToolsetCore Toolset = "core"
 	// ToolsetFull exposes the full tool catalog.
@@ -558,7 +560,7 @@ func validateDeleteMode(mode DeleteMode) error {
 
 func validateToolset(toolset Toolset) error {
 	switch toolset {
-	case "", ToolsetCore, ToolsetFull:
+	case "", ToolsetCompact, ToolsetCore, ToolsetFull:
 		return nil
 	default:
 		return fmt.Errorf("invalid toolset %q", toolset)

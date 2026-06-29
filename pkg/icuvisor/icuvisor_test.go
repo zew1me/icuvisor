@@ -136,7 +136,7 @@ func TestPublicCoreCatalogMatchesInternalForPolicyMatrix(t *testing.T) {
 	client := newFacadeTestClient(t)
 	cfg := facadeTestConfig()
 	modes := []DeleteMode{DeleteModeSafe, DeleteModeFull, DeleteModeNone}
-	toolsets := []Toolset{ToolsetCore, ToolsetFull}
+	toolsets := []Toolset{ToolsetCompact, ToolsetCore, ToolsetFull}
 	for _, mode := range modes {
 		for _, toolset := range toolsets {
 			t.Run(string(mode)+"/"+string(toolset), func(t *testing.T) {
@@ -321,6 +321,36 @@ func TestServerFacadeCatalogHashAndSkipRuntimeMetadata(t *testing.T) {
 	}
 	if runtime := response.RuntimeCatalogMetadata(); runtime.CatalogHash != "before-hash" || runtime.Version != "before-version" {
 		t.Fatalf("runtime metadata = %+v, want unchanged before-version/before-hash", runtime)
+	}
+}
+
+func TestServerFacadeAcceptsCompactToolset(t *testing.T) {
+	t.Parallel()
+
+	client := newFacadeTestClient(t)
+	cfg := facadeTestConfig()
+	cfg.Toolset = ToolsetCompact
+	registry := NewCoreRegistry(client, RegistryOptions{Version: "v-public"})
+	catalog, err := CollectToolCatalog(context.Background(), CatalogOptions{Config: cfg, Registry: registry})
+	if err != nil {
+		t.Fatalf("CollectToolCatalog() error = %v", err)
+	}
+	if !hasTool(catalog, "get_activity_streams") {
+		t.Fatal("compact catalog missing read-only full-tier stream tool")
+	}
+	if hasTool(catalog, "add_or_update_event") {
+		t.Fatal("compact catalog contains hidden write tool add_or_update_event")
+	}
+	wantHash, err := ComputeToolCatalogHash(context.Background(), CatalogOptions{Config: cfg, Registry: registry})
+	if err != nil {
+		t.Fatalf("ComputeToolCatalogHash() error = %v", err)
+	}
+	server, err := NewServer(context.Background(), ServerOptions{Config: cfg, Version: "v-public", Registry: registry, ResourceRegistry: NewResourceRegistry(client, ResourceRegistryOptions{Version: "v-public"}), PromptRegistry: NewPromptRegistry(), SkipRuntimeCatalogMetadata: true})
+	if err != nil {
+		t.Fatalf("NewServer() error = %v", err)
+	}
+	if got := server.CatalogHash(); got != wantHash {
+		t.Fatalf("server catalog hash = %q, want compact hash %q", got, wantHash)
 	}
 }
 
