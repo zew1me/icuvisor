@@ -22,7 +22,7 @@ Before calling intervals.icu, icuvisor normalizes the ID, checks that it is in `
 Coach ACLs compose with the global gates:
 
 1. Delete/write mode decides whether read, write, and delete tools can register.
-2. Toolset tier decides whether core or full tools can register.
+2. Toolset tier decides whether compact, core, or full tools can register.
 3. Per-athlete ACL decides what the active athlete can use.
 
 Any deny wins. A coach can make an active client full-access except deletes, a prospect read-only, and a paused client deny-all.

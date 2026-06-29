@@ -148,7 +148,7 @@
     "toolset": {
       "type": "string",
       "title": "Toolset",
-      "description": "Use core for the terse default catalog or full to expose advanced tools. Delete tools remain hidden in this extension package.",
+      "description": "Use core for the default Claude Desktop catalog, compact for a smaller read-focused compatibility catalog, or full to expose advanced tools. Delete tools remain hidden in this extension package.",
       "required": false,
       "default": "core"
     }

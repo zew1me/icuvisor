@@ -40,7 +40,7 @@ Environment variables:
   %[13]s         MCP transport: stdio or http. Default: %[3]s.
   %[14]s         HTTP bind address for Streamable HTTP. Default: %[4]s.
   %[15]s       Write/delete registration mode: safe, full, or none. Default: %[16]s.
-  %[17]s           Tool catalog tier: core or full. Default: %[18]s.
+  %[17]s           Tool catalog tier: compact, core, or full. Default: %[18]s.
   %[19]s    Include debug metadata in MCP responses when set to true. Default: false.
   %[20]s        Coach-mode feature flag: off, on, or auto. Default: off.
 
