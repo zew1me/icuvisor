@@ -10,6 +10,9 @@ icuvisor connects AI assistants and MCP-compatible clients to an athlete's inter
 - GitHub repository: https://github.com/ricardocabral/icuvisor
 - Install docs: https://icuvisor.app/install/
 - Connect docs: https://icuvisor.app/connect/
+- Beginner prompts: https://icuvisor.app/cookbook/what-can-i-ask/
+- Prompt cookbook: https://icuvisor.app/cookbook/
+- Troubleshooting: https://icuvisor.app/guides/troubleshooting/
 - Tool reference: https://icuvisor.app/reference/tools/
 - Privacy posture: https://icuvisor.app/explain/privacy/
 - Security policy: https://github.com/ricardocabral/icuvisor/security/policy

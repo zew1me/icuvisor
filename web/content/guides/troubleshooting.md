@@ -5,6 +5,69 @@ description: "Common icuvisor setup symptoms and fixes."
 
 Use this guide when icuvisor does not start, an MCP client cannot see tools, or a connection works differently after an upgrade.
 
+## Data access and tool-selection confusion
+
+These symptoms often appear after a first successful connection, when the assistant can call icuvisor but the answer is incomplete, stale, or based on the wrong capability.
+
+### Strava-restricted activities
+
+If an activity response says `strava_imported: true`, `unavailable.reason: strava_tos`, `unavailable.reason: strava_blocked`, or `_meta.data_availability[].reason: restricted_source`, icuvisor is reporting an upstream access restriction. intervals.icu may show an activity shell or summary, but the API response available to icuvisor does not include the complete streams, intervals, or samples.
+
+What to do next:
+
+1. Do not paste private activity files, API keys, or screenshots into chat as a workaround.
+2. Open intervals.icu Connections and connect the original provider when possible, such as Garmin, Wahoo, Zwift, or another device source.
+3. Use that provider's **Download old data** or equivalent historical import option so intervals.icu re-imports the activity directly instead of relying on the Strava-restricted copy.
+4. Start a new assistant conversation and ask icuvisor to re-check the affected activity. If the API still omits the data, ask for an answer based only on available summary fields.
+
+icuvisor cannot bypass Strava's restricted API access and should not guess the missing values.
+
+### Missing streams or partial activity detail
+
+If `_meta.data_availability[].reason` is `missing_stream` for `heart_rate`, `watts`, pace, distance, cadence, or another channel, the activity exists but that sample stream is not available in the API payload. The original recording might not contain that sensor channel, or source restrictions might hide stream samples even when intervals.icu shows a high-level summary.
+
+What to do next:
+
+1. Ask the assistant to list which fields are present before it analyzes the activity.
+2. Use summary fields such as duration, distance, training load, average heart rate, or max heart rate when they are returned.
+3. Re-import from the native provider if the activity came through Strava and you need stream-derived analysis.
+4. If the stream was never recorded, use a different activity or ask for a summary-level answer instead of interval-by-interval analysis.
+
+### HR-only, TRIMP, or missing load fields
+
+Fitness and training-summary responses can include `_meta.load_diagnostics` values such as `trimp_or_hr_load_available`, `missing_training_load`, or `fitness_fields_missing`. That means the account or date range may rely on heart-rate/TRIMP-style load, or intervals.icu omitted specific fitness fields for those dates. icuvisor preserves the upstream load value as `training_load`; it does not rename TRIMP or heart-rate load to `tss`, and it does not report missing CTL/ATL/TSB as zero.
+
+What to do next:
+
+1. Ask the assistant to use `training_load` as the neutral intervals.icu load value unless you specifically know the account's load model.
+2. Check athlete sport settings and recent activities for power, pace, threshold, and heart-rate availability before requesting TSS- or threshold-specific conclusions.
+3. Narrow the date range to days with known completed activities if broad summaries come back sparse.
+4. If a field is still absent, ask for a plain-language caveat instead of a substituted metric.
+
+### Stale or missing activities
+
+If the assistant cannot find a recent activity, treats a planned workout as completed, or reports old zones/timezones after you fixed them, the issue is usually one of three things: the activity has not synced to intervals.icu yet, the date window is wrong for your athlete timezone, or the MCP client is reusing stale conversation context.
+
+What to do next:
+
+1. Confirm the activity appears in intervals.icu first. icuvisor can only read what upstream exposes.
+2. Ask the assistant to resolve the date window in your athlete timezone and search a slightly wider window.
+3. Start a new chat or reconnect/reload MCP tools so the client refreshes cached schemas and context.
+4. Ask for `workout_status` fields when comparing planned versus completed work, so pending future workouts are not counted as missed.
+5. Run `icuvisor diagnostics` locally if the configured athlete ID, timezone, or credential source might be wrong; share only the redacted output when asking for help.
+
+### The assistant chose the wrong tool or did not call icuvisor
+
+Some AI clients answer from memory, use a stale tool list, or choose a generic profile check when you asked for a richer training review. That is a client/tool-selection problem, not a reason to paste credentials into chat.
+
+What to do next:
+
+1. Restate the request with an explicit connector instruction: "Use icuvisor and my intervals.icu data before answering."
+2. Add the outcome and window: "last 14 days", "today", "next 7 days", or exact dates.
+3. Ask it to cite the icuvisor source tool behind key numbers.
+4. If the client still misses the right capability, ask it to call `icuvisor_list_advanced_capabilities` or use the beginner prompts in [What can I ask icuvisor?]({{< relref "../cookbook/what-can-i-ask" >}}).
+5. Start a new conversation after changing `ICUVISOR_TOOLSET`, delete/write mode, hosted preferences, or coach athlete selection.
+
 ## Stale conversations and cached tool catalogs
 
 MCP clients can keep a copy of icuvisor's tool catalog and sometimes keep using context from the current chat. That is useful for speed, but it means a long-running conversation may not immediately notice that you upgraded icuvisor, changed `ICUVISOR_TOOLSET` or `ICUVISOR_DELETE_MODE`, edited your timezone, fixed zone settings in intervals.icu, or restarted the server with a different config. The binary can be correct while the open chat is still reasoning from yesterday's tools or assumptions.
