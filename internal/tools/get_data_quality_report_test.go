@@ -181,7 +181,7 @@ func TestGetDataQualityReportStep2RegressionDiagnostics(t *testing.T) {
 func TestGetDataQualityReportAggregatesRestrictedSources(t *testing.T) {
 	t.Parallel()
 
-	activities := []intervals.Activity{}
+	activities := make([]intervals.Activity, 0, 7)
 	for _, id := range []string{"s1", "s2", "s3", "s4", "s5", "s6", "s7"} {
 		activities = append(activities, decodeActivityFixture(t, `{"id":"`+id+`","type":"Ride","start_date_local":"2026-01-02T07:00:00","source":"Strava","_note":"hidden"}`))
 	}

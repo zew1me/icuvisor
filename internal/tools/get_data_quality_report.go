@@ -584,8 +584,13 @@ func summarizeDataQuality(sections dataQualitySections, windowDays int) dataQual
 }
 
 func collectDataQualityDiagnostics(sections dataQualitySections) []dataQualityDiagnostic {
-	out := []dataQualityDiagnostic{}
-	for _, section := range dataQualitySectionList(sections) {
+	sectionList := dataQualitySectionList(sections)
+	diagnosticCount := 0
+	for _, section := range sectionList {
+		diagnosticCount += len(section.Diagnostics)
+	}
+	out := make([]dataQualityDiagnostic, 0, diagnosticCount)
+	for _, section := range sectionList {
 		out = append(out, section.Diagnostics...)
 	}
 	return out
