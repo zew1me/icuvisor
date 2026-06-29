@@ -177,9 +177,10 @@ func getDataQualityReportHandler(client dataQualityReportClient, version string,
 			return Result{}, NewUserError(fetchDataQualityReportMessage, err)
 		}
 		activityProbeCapped := len(activities) >= dataQualityActivityFetchLimit
+		eventProbeCapped := len(events) >= dataQualityEventFetchLimit
 		activities = filterDataQualityActivities(activities, args.Sport)
 		summaries = filterDataQualitySummaries(summaries, args.Sport)
-		payload := shapeDataQualityReport(dataQualityReportInputs{args: args, profile: profile, activities: activities, summaries: summaries, wellness: wellness, events: events, version: version, timezoneFallback: timezoneFallback, activityProbeCapped: activityProbeCapped, eventProbeEnd: eventProbeEnd})
+		payload := shapeDataQualityReport(dataQualityReportInputs{args: args, profile: profile, activities: activities, summaries: summaries, wellness: wellness, events: events, version: version, timezoneFallback: timezoneFallback, activityProbeCapped: activityProbeCapped, eventProbeEnd: eventProbeEnd, eventProbeCapped: eventProbeCapped})
 		shaped, err := response.Shape(payload, shapeCfg.options(args.IncludeFull, nil, version, debugMetadata, getDataQualityReportName, profileUnitSystem(profile)))
 		if err != nil {
 			return Result{}, err
@@ -199,6 +200,7 @@ type dataQualityReportInputs struct {
 	timezoneFallback    string
 	activityProbeCapped bool
 	eventProbeEnd       string
+	eventProbeCapped    bool
 }
 
 func decodeGetDataQualityReportRequest(raw json.RawMessage) (getDataQualityReportRequest, error) {
@@ -233,7 +235,7 @@ func shapeDataQualityReport(in dataQualityReportInputs) dataQualityReportRespons
 		LoadBasis:          dataQualityLoadBasisSection(in.summaries, in.args.Sport),
 		ThresholdsZones:    dataQualityThresholdsSection(filterDataQualityReadinessWarnings(profileResponse.Meta.Warnings, in.args.Sport)),
 		WellnessFreshness:  dataQualityWellnessSection(in.wellness, in.args.EndDate),
-		CalendarRaceData:   dataQualityCalendarSection(in.events, in.args.EndDate, in.eventProbeEnd),
+		CalendarRaceData:   dataQualityCalendarSection(in.events, in.args.EndDate, in.eventProbeEnd, in.eventProbeCapped),
 	}
 	payload := dataQualityReportResponse{Sections: sections, Meta: dataQualityMeta{ServerVersion: normalizeVersion(in.version), StartDate: in.args.StartDate, EndDate: in.args.EndDate, Timezone: profileTimezone(in.profile.Timezone, in.timezoneFallback), Sport: in.args.Sport, IncludeFull: in.args.IncludeFull, ReadOnly: true, StreamPolicy: "uses activity stream_types and summary fields only; does not fetch raw stream samples by default", ActivityLimit: dataQualityActivityFetchLimit, EventLimit: dataQualityEventFetchLimit}}
 	payload.Diagnostics = collectDataQualityDiagnostics(sections)
@@ -368,7 +370,7 @@ func dataQualityLoadBasisSection(rows []intervals.SummaryWithCats, sport string)
 		if diagnostic.Reason == "trimp_or_hr_load_available" {
 			severity = "warning"
 		}
-		section.Diagnostics = append(section.Diagnostics, dataQualityDiagnostic{Code: diagnostic.Reason, Severity: severity, Message: diagnostic.Message, Evidence: dataAvailabilityEvidence(diagnostic), Recommendation: dataQualityRecommendation{Action: "Treat training_load as neutral load; do not relabel HR/TRIMP-derived values as TSS.", Tool: getTrainingSummaryName, Fields: diagnostic.SourceFields}})
+		section.Diagnostics = append(section.Diagnostics, dataQualityDiagnostic{Code: diagnostic.Reason, Severity: severity, Message: diagnostic.Message, Evidence: dataAvailabilityEvidence(diagnostic), Recommendation: dataQualityLoadRecommendation(diagnostic)})
 	}
 	if len(section.Diagnostics) > 0 {
 		section.Status = "warning"
@@ -376,6 +378,19 @@ func dataQualityLoadBasisSection(rows []intervals.SummaryWithCats, sport string)
 		section.Message = "Load data is visible, but some rows use HR/TRIMP fallback fields or omit fitness/load fields."
 	}
 	return section
+}
+
+func dataQualityLoadRecommendation(diagnostic dataAvailabilityDiagnostic) dataQualityRecommendation {
+	switch diagnostic.Reason {
+	case "trimp_or_hr_load_available":
+		return dataQualityRecommendation{Action: "Treat training_load as neutral load; do not relabel HR/TRIMP-derived values as TSS.", Tool: getTrainingSummaryName, Fields: diagnostic.SourceFields}
+	case "missing_training_load":
+		return dataQualityRecommendation{Action: "Inspect get_training_summary for the affected dates and avoid inventing load for missing rows.", Tool: getTrainingSummaryName, Fields: diagnostic.MissingFields}
+	case "fitness_fields_missing":
+		return dataQualityRecommendation{Action: "Use get_fitness to confirm which CTL/ATL/TSB fields are absent before answering fitness-trend questions.", Tool: getFitnessName, Fields: diagnostic.MissingFields}
+	default:
+		return dataQualityRecommendation{Action: "Inspect the source tool for these data availability details before making coaching claims.", Tool: getTrainingSummaryName, Fields: append([]string{}, diagnostic.MissingFields...)}
+	}
 }
 
 func dataQualityCategoryLoadDiagnostics(rows []intervals.SummaryWithCats) []dataAvailabilityDiagnostic {
@@ -477,7 +492,7 @@ func dataQualityWellnessSection(rows []intervals.Wellness, endDate string) dataQ
 	return section
 }
 
-func dataQualityCalendarSection(events []intervals.Event, endDate string, eventProbeEnd string) dataQualitySection {
+func dataQualityCalendarSection(events []intervals.Event, endDate string, eventProbeEnd string, eventProbeCapped bool) dataQualitySection {
 	inWindowCount := 0
 	futureCount := 0
 	futureRaceCount := 0
@@ -498,7 +513,7 @@ func dataQualityCalendarSection(events []intervals.Event, endDate string, eventP
 		actualFutureHorizon = dayGap(endDate, eventProbeEnd)
 	}
 	futureComplete := actualFutureHorizon >= dataQualityFutureEventHorizonDay
-	evidence := map[string]any{"in_window_event_count": inWindowCount, "future_event_count": futureCount, "future_race_like_event_count": futureRaceCount, "requested_future_horizon_days": dataQualityFutureEventHorizonDay, "actual_future_horizon_days": actualFutureHorizon, "event_probe_end": eventProbeEnd, "in_window_complete": inWindowComplete, "future_context_complete": futureComplete}
+	evidence := map[string]any{"in_window_event_count": inWindowCount, "future_event_count": futureCount, "future_race_like_event_count": futureRaceCount, "requested_future_horizon_days": dataQualityFutureEventHorizonDay, "actual_future_horizon_days": actualFutureHorizon, "event_probe_end": eventProbeEnd, "in_window_complete": inWindowComplete, "future_context_complete": futureComplete, "event_probe_capped": eventProbeCapped, "event_probe_limit": dataQualityEventFetchLimit}
 	section := dataQualitySection{Status: "ok", Severity: "info", Message: "Calendar events are visible for this window.", Evidence: evidence}
 	if !inWindowComplete {
 		section.Status = "unknown"
@@ -506,6 +521,12 @@ func dataQualityCalendarSection(events []intervals.Event, endDate string, eventP
 		section.Message = "Calendar diagnostics are incomplete because the requested report window exceeds the bounded event probe."
 		section.Diagnostics = append(section.Diagnostics, dataQualityDiagnostic{Code: "calendar_probe_incomplete", Severity: "warning", Message: "The event probe was clipped before the report end date to respect the get_events range limit.", Evidence: evidence, Recommendation: dataQualityRecommendation{Action: "Run get_data_quality_report or get_events over smaller date chunks for complete calendar diagnostics.", Tool: getEventsName}})
 		return section
+	}
+	if eventProbeCapped {
+		section.Status = "unknown"
+		section.Severity = "warning"
+		section.Message = "Calendar diagnostics are incomplete because the event probe reached its result limit."
+		section.Diagnostics = append(section.Diagnostics, dataQualityDiagnostic{Code: "calendar_probe_capped", Severity: "warning", Message: "The event response hit the probe limit, so later in-window or future race events may be absent.", Evidence: evidence, Recommendation: dataQualityRecommendation{Action: "Use get_events over smaller date chunks to inspect dense calendar periods completely.", Tool: getEventsName}})
 	}
 	if !futureComplete {
 		section.Status = "unknown"
