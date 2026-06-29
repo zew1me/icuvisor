@@ -109,6 +109,7 @@ Learn more in [What is MCP?](/explain/what-is-mcp/) and [Local-first by design](
 
 ## Where to next
 
+- [Try beginner prompts]({{< relref "../cookbook/what-can-i-ask" >}}) for concrete "what can I ask?" examples
 - [Browse the cookbook](/cookbook/) for ready-made prompts and multi-step recipes
 - [Configure another AI client](/connect/)
 - [Explore the full tool catalog](/reference/tools/)

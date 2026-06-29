@@ -11,11 +11,13 @@ The cookbook is a library of prompts that work well with icuvisor. Each one is w
 
 Two kinds of content:
 
+- [What can I ask icuvisor?]({{< relref "what-can-i-ask" >}}) — beginner-friendly first prompts grouped by athlete, coach, and troubleshooting use case.
 - The [prompt library]({{< relref "prompt-library" >}}) — short, single-message prompts grouped by task. Copy one, adjust the dates, send.
 - The [icuvisor Agent Skill]({{< relref "icuvisor-agent-skill" >}}) — reusable `SKILL.md` instructions for skills-compatible OpenAI, Anthropic, and other AI clients.
 - **Recipes** — longer, reusable prompt templates that drive a multi-step job (a weekly review, a taper, a roster triage). Treat a recipe as a small agent skill: paste it, fill the blanks, and the assistant runs the whole workflow.
 
 {{< cards >}}
+  {{< card link="what-can-i-ask" title="What can I ask icuvisor?" subtitle="Start here after connecting: first prompts and plain-language use cases." >}}
   {{< card link="prompt-library" title="Prompt library" subtitle="One-line prompts for everyday questions, grouped by task." >}}
   {{< card link="icuvisor-agent-skill" title="icuvisor Agent Skill" subtitle="Reusable SKILL.md instructions for skills-compatible AI clients." >}}
   {{< card link="weekly-review" title="Weekly training review" subtitle="Summarize load, intensity, and recovery risk for the last 7-14 days." >}}

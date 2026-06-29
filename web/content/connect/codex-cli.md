@@ -87,7 +87,7 @@ You should see `icuvisor` listed as an active MCP server. Then ask:
 What's my FTP?
 ```
 
-A working setup should call [`get_athlete_profile`]({{< relref "../reference/tools#get_athlete_profile" >}}) and answer from intervals.icu data.
+A working setup should call [`get_athlete_profile`]({{< relref "../reference/tools#get_athlete_profile" >}}) and answer from intervals.icu data. Then use [What can I ask icuvisor?]({{< relref "../cookbook/what-can-i-ask" >}}) for starter prompts that do not require knowing tool names.
 
 If Codex cannot see icuvisor, run `codex mcp --help`, check the binary path, and start a new Codex session. If tools or answers look stale after an icuvisor upgrade, follow the [stale conversation troubleshooting guide]({{< relref "../guides/troubleshooting#stale-conversations-and-cached-tool-catalogs" >}}).
 

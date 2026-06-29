@@ -117,4 +117,4 @@ If a ChatGPT UI asks only for a remote HTTPS connector URL, use the hosted conne
 
 ## Verify
 
-Start a fresh ChatGPT conversation after saving the MCP configuration, then ask a simple profile question such as `What's my FTP?` The expected tool call is [`get_athlete_profile`]({{< relref "../reference/tools#get_athlete_profile" >}}). If ChatGPT keeps using old tool names, old schemas, or stale timezone/zone assumptions, follow the [stale conversation troubleshooting guide]({{< relref "../guides/troubleshooting#stale-conversations-and-cached-tool-catalogs" >}}).
+Start a fresh ChatGPT conversation after saving the MCP configuration, then ask a simple profile question such as `What's my FTP?` The expected tool call is [`get_athlete_profile`]({{< relref "../reference/tools#get_athlete_profile" >}}). After that, try [What can I ask icuvisor?]({{< relref "../cookbook/what-can-i-ask" >}}) for concrete starter prompts. If ChatGPT keeps using old tool names, old schemas, or stale timezone/zone assumptions, follow the [stale conversation troubleshooting guide]({{< relref "../guides/troubleshooting#stale-conversations-and-cached-tool-catalogs" >}}).

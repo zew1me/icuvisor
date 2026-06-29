@@ -39,6 +39,8 @@ Use the provider-specific pages when you want exact UI labels:
 
 Hosted mode uses Intervals OAuth. Do not paste an Intervals API key into the hosted connector or into chat.
 
+Once the connector is available in your client, open a fresh chat and try [What can I ask icuvisor?]({{< relref "../cookbook/what-can-i-ask" >}}) for beginner-friendly prompts.
+
 ## Manage hosted access
 
 Open hosted settings at:

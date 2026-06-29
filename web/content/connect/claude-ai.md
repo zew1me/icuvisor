@@ -36,7 +36,7 @@ Provider reference: [Claude custom connectors using remote MCP](https://support.
    Use icuvisor to tell me my current FTP and timezone. Do not estimate.
    ```
 
-A working setup should call [`get_athlete_profile`]({{< relref "../reference/tools#get_athlete_profile" >}}) or a hosted setup/status tool before answering.
+A working setup should call [`get_athlete_profile`]({{< relref "../reference/tools#get_athlete_profile" >}}) or a hosted setup/status tool before answering. Then use [What can I ask icuvisor?]({{< relref "../cookbook/what-can-i-ask" >}}) for starter prompts that do not require knowing tool names.
 
 ## Notes
 

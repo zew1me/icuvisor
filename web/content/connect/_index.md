@@ -12,7 +12,7 @@ ICU Visor has two ways to operate:
 - **Local mode**: install the `icuvisor` binary, run `icuvisor setup`, and connect a client to the local MCP server. Use this when the client can launch a local process or reach loopback HTTP.
 - **Hosted mode**: add `https://connect.icuvisor.app/mcp` as a remote HTTPS MCP connector and sign in with Intervals.icu OAuth. Use this when the client needs a public endpoint.
 
-Pick the path that matches your client.
+Pick the path that matches your client. After the connection works, start with [What can I ask icuvisor?]({{< relref "../cookbook/what-can-i-ask" >}}) for beginner-friendly prompts before reading the full tool reference.
 
 {{< cards >}}
   {{< card link="hosted" title="Hosted connector" subtitle="Use the public HTTPS MCP URL for clients that cannot run a local server." >}}

@@ -57,6 +57,8 @@ Restart Claude Code or reload MCP servers after editing the file. Start a new se
 3. Ask: `What's my FTP?`
 4. Expected result: Claude Code calls icuvisor through MCP stdio and uses [`get_athlete_profile`]({{< relref "../reference/tools#get_athlete_profile" >}}) to answer with FTP/threshold data from intervals.icu.
 
+Next, try [What can I ask icuvisor?]({{< relref "../cookbook/what-can-i-ask" >}}) for concrete prompts to copy into your first training chat.
+
 Quick local checks:
 
 ```bash
