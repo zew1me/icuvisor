@@ -33,6 +33,10 @@ Any deny wins. A coach can make an active client full-access except deletes, a p
 
 MCP clients may cache the tool catalog for a conversation. If switching athletes changes which tools are visible, [`select_athlete`]({{< relref "../reference/tools#select_athlete" >}}) can return `_meta.requires_new_conversation: true`. Start a new conversation or reconnect before relying on the changed catalog.
 
+## Onboarding is still a consent boundary
+
+The `coach_athlete_onboarding` prompt can help a coach verify the selected athlete and build a first-session checklist, but it does not prove consent or invite an athlete into the roster. The coach must already have permission to view and analyze that athlete's data before using the prompt. Treat any onboarding summary as private coaching material: review and redact health, location, identifier, and race-logistics details before copying it outside the coaching relationship.
+
 ## Setup guide
 
-For the JSON shape, mode values, and examples, see [Set up coach mode]({{< relref "../guides/coach-mode" >}}). For the broader privacy trust boundary around coach-scoped credentials and AI clients, see [Privacy posture]({{< relref "privacy" >}}).
+For the JSON shape, mode values, onboarding checklist, and examples, see [Set up coach mode]({{< relref "../guides/coach-mode" >}}). For the broader privacy trust boundary around coach-scoped credentials and AI clients, see [Privacy posture]({{< relref "privacy" >}}).
