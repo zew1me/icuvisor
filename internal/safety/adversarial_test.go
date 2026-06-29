@@ -56,6 +56,7 @@ var v03ToolCatalog = []catalogToolSpec{
 	{name: "get_best_efforts", requirement: tools.RequirementRead},
 	{name: "get_custom_item_by_id", requirement: tools.RequirementRead},
 	{name: "get_custom_items", requirement: tools.RequirementRead},
+	{name: "get_data_quality_report", requirement: tools.RequirementRead},
 	{name: "get_event_by_id", requirement: tools.RequirementRead},
 	{name: "get_events", requirement: tools.RequirementRead},
 	{name: "get_extended_metrics", requirement: tools.RequirementRead},

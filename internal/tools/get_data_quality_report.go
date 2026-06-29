@@ -145,7 +145,7 @@ func getDataQualityReportHandler(client dataQualityReportClient, version string,
 			}
 			return Result{}, NewUserError(fetchDataQualityReportMessage, err)
 		}
-		activities, err := client.ListActivities(ctx, intervals.ListActivitiesParams{Oldest: args.StartDate, Newest: args.EndDate, Limit: dataQualityActivityFetchLimit})
+		activities, err := client.ListActivities(ctx, intervals.ListActivitiesParams{Oldest: args.StartDate, Newest: args.EndDate, Limit: dataQualityActivityFetchLimit, Fields: dataQualityActivityFields()})
 		if err != nil {
 			if isContextError(err) {
 				return Result{}, err
@@ -363,6 +363,7 @@ func dataQualityThresholdsSection(warnings []athleteprofile.ReadinessWarning) da
 
 func dataQualityWellnessSection(rows []intervals.Wellness, endDate string) dataQualitySection {
 	dates := dataQualityWellnessDates(rows)
+	staleBridge := dataQualityStaleWellnessRows(rows)
 	evidence := map[string]any{"wellness_days": len(rows), "dates": dates}
 	section := dataQualitySection{Status: "ok", Severity: "info", Message: "Wellness data is visible and current for the requested window.", Evidence: evidence}
 	if len(rows) == 0 {
@@ -372,8 +373,22 @@ func dataQualityWellnessSection(rows []intervals.Wellness, endDate string) dataQ
 		section.Diagnostics = append(section.Diagnostics, dataQualityDiagnostic{Code: "missing_wellness_history", Severity: "critical", Message: "No wellness rows were returned for the requested window.", Evidence: evidence, Recommendation: dataQualityRecommendation{Action: "Confirm wellness sync/permissions and inspect get_wellness_data for the same window.", Tool: getWellnessDataName}})
 		return section
 	}
+	if len(dates) == 0 {
+		section.Status = "unknown"
+		section.Severity = "warning"
+		section.Message = "Wellness rows are visible, but none include valid date IDs for freshness checks."
+		section.Diagnostics = append(section.Diagnostics, dataQualityDiagnostic{Code: "wellness_dates_unknown", Severity: "warning", Message: "Wellness rows were returned without valid YYYY-MM-DD ids, so freshness cannot be determined safely.", Evidence: evidence, Recommendation: dataQualityRecommendation{Action: "Inspect get_wellness_data include_full output for upstream wellness IDs and sync metadata.", Tool: getWellnessDataName}})
+		return section
+	}
 	latest := dates[len(dates)-1]
 	evidence["latest_wellness_date"] = latest
+	if len(staleBridge) > 0 {
+		evidence["stale_bridge_rows"] = staleBridge
+		section.Status = "warning"
+		section.Severity = "warning"
+		section.Message = "Wellness data is visible, but provider bridge metadata indicates stale sync."
+		section.Diagnostics = append(section.Diagnostics, dataQualityDiagnostic{Code: "stale_wellness_bridge", Severity: "warning", Message: "At least one wellness row has provider/bridge fetched-at metadata older than 24h for that wellness date.", Evidence: map[string]any{"stale_bridge_rows": staleBridge}, Recommendation: dataQualityRecommendation{Action: "Refresh the upstream wellness bridge and re-check get_wellness_data provenance metadata.", Tool: getWellnessDataName}})
+	}
 	if dayGap(latest, endDate) > 1 {
 		section.Status = "warning"
 		section.Severity = "warning"
@@ -530,6 +545,37 @@ func dataQualityWellnessDates(rows []intervals.Wellness) []string {
 	return dates
 }
 
+func dataQualityStaleWellnessRows(rows []intervals.Wellness) []map[string]any {
+	out := []map[string]any{}
+	for _, row := range rows {
+		date := ""
+		if row.ID != nil {
+			date = strings.TrimSpace(*row.ID)
+		}
+		for _, field := range []struct {
+			name    string
+			present bool
+		}{
+			{name: "sleepScore", present: row.SleepScore != nil},
+			{name: "sleepSecs", present: row.SleepSecs != nil},
+			{name: "readiness", present: row.Readiness != nil},
+			{name: "restingHR", present: row.RestingHR != nil},
+			{name: "hrv", present: row.HRV != nil},
+			{name: "hrvSDNN", present: row.HRVSDNN != nil},
+		} {
+			if !field.present {
+				continue
+			}
+			entry, stale := wellnessProvenanceEntry(row, field.name)
+			if !stale {
+				continue
+			}
+			out = append(out, map[string]any{"date": date, "field": field.name, "source": entry["source"], "fetched_at": entry["fetched_at"]})
+		}
+	}
+	return out
+}
+
 func dataQualityEventSamples(events []intervals.Event) []dataQualityEventEvidence {
 	limit := min(len(events), 20)
 	out := make([]dataQualityEventEvidence, 0, limit)
@@ -596,6 +642,10 @@ func appendUniqueString(values []string, value string) []string {
 		}
 	}
 	return append(values, value)
+}
+
+func dataQualityActivityFields() []string {
+	return append([]string(nil), terseActivityFields...)
 }
 
 func dataQualityWellnessFields() []string {
