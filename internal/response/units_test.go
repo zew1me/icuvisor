@@ -97,6 +97,10 @@ func TestToPreferredPreservesSportSpecificAndUnknownUnits(t *testing.T) {
 	if swim.Value != 82 || swim.Unit != units.UnitSecs100M || swim.FieldSuffix != "seconds_per_100m" || swim.Converted {
 		t.Fatalf("swim pace = %+v, want pass-through sec/100m", swim)
 	}
+	yardsSwim := ToPreferred(90, units.UnitSecs100Y, UnitSystemMetric)
+	if yardsSwim.Value != 90 || yardsSwim.Unit != units.UnitSecs100Y || yardsSwim.FieldSuffix != "seconds_per_100y" || yardsSwim.Converted {
+		t.Fatalf("yards swim pace = %+v, want pass-through sec/100y", yardsSwim)
+	}
 	row := ToPreferred(115, units.UnitSecs500M, UnitSystemMetric)
 	if row.Value != 115 || row.Unit != units.UnitSecs500M || row.FieldSuffix != "seconds_per_500m" || row.Converted {
 		t.Fatalf("row pace = %+v, want pass-through sec/500m", row)

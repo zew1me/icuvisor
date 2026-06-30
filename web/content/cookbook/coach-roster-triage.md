@@ -16,7 +16,34 @@ A coach with a roster needs a fast way to see who is thriving, who is drifting, 
 This recipe needs the server running in **coach mode** with a roster configured. The coach-held API key never enters the conversation. The `athlete_id` argument only *selects* whose data to read — it is a selector, not a credential. See the [coach mode guide]({{< relref "/guides/coach-mode" >}}).
 {{< /callout >}}
 
-## The recipe
+## First-session onboarding prompt
+
+Before weekly triage, onboard each new athlete with the read-only `coach_athlete_onboarding` prompt:
+
+```text
+Use icuvisor's coach athlete onboarding flow for athlete [ATHLETE_ID].
+First confirm the selected athlete's canonical ID/label and that I should only
+continue if I already have the athlete's permission to view and analyze this
+data. Then check profile thresholds/zones, recent activity coverage,
+wellness/HRV baseline, events/races, training-plan context, and device/source
+or sync gaps. Return a pass/warn/missing checklist, missing-data warnings,
+first coach actions, and questions for goals/races/constraints. Do not modify
+calendar events, workouts, or settings.
+```
+
+Expected output shape:
+
+| Section | What to look for |
+| --- | --- |
+| Authorization/selection | Canonical athlete ID/label, selected session target, and a reminder that `athlete_id` is only a selector. |
+| Profile baseline | Timezone, units, sport settings, FTP/thresholds/zones, and `_meta.warnings`. |
+| Data coverage | Recent activities, fitness/load trend, wellness/HRV freshness, events/races, and training-plan availability. |
+| Device/source caveats | Missing streams, stale wellness, absent HRV, Strava/import restrictions, or unsupported source/device details. |
+| Coach next steps | Questions about goals, race priority, constraints, communication preference, and sync fixes before plan advice. |
+
+Use this onboarding output as the athlete's baseline note, then run roster triage for weekly prioritization.
+
+## The roster triage recipe
 
 ```text
 Coach-mode roster triage. Use icuvisor.
@@ -78,5 +105,5 @@ Per-athlete tool access follows your coach-mode ACLs — an athlete you have lim
 - **Credential reminder.** Restating that `athlete_id` is a selector keeps the assistant from ever asking for a key — the coach key stays server-side.
 
 {{< callout type="info" >}}
-The `coach_roster_triage` [MCP prompt]({{< relref "/reference/resources-prompts" >}}) runs a single-athlete version of this scan with the selector-not-credential rule enforced server-side.
+Use the `coach_athlete_onboarding` [MCP prompt]({{< relref "/reference/resources-prompts" >}}) for the first session with a new athlete, then the `coach_roster_triage` prompt for recurring single-athlete scans. Both keep `athlete_id` as a selector, not a credential.
 {{< /callout >}}

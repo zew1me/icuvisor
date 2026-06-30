@@ -52,6 +52,18 @@ func TestValidateDescriptionMAmbiguityWarning(t *testing.T) {
 	}
 }
 
+func TestValidateDescriptionParsesYardDistanceWithoutMAmbiguity(t *testing.T) {
+	t.Parallel()
+
+	got := ValidateDescription("- Swim 100yd 95% Pace")
+	if len(got.Errors) != 0 || len(got.Warnings) != 0 {
+		t.Fatalf("ValidateDescription() errors=%+v warnings=%+v, want clean yd parse", got.Errors, got.Warnings)
+	}
+	if len(got.Doc.Steps) != 1 || got.Doc.Steps[0].Distance == nil || got.Doc.Steps[0].Distance.Unit != "yd" {
+		t.Fatalf("Doc = %#v, want one 100yd step", got.Doc)
+	}
+}
+
 func TestValidateDescriptionMalformedStepLine(t *testing.T) {
 	t.Parallel()
 	got := ValidateDescription("- not a valid step token")

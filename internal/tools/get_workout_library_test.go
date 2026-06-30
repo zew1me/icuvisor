@@ -226,6 +226,32 @@ func TestGetWorkoutsInFolderResolvesHRAndPaceTargetPreviews(t *testing.T) {
 	}
 }
 
+func TestGetWorkoutsInFolderResolvesYardSwimPaceTargetPreviews(t *testing.T) {
+	t.Parallel()
+
+	client := &fakeWorkoutLibraryClient{
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC", SportSettings: []intervals.SportSettings{{Types: []string{"Swim"}, ThresholdPace: 90, PaceUnits: "SECS_100Y"}}}},
+		workouts: decodeToolWorkouts(t,
+			`{"id":3,"name":"Pool Targets","type":"Swim","folder_id":20,"workout_doc":{"steps":[{"description":"Cruise","duration":600,"pace":{"value":95,"units":"PERCENT_THRESHOLD"}}]}}`,
+		),
+	}
+	tool := newGetWorkoutsInFolderTool(client, client, "test", "UTC", false)
+
+	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"folder_id":"20"}`)})
+	if err != nil {
+		t.Fatalf("Handler() error = %v", err)
+	}
+	summary := resultMap(t, result)["workouts"].([]any)[0].(map[string]any)["workout_doc_summary"].(map[string]any)
+	previews := summary["target_previews"].([]any)
+	if len(previews) != 1 {
+		t.Fatalf("target_previews = %#v, want one pace preview", previews)
+	}
+	pace := previews[0].(map[string]any)
+	if pace["family"] != "pace" || pace["target"] != "95% Pace" || pace["preview"] != "1:35/100y" || pace["basis"] != "threshold pace 1:30/100y" {
+		t.Fatalf("pace preview = %#v, want threshold pace resolved as /100y", pace)
+	}
+}
+
 func TestGetWorkoutsInFolderOmitsUnsupportedTargetPreviews(t *testing.T) {
 	t.Parallel()
 

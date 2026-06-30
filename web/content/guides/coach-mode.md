@@ -79,6 +79,28 @@ Coach mode registers two coach-scoped tools:
 
 Every athlete-scoped tool accepts an optional `athlete_id` argument in coach mode. If omitted, the tool targets the selected athlete. If supplied, the value is normalized and checked against the configured roster before any intervals.icu request.
 
+## 6. Run a first-session onboarding check
+
+After connecting a new athlete or team, start with the `coach_athlete_onboarding` MCP prompt or ask the assistant to run the same checklist manually:
+
+```text
+Use icuvisor's coach athlete onboarding flow for athlete i12345.
+Confirm the selected athlete before summarizing data, then give me the
+first-session checklist, missing data warnings, baseline context, races/goals
+questions, and next coach actions. Do not modify any calendar or settings.
+```
+
+The first session should:
+
+1. Call [`list_athletes`]({{< relref "../reference/tools#list_athletes" >}}) and, when needed, [`select_athlete`]({{< relref "../reference/tools#select_athlete" >}}) so the coach sees the canonical athlete ID/label being analyzed.
+2. State that the coach must already have permission from that athlete to view and analyze their data. icuvisor enforces the local roster and ACLs; it does not collect consent in chat.
+3. Read [`get_athlete_profile`]({{< relref "../reference/tools#get_athlete_profile" >}}) first for timezone, units, FTP/thresholds, zones, and profile warnings.
+4. Check recent activity coverage, wellness/HRV freshness, fitness/load trend, upcoming races/events, training-plan context, and unavailable ACL/tool surfaces.
+5. Return a pass/warn/missing checklist for thresholds/zones, activity data, wellness/HRV baseline, races/goals, devices or sync sources, and any missing-data warnings.
+6. Ask follow-up questions for goals, race priority, constraints, communication preferences, and device/source fixes before giving plan advice.
+
+Keep onboarding read-only. If the checklist implies calendar or settings changes, ask for a reviewed before/after proposal and explicit approval before using write tools.
+
 ## Catalog-cache caveat
 
 MCP clients may cache the tool catalog for the current conversation. [`select_athlete`]({{< relref "../reference/tools#select_athlete" >}}) changes server-side routing immediately, and per-call `athlete_id` overrides are enforced immediately, but the model or client may not see a refreshed tools list until a new conversation or reconnect.

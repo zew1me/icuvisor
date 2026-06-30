@@ -119,6 +119,69 @@ func TestParseRejectsDashedRepeatHeaders(t *testing.T) {
 	}
 }
 
+func TestWorkoutDocYardDistanceSerializeParseValidate(t *testing.T) {
+	t.Parallel()
+
+	doc := WorkoutDoc{Steps: []Step{{Description: "Swim", Distance: &Length{Value: 100, Unit: "yards"}, Pace: targetValue(95, "PERCENT_THRESHOLD")}}}
+	got, err := Serialize(doc)
+	if err != nil {
+		t.Fatalf("Serialize() error = %v", err)
+	}
+	if got != "- Swim 100yd 95% Pace" {
+		t.Fatalf("Serialize() = %q, want canonical yd", got)
+	}
+	parsed, err := Parse(got)
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	if parsed.Steps[0].Distance == nil || parsed.Steps[0].Distance.Unit != "yd" || parsed.Steps[0].Distance.Value != 100 {
+		t.Fatalf("parsed distance = %#v, want 100yd", parsed.Steps[0].Distance)
+	}
+	validated := ValidateDoc(doc)
+	if len(validated.Errors) != 0 {
+		t.Fatalf("ValidateDoc() errors = %+v, want none", validated.Errors)
+	}
+}
+
+func TestWorkoutDocDistanceAliasesRemainCanonical(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name string
+		unit string
+		want string
+	}{
+		{name: "m alias remains meters", unit: "m", want: "- Stride 400mtr 120%"},
+		{name: "meters alias remains meters", unit: "meters", want: "- Stride 400mtr 120%"},
+		{name: "kilometers alias remains km", unit: "kilometers", want: "- Stride 0.4km 120%"},
+		{name: "miles alias remains mi", unit: "miles", want: "- Stride 0.25mi 120%"},
+		{name: "yards alias emits yd", unit: "yards", want: "- Stride 25yd 120%"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			value := 400.0
+			if tc.unit == "kilometers" {
+				value = 0.4
+			}
+			if tc.unit == "miles" {
+				value = 0.25
+			}
+			if tc.unit == "yards" {
+				value = 25
+			}
+			doc := WorkoutDoc{Steps: []Step{{Description: "Stride", Distance: &Length{Value: value, Unit: tc.unit}, Power: targetValue(120, "PERCENT_FTP")}}}
+			got, err := Serialize(doc)
+			if err != nil {
+				t.Fatalf("Serialize() error = %v", err)
+			}
+			if got != tc.want {
+				t.Fatalf("Serialize() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestSerializeTargetUnitSemantics(t *testing.T) {
 	t.Parallel()
 

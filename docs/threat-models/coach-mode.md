@@ -4,7 +4,7 @@
 
 This review covers the v0.5 coach-mode design where one locally configured coach-scoped intervals.icu API key can target multiple athletes by accepting an LLM-supplied `athlete_id` argument. The key is loaded from existing server configuration sources and is never accepted as a tool argument or returned in any tool response.
 
-Out of scope for v0.5: per-athlete delegated credentials, hosted multi-tenant operation, wildcard or multi-athlete calls, and direct client-side calls from the LLM to intervals.icu.
+Out of scope for v0.5: per-athlete delegated credentials, hosted multi-tenant operation, wildcard or multi-athlete calls, direct client-side calls from the LLM to intervals.icu, in-chat athlete consent capture, upstream roster import, invitation flows, and automated coach messaging.
 
 ## Assets
 
@@ -78,6 +78,8 @@ Residual risk: if the coach intentionally configures an athlete, the LLM can ope
 - Request routing rejects a target absent from the relevant roster/single-athlete configuration before the intervals client builds an HTTP request.
 - Per-athlete ACLs are deny-by-default for unknown tools and compose as: delete-mode gate, then toolset-tier gate, then coach ACL.
 - Tool responses may include canonical athlete IDs and labels but must not include credential material.
+- Coach onboarding prompts may guide read-only first-session checks, but they must verify the selected athlete identity/label before summarizing data, remind the coach that athlete permission is required outside chat, and avoid claiming that icuvisor proves legal consent or upstream authorization beyond the local roster/ACL gates.
+- Any copied onboarding summary should be treated as private coaching material and reviewed/redacted for health, location, identifiers, race logistics, and other sensitive context before sharing outside the coaching relationship.
 
 ## Endpoint probe
 

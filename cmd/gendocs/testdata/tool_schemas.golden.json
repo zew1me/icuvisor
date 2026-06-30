@@ -2638,7 +2638,7 @@
         "name": "threshold_pace",
         "required": false,
         "type": "object",
-        "description": "Threshold pace with an explicit pace-duration unit; seconds_per_km is 4:15/km as 255 and seconds_per_mile is 8:00/mi as 480.",
+        "description": "Threshold pace with an explicit pace-duration unit; seconds_per_km is 4:15/km as 255, seconds_per_mile is 8:00/mi as 480, and seconds_per_100y is 1:30/100y as 90.",
         "children": [
           {
             "name": "unit",
@@ -2649,6 +2649,7 @@
               "seconds_per_km",
               "seconds_per_mile",
               "seconds_per_100m",
+              "seconds_per_100y",
               "seconds_per_500m",
               "minutes_per_km",
               "minutes_per_mile"

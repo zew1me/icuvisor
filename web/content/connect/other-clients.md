@@ -65,6 +65,8 @@ For clients that ask for only one server entry, copy the inner `icuvisor` object
 | `compact` | Local/Ollama/OpenRouter-style clients, smaller models, or any client that starts choosing nonexistent tools or arguments from a large catalog. | Smaller read-focused catalog for status, activities, streams, wellness, calendar reads, and safe planning context. Write/delete and specialist analyzer tools stay hidden. |
 | `full` | Expert workflows on capable clients when you need the complete icuvisor surface. | Broadest catalog, including specialist analyzers and advanced management tools subject to write/delete safety settings. |
 
+If the assistant says a specialist capability is missing, ask it to call `icuvisor_list_advanced_capabilities` first. That discovery tool is visible in `compact` and `core` and can explain whether you should stay on the current profile, move from `compact` to `core`, or opt in to `full`.
+
 If you switch between `compact`, `core`, and `full`, restart the MCP server and open a new client conversation so the client reloads the catalog.
 
 ## Client notes

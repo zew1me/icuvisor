@@ -22,6 +22,7 @@ func TestParseUnitKnownMembers(t *testing.T) {
 		{name: "minutes per kilometer", in: "MINS_KM", want: UnitMinsKM},
 		{name: "minutes per mile", in: "MINS_MILE", want: UnitMinsMile},
 		{name: "seconds per 100 meters", in: "SECS_100M", want: UnitSecs100M},
+		{name: "seconds per 100 yards", in: "SECS_100Y", want: UnitSecs100Y},
 		{name: "seconds per 500 meters", in: "SECS_500M", want: UnitSecs500M},
 		{name: "kilometers per hour", in: "KMH", want: UnitKMH},
 		{name: "miles per hour", in: "MPH", want: UnitMPH},
