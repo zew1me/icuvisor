@@ -18,6 +18,12 @@ Simple step: `- [description] [duration|distance] [primary target] [optional cad
 - Stride 400mtr 120%
 ```
 
+- Yard swim step:
+
+```text
+- Swim 100yd 95% Pace
+```
+
 - Repeat block:
 
 ```text
@@ -43,6 +49,7 @@ Main set 3x
 - `distance_mtr`: Meters serialize with the canonical `mtr` suffix. Aliases: `m`, `meter`, `meters`, `metre`, `metres`, `mtr`; canonical suffix: `mtr`.
 - `distance_km`: Kilometers serialize with the canonical `km` suffix. Aliases: `km`, `kilometer`, `kilometers`, `kilometre`, `kilometres`; canonical suffix: `km`.
 - `distance_mi`: Miles serialize with the canonical `mi` suffix. Aliases: `mi`, `mile`, `miles`; canonical suffix: `mi`.
+- `distance_yd`: Yards serialize with the canonical `yd` suffix for pool-swim distances. Aliases: `yd`, `yard`, `yards`; canonical suffix: `yd`.
 
 ## Primary target units
 
@@ -75,7 +82,7 @@ A simple step needs a positive duration or a distance. Durations serialize as h/
 
 ### Distance steps
 
-Distance steps serialize with canonical mtr, km, or mi suffixes.
+Distance steps serialize with canonical mtr, km, mi, or yd suffixes.
 
 - `distance_mtr`: Meter distance canonicalizes to mtr.
 
@@ -93,6 +100,12 @@ Distance steps serialize with canonical mtr, km, or mi suffixes.
 
 ```text
 - Cooldown 1mi freeride
+```
+
+- `distance_yd`: Yard distance canonicalizes to yd.
+
+```text
+- Swim 100yd 95% Pace
 ```
 
 

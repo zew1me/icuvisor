@@ -46,13 +46,13 @@ func TestUpdateSportSettingsSchemaDocumentsInputsAndZoneGate(t *testing.T) {
 		t.Fatalf("sport enum = %#v, want Ride/Run", sport["enum"])
 	}
 	pace := props["threshold_pace"].(map[string]any)
-	if !strings.Contains(pace["description"].(string), "seconds_per_mile") || !strings.Contains(pace["description"].(string), "8:00/mi") {
-		t.Fatalf("threshold_pace description = %q, want km/mile pace examples", pace["description"])
+	if !strings.Contains(pace["description"].(string), "seconds_per_mile") || !strings.Contains(pace["description"].(string), "8:00/mi") || !strings.Contains(pace["description"].(string), "seconds_per_100y") {
+		t.Fatalf("threshold_pace description = %q, want km/mile/yards pace examples", pace["description"])
 	}
 	paceProps := pace["properties"].(map[string]any)
 	unitEnum := paceProps["unit"].(map[string]any)["enum"].([]string)
-	if !containsString(unitEnum, "seconds_per_km") || !containsString(unitEnum, "seconds_per_mile") {
-		t.Fatalf("threshold_pace unit enum = %#v, want seconds per km/mile", unitEnum)
+	if !containsString(unitEnum, "seconds_per_km") || !containsString(unitEnum, "seconds_per_mile") || !containsString(unitEnum, "seconds_per_100y") {
+		t.Fatalf("threshold_pace unit enum = %#v, want seconds per km/mile/100y", unitEnum)
 	}
 	zones := props["zones"].(map[string]any)
 	if !strings.Contains(zones["description"].(string), "overwrites prior") || !strings.Contains(zones["description"].(string), "ICUVISOR_DELETE_MODE=full") {
@@ -119,6 +119,36 @@ func TestUpdateSportSettingsThresholdFieldsAndPaceConversion(t *testing.T) {
 				t.Fatalf("meta = %#v, want pace conversion metadata", meta)
 			}
 		})
+	}
+}
+
+func TestUpdateSportSettingsWritesYardSwimPace(t *testing.T) {
+	t.Parallel()
+
+	client := newFakeSportSettingsClient(intervals.SportSettings{ID: 9, Types: []string{"Swim"}, PaceUnits: "SECS_100Y"})
+	client.setting = intervals.SportSettings{ID: 9, Type: "Swim", PaceUnits: "SECS_100Y"}
+	tool := newUpdateSportSettingsTool(client, client, "test", "UTC", false, safety.NewCapability(safety.ModeSafe))
+
+	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"sport":"Swim","effective_date":"2026-05-01","threshold_pace":{"value":90,"unit":"seconds_per_100y"}}`)})
+	if err != nil {
+		t.Fatalf("Handler() error = %v", err)
+	}
+	if len(client.calls) != 1 {
+		t.Fatalf("write calls = %d, want 1", len(client.calls))
+	}
+	call := client.calls[0]
+	if call.ThresholdPace == nil || call.ThresholdPace.Unit != "SECS_100Y" || call.ThresholdPace.Value != 90 {
+		t.Fatalf("threshold pace call = %+v, want 90 sec/100y", call.ThresholdPace)
+	}
+	out := resultMap(t, result)
+	settings := out["sport_settings"].(map[string]any)
+	if settings["threshold_pace_seconds_per_100y"] != float64(90) || settings["pace_units_source"] != "SECS_100Y" {
+		t.Fatalf("settings = %#v, want explicit sec/100y echo", settings)
+	}
+	assertKeyAbsent(t, settings, "threshold_pace_value")
+	meta := out["_meta"].(map[string]any)
+	if meta["pace_input_unit"] != "seconds_per_100y" || meta["pace_upstream_unit"] != "SECS_100Y" {
+		t.Fatalf("meta = %#v, want yard pace metadata", meta)
 	}
 }
 

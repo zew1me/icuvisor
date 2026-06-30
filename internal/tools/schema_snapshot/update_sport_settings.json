@@ -16,6 +16,14 @@
       }
     },
     {
+      "effective_date": "2026-06-01",
+      "sport": "Swim",
+      "threshold_pace": {
+        "unit": "seconds_per_100y",
+        "value": 90
+      }
+    },
+    {
       "effective_date": "2026-07-01",
       "ftp": 290,
       "sport": "Ride",
@@ -52,6 +60,14 @@
       "threshold_pace": {
         "unit": "seconds_per_km",
         "value": 255
+      }
+    },
+    {
+      "effective_date": "2026-06-01",
+      "sport": "Swim",
+      "threshold_pace": {
+        "unit": "seconds_per_100y",
+        "value": 90
       }
     },
     {
@@ -116,7 +132,7 @@
     },
     "threshold_pace": {
       "additionalProperties": false,
-      "description": "Threshold pace with an explicit pace-duration unit; seconds_per_km is 4:15/km as 255 and seconds_per_mile is 8:00/mi as 480.",
+      "description": "Threshold pace with an explicit pace-duration unit; seconds_per_km is 4:15/km as 255, seconds_per_mile is 8:00/mi as 480, and seconds_per_100y is 1:30/100y as 90.",
       "properties": {
         "unit": {
           "description": "Pace-duration unit for threshold_pace value.",
@@ -124,6 +140,7 @@
             "seconds_per_km",
             "seconds_per_mile",
             "seconds_per_100m",
+            "seconds_per_100y",
             "seconds_per_500m",
             "minutes_per_km",
             "minutes_per_mile"

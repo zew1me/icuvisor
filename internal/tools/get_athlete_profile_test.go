@@ -483,6 +483,33 @@ func TestGetAthleteProfileResponseShapingVariants(t *testing.T) {
 	}
 }
 
+func TestGetAthleteProfileShapesYardSwimPace(t *testing.T) {
+	t.Parallel()
+
+	response := newGetAthleteProfileResponse(intervals.AthleteWithSportSettings{
+		ID: "i12345",
+		SportSettings: []intervals.SportSettings{{
+			Types:         []string{"Swim"},
+			ThresholdPace: 90,
+			PaceUnits:     "SECS_100Y",
+			PaceZones:     []float64{95, 90},
+		}},
+	}, "test", "UTC")
+	if len(response.SportSettings) != 1 {
+		t.Fatalf("sport settings = %d, want 1", len(response.SportSettings))
+	}
+	sport := response.SportSettings[0]
+	if sport.ThresholdPaceSecondsPer100Y == nil || *sport.ThresholdPaceSecondsPer100Y != 90 || len(sport.PaceZonesSecondsPer100Y) != 2 {
+		t.Fatalf("yard swim pace shaping = %+v", sport)
+	}
+	if sport.PaceDistanceUnit != "100y" || sport.PaceUnitsSource != "SECS_100Y" {
+		t.Fatalf("yard swim pace metadata = %+v", sport)
+	}
+	if sport.ThresholdPaceSecondsPer100M != nil || len(sport.PaceZonesSecondsPer100M) != 0 || sport.ThresholdPaceValue != nil {
+		t.Fatalf("yard swim pace used wrong fields: %+v", sport)
+	}
+}
+
 func TestGetAthleteProfilePaceConversionPolicies(t *testing.T) {
 	previous := slog.Default()
 	t.Cleanup(func() { slog.SetDefault(previous) })
