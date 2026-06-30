@@ -20,7 +20,7 @@ For the complete flag and environment-variable list, see the [CLI reference]({{<
 
 ## Toolset tier
 
-`ICUVISOR_TOOLSET` controls how much of the catalog is registered.
+`ICUVISOR_TOOLSET` controls how much of the catalog is registered. This is a startup-time routing aid: icuvisor does not expose a large generated OpenAPI surface and ask the model to sort through it. The default `core` catalog is curated for common training questions, `compact` trims further for smaller/local models, and `full` is an explicit opt-in for advanced or heavier workflows.
 
 | Value            | Registration effect                                                                                                                                                                                                                  | Typical use                                                                                       |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
@@ -29,13 +29,13 @@ For the complete flag and environment-variable list, see the [CLI reference]({{<
 | `full`           | Registers `core` plus advanced or heavier workflows such as workout-library management, custom-item management, sport settings, training-plan application, and delete-capable tools when delete mode also permits them. | Power-user and coach workflows that need the full surface.                                        |
 | empty or unknown | Falls back to `core`.                                                                                                                                                                                                                | Misconfiguration preserves the token-saving default.                                              |
 
-The [`icuvisor_list_advanced_capabilities`]({{< relref "tools#icuvisor_list_advanced_capabilities" >}}) tool remains available in `compact` and `core` so an AI client can explain which hidden tools are available and how to enable `core` or `full`.
+The [`icuvisor_list_advanced_capabilities`]({{< relref "tools#icuvisor_list_advanced_capabilities" >}}) tool remains available in `compact` and `core` so an AI client can explain which hidden tools are available and how to enable `core` or `full`. Use that discovery tool before switching a whole client to `full`; it is designed to answer "what am I missing?" without loading every advanced tool into every conversation.
 
 ### Which tier should you pick?
 
-- **Claude, ChatGPT, Cursor, Cline, and most daily-use clients**: keep `core`. The curated catalog balances capability with tool-selection clarity.
+- **Claude, ChatGPT, Cursor, Cline, and most daily-use clients**: keep `core`. The curated catalog balances capability with tool-selection clarity and keeps per-session tool-description load smaller than exposing every tool by default.
 - **Local/Ollama/OpenRouter-style clients, Haiku-class, older, or smaller models**: start with `compact`. The reduced catalog lowers tool-selection load and per-conversation tokens while preserving common read workflows.
-- **Current frontier models and expert workflows**: `full` is a reasonable opt-in when you need specialist analyzers, library management, or broader maintenance tools.
+- **Current frontier models and expert workflows**: use `full` only when you need specialist analyzers, library management, custom items, sport settings, or other broad maintenance tools.
 - **Unsure or shared setups**: keep `core`; an AI client can still call `icuvisor_list_advanced_capabilities` to discover hidden compact/core/full differences.
 
 To switch, set `ICUVISOR_TOOLSET=compact`, `core`, or `full` in your MCP client's icuvisor entry, restart icuvisor, and start a fresh conversation.

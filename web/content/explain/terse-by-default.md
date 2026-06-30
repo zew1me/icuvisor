@@ -23,9 +23,9 @@ It is not a "better answer" switch. Full payloads can be much larger and can mak
 
 ## Toolset tiers are part of the same idea
 
-icuvisor also keeps the default tool catalog small. The `core` tier covers daily-use tools, while `full` adds advanced or heavier workflows. This helps the AI client pick the right tool and reduces per-conversation tool-description load.
+icuvisor also keeps the default tool catalog small. The `core` tier covers daily-use tools, `compact` narrows the catalog further for smaller/local models, and `full` adds advanced or heavier workflows. This helps the AI client pick the right tool and reduces per-conversation tool-description load without hiding data permanently.
 
-The exact `ICUVISOR_TOOLSET` values live in [Safety modes and toolset tiers]({{< relref "../reference/safety-modes#toolset-tier" >}}). The [`icuvisor_list_advanced_capabilities`]({{< relref "../reference/tools#icuvisor_list_advanced_capabilities" >}}) tool lets an assistant discover hidden full-tier tools and explain how to enable them.
+The exact `ICUVISOR_TOOLSET` values live in [Safety modes and toolset tiers]({{< relref "../reference/safety-modes#toolset-tier" >}}). Before enabling `full` just to browse, ask the assistant to call [`icuvisor_list_advanced_capabilities`]({{< relref "../reference/tools#icuvisor_list_advanced_capabilities" >}}). It lists hidden advanced capabilities and explains whether the next step is to keep using `core`, switch from `compact` to `core`, or opt in to `full`.
 
 ## The goal
 
