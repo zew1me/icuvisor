@@ -293,6 +293,9 @@ func convertThresholdPaceForUpstream(input updateSportSettingsPaceRequest, setti
 		return 0, "", err
 	}
 	upstreamUnit := strings.TrimSpace(setting.PaceUnits)
+	if inputUnit == "seconds_per_100y" {
+		upstreamUnit = "SECS_100Y"
+	}
 	if upstreamUnit == "" {
 		upstreamUnit = upstreamPaceUnitFromInput(inputUnit, unitSystem)
 	}

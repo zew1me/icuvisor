@@ -125,8 +125,8 @@ func TestUpdateSportSettingsThresholdFieldsAndPaceConversion(t *testing.T) {
 func TestUpdateSportSettingsWritesYardSwimPace(t *testing.T) {
 	t.Parallel()
 
-	client := newFakeSportSettingsClient(intervals.SportSettings{ID: 9, Types: []string{"Swim"}, PaceUnits: "SECS_100Y"})
-	client.setting = intervals.SportSettings{ID: 9, Type: "Swim", PaceUnits: "SECS_100Y"}
+	client := newFakeSportSettingsClient(intervals.SportSettings{ID: 9, Types: []string{"Swim"}, PaceUnits: "SECS_100M"})
+	client.setting = intervals.SportSettings{ID: 9, Type: "Swim", PaceUnits: "SECS_100M"}
 	tool := newUpdateSportSettingsTool(client, client, "test", "UTC", false, safety.NewCapability(safety.ModeSafe))
 
 	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"sport":"Swim","effective_date":"2026-05-01","threshold_pace":{"value":90,"unit":"seconds_per_100y"}}`)})
