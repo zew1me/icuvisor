@@ -311,7 +311,7 @@ Combined with the v0.4 MCP Prompt set (`training analysis`, `recovery check`, `w
 
 Toolset placement: most of the family lands in `full`; `analyze_trend`, `compute_zone_time`, and `compute_baseline` are in `core` after the KR5 benchmark confirmed net token savings vs the fetch-and-reduce baseline.
 
-The generated tool catalog is the source of truth for the current registered tool count. As of the TP-160 unavailable-range write work, the catalog has 62 tools total: 28 in `core` and 34 additional `full` tools behind `ICUVISOR_TOOLSET=full`.
+The generated tool catalog is the source of truth for the current registered tool count. As of the current generated website data, the catalog has 66 tools total: 30 in `core` and 36 additional `full` tools behind `ICUVISOR_TOOLSET=full`.
 
 #### D. Response shaping (the second differentiator)
 
