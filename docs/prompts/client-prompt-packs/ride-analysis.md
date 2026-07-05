@@ -24,7 +24,8 @@ Tool route:
 3. Call get_activity_details before deeper analysis so tags, gear, unit-labelled metrics, calories_burned, carbs_ingested_g, carbs_used_g, and unavailable Strava-import fields are explicit.
 4. Call get_activity_intervals for lap/rep structure and interval_source/interval_source_caveat before judging workout execution.
 5. Prefer get_activity_histogram, compute_activity_segment_stats, compute_zone_time, analyze_distribution, and analyze_efforts_delta for deterministic calculations. Cite _meta.method, _meta.source_tools, assumptions, caveats, and units.
-6. Use get_activity_streams only when no deterministic analyzer can answer the specific question or the user explicitly asks for samples; keep include_full off unless full samples are required.
+6. If an advanced helper is unavailable, call icuvisor_list_advanced_capabilities and name the missing capability instead of improvising unsupported math.
+7. Use get_activity_streams only when no deterministic analyzer can answer the specific question or the user explicitly asks for samples; keep include_full off unless full samples are required.
 
 Output:
 - Resolved activity identity, key metrics with units, interval/segment evidence, analyzer findings with _meta.method, data caveats, and focused next-step questions.
