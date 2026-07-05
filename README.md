@@ -82,6 +82,10 @@ If you prefer manual configuration, add this to `~/.cursor/mcp.json` and leave `
 
 Learn how to connect your AI assistant, try beginner prompt examples, read the tool catalog, and troubleshoot stale conversations or cached tool catalogs at <https://icuvisor.app>.
 
+### Downloadable prompt packs
+
+Copyable client prompt packs are available in [`docs/prompts/`](docs/prompts/README.md) for Weekly review, Race-week taper, Ride analysis, and Coach roster triage modes. Use them as custom mode/profile instructions in clients that support saved modes, or paste the prompt block at the start of a fresh chat in clients that do not. The packs are designed to route assistants through Icuvisor's deterministic tools, `_meta.method`/unit metadata, and explicit caveats instead of generic prompt-only coaching or invented baselines.
+
 ### Fitness projection with ATP/periodization targets
 
 `get_annual_training_plan` summarizes existing PLAN, TARGET, and NOTE calendar events into season phases, weekly load/TSS targets, recovery/context notes, and `_meta.projection_bridge.weekly_plan_targets`. `propose_annual_training_plan` creates a read-only deterministic season proposal from caller-provided goals and constraints when no calendar writes should occur. Copy either tool's bridge rows into `get_fitness_projection.weekly_plan_targets` to model future CTL/ATL/TSB scenarios without asking the assistant to invent daily loads. `get_fitness_projection` distributes each ISO-Monday weekly `training_load` evenly as `training_load/7` across projected future dates in that week. Explicit `planned_daily_loads` win for matching dates and are not redistributed.
