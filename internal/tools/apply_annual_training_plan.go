@@ -151,13 +151,13 @@ func applyAnnualTrainingPlan(ctx context.Context, client ApplyAnnualTrainingPlan
 		dryRun = *args.DryRun
 	}
 	prepared := prepareAnnualTrainingPlanNotes(args.Proposal)
-	eventsByDate, protectedEvents, err := fetchApplyAnnualTrainingPlanEvents(ctx, client, args.Proposal.Summary.StartDate, args.Proposal.Summary.EndDate)
+	eventsByDate, protectedEvents, err := fetchApplyAnnualTrainingPlanEvents(ctx, client, args.Proposal.Summary.StartDate, args.Proposal.Summary.EndDate, args.ConflictPolicy)
 	if err != nil {
 		return applyAnnualTrainingPlanResponse{}, err
 	}
 	payload := applyAnnualTrainingPlanResponse{ProposedNotes: make([]applyAnnualTrainingPlanProposedNote, 0, len(prepared)), ProtectedEvents: protectedEvents, Meta: applyAnnualTrainingPlanMeta{DryRun: dryRun, ConflictPolicy: args.ConflictPolicy, DeleteMode: capabilityOrSafe(capability).Mode(), Timezone: timezoneName, DateRange: dateRangeMeta{Oldest: args.Proposal.Summary.StartDate, Newest: args.Proposal.Summary.EndDate}, ProposedCount: len(prepared), RetrySafe: true}}
 	for _, note := range prepared {
-		conflicts := applyAnnualTrainingPlanConflictsForNote(note, eventsByDate[note.params.Date])
+		conflicts := applyAnnualTrainingPlanConflictsForNote(note, eventsByDate[note.params.Date], args.ConflictPolicy)
 		operation := applyAnnualTrainingPlanOperation(conflicts)
 		row := applyAnnualTrainingPlanProposedNote{PhaseID: note.phase.PhaseID, Date: note.params.Date, EndDate: note.phase.EndDate, ExternalID: note.params.ExternalID, Name: note.params.Name, Description: note.description, Operation: operation, Conflicts: conflicts}
 		payload.ProposedNotes = append(payload.ProposedNotes, row)
@@ -306,7 +306,7 @@ func applyAnnualTrainingPlanNoteDescription(proposal seasonPlanProposalResponse,
 	return strings.Join(lines, "\n")
 }
 
-func fetchApplyAnnualTrainingPlanEvents(ctx context.Context, client EventsClient, oldest string, newest string) (map[string][]intervals.Event, []applyTrainingPlanConflict, error) {
+func fetchApplyAnnualTrainingPlanEvents(ctx context.Context, client EventsClient, oldest string, newest string, conflictPolicy string) (map[string][]intervals.Event, []applyTrainingPlanConflict, error) {
 	events, err := client.ListEvents(ctx, intervals.ListEventsParams{Oldest: oldest, Newest: newest, Limit: maxEventsLimit})
 	if err != nil {
 		return nil, nil, fmt.Errorf("fetching annual-plan calendar conflicts: %w", err)
@@ -319,7 +319,7 @@ func fetchApplyAnnualTrainingPlanEvents(ctx context.Context, client EventsClient
 			continue
 		}
 		eventsByDate[date] = append(eventsByDate[date], event)
-		conflict := applyAnnualTrainingPlanConflictFromEvent(event, "existing_event_in_range")
+		conflict := applyAnnualTrainingPlanConflictFromEvent(event, "existing_event_in_range", conflictPolicy)
 		if conflict.Protected {
 			protected = append(protected, conflict)
 		}
@@ -328,22 +328,33 @@ func fetchApplyAnnualTrainingPlanEvents(ctx context.Context, client EventsClient
 	return eventsByDate, protected, nil
 }
 
-func applyAnnualTrainingPlanConflictsForNote(note applyAnnualTrainingPlanPreparedNote, events []intervals.Event) []applyTrainingPlanConflict {
+func applyAnnualTrainingPlanConflictsForNote(note applyAnnualTrainingPlanPreparedNote, events []intervals.Event, conflictPolicy string) []applyTrainingPlanConflict {
 	conflicts := []applyTrainingPlanConflict{}
 	for _, event := range events {
 		if eventDateOnly(event) != note.params.Date {
 			continue
 		}
-		conflict := applyAnnualTrainingPlanConflictFromEvent(event, "existing_event_on_phase_start")
+		conflict := applyAnnualTrainingPlanConflictFromEvent(event, "existing_event_on_phase_start", conflictPolicy)
+		ownedPhaseNote := isIcuvisorAnnualPlanPhaseNote(event)
 		if eventMatchesExternalID(event, note.params.ExternalID) {
-			conflict.Reason = "matching_external_id"
 			if applyAnnualTrainingPlanEventBodyMatches(event, note.params) {
 				conflict.Reason = "idempotent_existing"
+				conflict.Protected = true
+			} else if ownedPhaseNote && conflictPolicy == applyAnnualTrainingPlanConflictReplaceOwned {
+				conflict.Reason = "icuvisor_owned_phase_note"
+				conflict.Protected = false
+			} else {
+				conflict.Reason = "external_id_body_mismatch"
+				conflict.Protected = true
 			}
-			conflict.Protected = true
-		} else if isIcuvisorAnnualPlanEvent(event) {
-			conflict.Reason = "icuvisor_owned_phase_note"
-			conflict.Protected = false
+		} else if ownedPhaseNote {
+			if conflictPolicy == applyAnnualTrainingPlanConflictReplaceOwned {
+				conflict.Reason = "icuvisor_owned_phase_note"
+				conflict.Protected = false
+			} else {
+				conflict.Reason = "existing_icuvisor_phase_note"
+				conflict.Protected = true
+			}
 		}
 		conflicts = append(conflicts, conflict)
 	}
@@ -351,17 +362,17 @@ func applyAnnualTrainingPlanConflictsForNote(note applyAnnualTrainingPlanPrepare
 	return conflicts
 }
 
-func applyAnnualTrainingPlanConflictFromEvent(event intervals.Event, reason string) applyTrainingPlanConflict {
+func applyAnnualTrainingPlanConflictFromEvent(event intervals.Event, reason string, conflictPolicy string) applyTrainingPlanConflict {
 	conflict := applyTrainingPlanConflictFromEvent(event, reason)
-	conflict.Protected = applyAnnualTrainingPlanConflictProtected(conflict, event)
+	conflict.Protected = applyAnnualTrainingPlanConflictProtected(conflict, event, conflictPolicy)
 	return conflict
 }
 
-func applyAnnualTrainingPlanConflictProtected(conflict applyTrainingPlanConflict, event intervals.Event) bool {
+func applyAnnualTrainingPlanConflictProtected(conflict applyTrainingPlanConflict, event intervals.Event, conflictPolicy string) bool {
 	if conflict.Reason == "idempotent_existing" || conflict.Reason == "matching_external_id" {
 		return true
 	}
-	if isIcuvisorAnnualPlanEvent(event) {
+	if isIcuvisorAnnualPlanPhaseNote(event) && conflictPolicy == applyAnnualTrainingPlanConflictReplaceOwned {
 		return false
 	}
 	return true
@@ -415,8 +426,11 @@ func applyAnnualTrainingPlanEventBodyMatches(event intervals.Event, params inter
 	return sameText(firstNonEmpty(stringValue(event.Category), anyString(event.Raw["category"])), params.Category) && strings.TrimSpace(stringValue(event.Name)) == strings.TrimSpace(params.Name) && stringValue(event.Description) == stringValue(params.Description)
 }
 
-func isIcuvisorAnnualPlanEvent(event intervals.Event) bool {
-	return strings.HasPrefix(strings.TrimSpace(firstNonEmpty(stringValue(event.ExternalID), anyString(event.Raw["external_id"]))), applyAnnualTrainingPlanExternalIDPrefix)
+func isIcuvisorAnnualPlanPhaseNote(event intervals.Event) bool {
+	category := firstNonEmpty(stringValue(event.Category), anyString(event.Raw["category"]))
+	description := firstNonEmpty(stringValue(event.Description), anyString(event.Raw["description"]))
+	externalID := firstNonEmpty(stringValue(event.ExternalID), anyString(event.Raw["external_id"]))
+	return strings.EqualFold(strings.TrimSpace(category), "NOTE") && strings.Contains(description, applyAnnualTrainingPlanNoteMarker) && strings.HasPrefix(strings.TrimSpace(externalID), applyAnnualTrainingPlanExternalIDPrefix)
 }
 
 func sortApplyAnnualTrainingPlanConflicts(conflicts []applyTrainingPlanConflict) {
