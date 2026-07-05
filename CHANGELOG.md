@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Added calendar write/delete regression coverage for today-starting unavailable ranges, protected training-plan conflicts, sparse event deletes, and explicit confirmation metadata on event writes/deletes.
+
 ## [1.3.0] - 2026-06-30
 
 ### Added
