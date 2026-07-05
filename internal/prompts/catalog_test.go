@@ -17,14 +17,14 @@ func (r *captureRegistrar) AddPrompt(prompt Prompt) error {
 	return nil
 }
 
-func TestNewRegistryRegistersNinePrompts(t *testing.T) {
+func TestNewRegistryRegistersTenPrompts(t *testing.T) {
 	t.Parallel()
 
 	registrar := &captureRegistrar{}
 	if err := NewRegistry().Register(context.Background(), registrar); err != nil {
 		t.Fatalf("Register() error = %v", err)
 	}
-	wantNames := []string{TrainingAnalysisName, RecoveryCheckName, WeeklyPlanningName, WeeklyReviewName, ShareableTrainingReportName, PlanHealthReviewName, RaceWeekTaperName, CoachRosterTriageName, CoachAthleteOnboardingName}
+	wantNames := []string{TrainingAnalysisName, RideAnalysisName, RecoveryCheckName, WeeklyPlanningName, WeeklyReviewName, ShareableTrainingReportName, PlanHealthReviewName, RaceWeekTaperName, CoachRosterTriageName, CoachAthleteOnboardingName}
 	if len(registrar.prompts) != len(wantNames) {
 		t.Fatalf("registered %d prompts, want %d", len(registrar.prompts), len(wantNames))
 	}
@@ -54,6 +54,7 @@ func TestRenderedPromptsGolden(t *testing.T) {
 		goldenFile string
 	}{
 		{name: "training_analysis", prompt: TrainingAnalysisPrompt(), arguments: map[string]string{"start_date": "2026-04-01", "end_date": "2026-04-30"}, goldenFile: "training_analysis.md"},
+		{name: "ride_analysis", prompt: RideAnalysisPrompt(), arguments: map[string]string{"activity_id": "ride-123", "activity_date": "2026-05-17", "focus": "interval execution"}, goldenFile: "ride_analysis.md"},
 		{name: "recovery_check", prompt: RecoveryCheckPrompt(), arguments: map[string]string{"date": "2026-05-14", "lookback_days": "10"}, goldenFile: "recovery_check.md"},
 		{name: "weekly_planning", prompt: WeeklyPlanningPrompt(), arguments: map[string]string{"week_start": "2026-05-18"}, goldenFile: "weekly_planning.md"},
 		{name: "weekly_review", prompt: WeeklyReviewPrompt(), arguments: nil, goldenFile: "weekly_review.md"},
@@ -76,6 +77,28 @@ func TestRenderedPromptsGolden(t *testing.T) {
 				t.Fatalf("rendered prompt mismatch with %s\n--- got ---\n%s\n--- want ---\n%s", tc.goldenFile, got, string(want))
 			}
 		})
+	}
+}
+
+func TestRideAnalysisPromptUsesDeterministicActivityAnalyzers(t *testing.T) {
+	t.Parallel()
+
+	text := renderPromptText(t, RideAnalysisPrompt(), nil)
+	for _, want := range []string{
+		"get_activity_details",
+		"get_activity_intervals",
+		"get_activity_streams",
+		"get_activity_histogram",
+		"compute_activity_segment_stats",
+		"compute_zone_time",
+		"_meta.method",
+		"_meta.source_tools",
+		"preferred units",
+		"Do not invent missing power",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("ride analysis prompt missing %q:\n%s", want, text)
+		}
 	}
 }
 
