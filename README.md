@@ -84,7 +84,7 @@ Learn how to connect your AI assistant, try beginner prompt examples, read the t
 
 ### Fitness projection with ATP/periodization targets
 
-`get_annual_training_plan` summarizes existing PLAN, TARGET, and NOTE calendar events into season phases, weekly load/TSS targets, recovery/context notes, and `_meta.projection_bridge.weekly_plan_targets`. Copy those bridge rows into `get_fitness_projection.weekly_plan_targets` to model future CTL/ATL/TSB scenarios without asking the assistant to invent daily loads. `get_fitness_projection` distributes each ISO-Monday weekly `training_load` evenly as `training_load/7` across projected future dates in that week. Explicit `planned_daily_loads` win for matching dates and are not redistributed.
+`get_annual_training_plan` summarizes existing PLAN, TARGET, and NOTE calendar events into season phases, weekly load/TSS targets, recovery/context notes, and `_meta.projection_bridge.weekly_plan_targets`. `propose_annual_training_plan` creates a read-only deterministic season proposal from caller-provided goals and constraints when no calendar writes should occur. Copy either tool's bridge rows into `get_fitness_projection.weekly_plan_targets` to model future CTL/ATL/TSB scenarios without asking the assistant to invent daily loads. `get_fitness_projection` distributes each ISO-Monday weekly `training_load` evenly as `training_load/7` across projected future dates in that week. Explicit `planned_daily_loads` win for matching dates and are not redistributed.
 
 ```json
 {

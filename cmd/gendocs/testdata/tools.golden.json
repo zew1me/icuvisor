@@ -512,6 +512,14 @@
     "anchor": "get_workouts_in_folder"
   },
   {
+    "name": "propose_annual_training_plan",
+    "group": "workout-library",
+    "tier": "full",
+    "safety": "read",
+    "summary": "Use when the prompt asks to propose a season plan, annual training plan, race build, taper, recovery weeks, weekly load targets, or projection-ready ATP bridge; do not roll ATP/projection math in chat and do not write calendar data.",
+    "anchor": "propose_annual_training_plan"
+  },
+  {
     "name": "update_workout",
     "group": "workout-library",
     "tier": "full",
