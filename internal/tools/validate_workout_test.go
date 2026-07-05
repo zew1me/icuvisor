@@ -77,6 +77,24 @@ func TestValidateWorkoutStepsOnlyHappyPath(t *testing.T) {
 	}
 }
 
+func TestValidateWorkoutRejectsFractionalPercentFTP(t *testing.T) {
+	t.Parallel()
+	payload := `{"workout_doc":{"steps":[{"description":"Threshold","duration":600,"power":{"value":0.95,"units":"PERCENT_FTP"}}]}}`
+	resp := runValidateWorkout(t, payload)
+	if resp.Valid {
+		t.Fatalf("Valid = true, want false; canonical=%q warnings=%+v", resp.CanonicalDSL, resp.Warnings)
+	}
+	if resp.CanonicalDSL != "" || strings.Contains(resp.CanonicalDSL, "0.95%") {
+		t.Fatalf("CanonicalDSL = %q, want no silently serialized fractional percent", resp.CanonicalDSL)
+	}
+	if !diagContains(diagCodes(resp.Errors), "UNSUPPORTED_STEP") {
+		t.Fatalf("expected UNSUPPORTED_STEP error; got %+v", resp.Errors)
+	}
+	if !strings.Contains(resp.Errors[0].Message, "percent points") {
+		t.Fatalf("error = %q, want percent-point guidance", resp.Errors[0].Message)
+	}
+}
+
 func TestValidateWorkoutBothSetMergesWithSentinel(t *testing.T) {
 	t.Parallel()
 	prose := "Threshold day.\n" + workoutdoc.StepsSentinel + "\nCool down well."
