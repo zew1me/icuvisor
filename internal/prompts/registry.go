@@ -10,6 +10,7 @@ type staticRegistry struct {
 func NewRegistry() Registry {
 	return staticRegistry{entries: []Prompt{
 		TrainingAnalysisPrompt(),
+		RideAnalysisPrompt(),
 		RecoveryCheckPrompt(),
 		WeeklyPlanningPrompt(),
 		WeeklyReviewPrompt(),

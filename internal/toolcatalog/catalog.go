@@ -54,6 +54,7 @@ const (
 	GetPerformancePotential          = "get_performance_potential"
 	GetPowerCurves                   = "get_power_curves"
 	GetPlanningContext               = "get_planning_context"
+	ProposeAnnualTrainingPlan        = "propose_annual_training_plan"
 	GetTrainingPlan                  = "get_training_plan"
 	GetToday                         = "get_today"
 	GetTrainingSummary               = "get_training_summary"
@@ -123,6 +124,7 @@ var athleteScopedToolNames = []string{
 	GetPerformancePotential,
 	GetPowerCurves,
 	GetPlanningContext,
+	ProposeAnnualTrainingPlan,
 	GetToday,
 	GetTrainingPlan,
 	GetTrainingSummary,

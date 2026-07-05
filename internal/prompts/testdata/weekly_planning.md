@@ -1,7 +1,7 @@
 Prompt: Weekly planning
 Scope: week_start=2026-05-18.
 Resources: icuvisor://athlete-profile, icuvisor://event-categories, icuvisor://workout-syntax.
-Tools: get_athlete_profile, resolve_calendar_dates, get_planning_context, get_events, get_training_plan, get_fitness, get_training_summary, get_activities, compute_compliance_rate, icuvisor_list_advanced_capabilities.
+Tools: get_athlete_profile, resolve_calendar_dates, get_planning_context, propose_annual_training_plan, get_events, get_training_plan, get_fitness, get_training_summary, get_activities, compute_compliance_rate, icuvisor_list_advanced_capabilities.
 Do:
 - Read profile/timezone, then ask or confirm the planning anchor: race date, priority/category, goal, and constraints when missing; for relative dates, weekdays, countdowns, or stale conversations, call resolve_calendar_dates and use its athlete-local date/weekday instead of UTC, client-time, or model arithmetic.
 - Use get_planning_context when available to gather week events, active training-plan context, upcoming races, fitness context, and SEASON_START season boundaries before suggesting changes.
@@ -9,6 +9,7 @@ Do:
 - Use fitness, training summary, recent activities, and compute_compliance_rate workout_status/status counts/caveats to summarize current load, fatigue/freshness, and planned-versus-completed work without inferring completion from calendar/activity co-occurrence.
 - If get_training_plan or compute_compliance_rate is unavailable, call icuvisor_list_advanced_capabilities and proceed from get_events, get_fitness, get_training_summary, and activities.
 - Use event categories and workout syntax resources by URI if the user asks for edits or workout details.
+- For season or ATP proposals, call propose_annual_training_plan to get deterministic read-only phases, weekly targets, assumptions, warnings, and projection-ready weekly_plan_targets instead of doing ATP math in chat.
 - Draft a season/block/week proposal with assumptions, load constraints, and follow-up questions before any edits.
 - When proposing endurance workouts, prefer the structured `workout_doc` form on write tools and include any coaching notes via `description` on the same event; both fields coexist, but `description` replaces the upstream description/DSL on writes, so for updates include the desired `workout_doc` whenever preserving structured steps matters. Call `validate_workout` before the write if uncertain about the DSL syntax, and read `icuvisor://workout-syntax` for the cheat sheet and common mistakes.
 - When the user asks for gym or strength work, schedule a simple `NOTE` time block or free-text supported calendar event; do not invent structured exercises, sets, reps, loads, or rest periods unless documented upstream strength-training support is available.

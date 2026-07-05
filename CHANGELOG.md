@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added downloadable/copyable Icuvisor prompt packs for Weekly review, Race-week taper, Ride analysis, and Coach roster triage client modes.
+- Added the read-only `propose_annual_training_plan` MCP tool for deterministic season-plan proposals with phases, weekly load/hour targets, recovery weeks, race anchors, assumptions, warnings, and `get_fitness_projection` bridge rows without writing calendar data.
+
 ## [1.3.0] - 2026-06-30
 
 ### Added

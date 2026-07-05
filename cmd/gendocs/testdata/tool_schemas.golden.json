@@ -2422,6 +2422,96 @@
     "description": "List the coach-mode roster configured for this icuvisor server.",
     "arguments": null
   },
+  "propose_annual_training_plan": {
+    "name": "propose_annual_training_plan",
+    "description": "Use when the prompt asks to propose a season plan, annual training plan, race build, taper, recovery weeks, weekly load targets, or projection-ready ATP bridge; do not roll ATP/projection math in chat and do not write calendar data.",
+    "arguments": [
+      {
+        "name": "current_weekly_hours",
+        "required": false,
+        "type": "number",
+        "description": "Current weekly training hours used as a fallback when current_weekly_load is absent."
+      },
+      {
+        "name": "current_weekly_load",
+        "required": false,
+        "type": "number",
+        "description": "Current weekly TSS/load points. Omit to use explicit documented fallbacks and warnings."
+      },
+      {
+        "name": "goal_date",
+        "required": true,
+        "type": "string",
+        "description": "Required athlete-local YYYY-MM-DD goal/race date. Proposal horizon is capped at 53 inclusive weeks."
+      },
+      {
+        "name": "goal_name",
+        "required": false,
+        "type": "string",
+        "description": "Optional race or season-goal name."
+      },
+      {
+        "name": "goal_type",
+        "required": false,
+        "type": "string",
+        "description": "Caller-provided anchor type; v1 does not fetch existing race events.",
+        "enum": [
+          "race",
+          "event",
+          "season_goal",
+          "other"
+        ],
+        "default": "race"
+      },
+      {
+        "name": "include_full",
+        "required": false,
+        "type": "boolean",
+        "description": "When true, include all proposal rows after normal response shaping.",
+        "default": false
+      },
+      {
+        "name": "max_hours_per_week",
+        "required": false,
+        "type": "number",
+        "description": "Hard weekly time cap; infeasible load-derived hours warn instead of exceeding this cap."
+      },
+      {
+        "name": "sports",
+        "required": false,
+        "type": "array",
+        "description": "Caller-provided sport context echoed as assumptions only; no sport allocation is fetched or invented.",
+        "items": {
+          "required": false,
+          "type": "string"
+        }
+      },
+      {
+        "name": "start_date",
+        "required": false,
+        "type": "string",
+        "description": "Optional athlete-local Monday YYYY-MM-DD start. Must be strictly after athlete-local today; omitted defaults to the next Monday strictly after today."
+      },
+      {
+        "name": "strength_context",
+        "required": false,
+        "type": "string",
+        "description": "Free-form caller-provided strength context echoed as an assumption; not first-class upstream strength data."
+      },
+      {
+        "name": "target_hours_per_week",
+        "required": false,
+        "type": "number",
+        "description": "Target weekly training hours; may cap time targets independently from load."
+      },
+      {
+        "name": "target_weekly_load",
+        "required": false,
+        "type": "number",
+        "description": "Target weekly TSS/load points for the goal build."
+      }
+    ]
+  },
   "resolve_calendar_dates": {
     "name": "resolve_calendar_dates",
     "description": "Resolve athlete-local calendar anchors before planning, scheduling, or answering date-sensitive prompts such as today, tomorrow, next week, or N days from today.",

@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -17,14 +18,14 @@ func (r *captureRegistrar) AddPrompt(prompt Prompt) error {
 	return nil
 }
 
-func TestNewRegistryRegistersNinePrompts(t *testing.T) {
+func TestNewRegistryRegistersTenPrompts(t *testing.T) {
 	t.Parallel()
 
 	registrar := &captureRegistrar{}
 	if err := NewRegistry().Register(context.Background(), registrar); err != nil {
 		t.Fatalf("Register() error = %v", err)
 	}
-	wantNames := []string{TrainingAnalysisName, RecoveryCheckName, WeeklyPlanningName, WeeklyReviewName, ShareableTrainingReportName, PlanHealthReviewName, RaceWeekTaperName, CoachRosterTriageName, CoachAthleteOnboardingName}
+	wantNames := []string{TrainingAnalysisName, RideAnalysisName, RecoveryCheckName, WeeklyPlanningName, WeeklyReviewName, ShareableTrainingReportName, PlanHealthReviewName, RaceWeekTaperName, CoachRosterTriageName, CoachAthleteOnboardingName}
 	if len(registrar.prompts) != len(wantNames) {
 		t.Fatalf("registered %d prompts, want %d", len(registrar.prompts), len(wantNames))
 	}
@@ -54,6 +55,7 @@ func TestRenderedPromptsGolden(t *testing.T) {
 		goldenFile string
 	}{
 		{name: "training_analysis", prompt: TrainingAnalysisPrompt(), arguments: map[string]string{"start_date": "2026-04-01", "end_date": "2026-04-30"}, goldenFile: "training_analysis.md"},
+		{name: "ride_analysis", prompt: RideAnalysisPrompt(), arguments: map[string]string{"activity_id": "ride-123", "activity_date": "2026-05-17", "focus": "interval execution"}, goldenFile: "ride_analysis.md"},
 		{name: "recovery_check", prompt: RecoveryCheckPrompt(), arguments: map[string]string{"date": "2026-05-14", "lookback_days": "10"}, goldenFile: "recovery_check.md"},
 		{name: "weekly_planning", prompt: WeeklyPlanningPrompt(), arguments: map[string]string{"week_start": "2026-05-18"}, goldenFile: "weekly_planning.md"},
 		{name: "weekly_review", prompt: WeeklyReviewPrompt(), arguments: nil, goldenFile: "weekly_review.md"},
@@ -77,6 +79,120 @@ func TestRenderedPromptsGolden(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRideAnalysisPromptUsesDeterministicActivityAnalyzers(t *testing.T) {
+	t.Parallel()
+
+	text := renderPromptText(t, RideAnalysisPrompt(), nil)
+	for _, want := range []string{
+		"get_activity_details",
+		"get_activity_intervals",
+		"get_activity_streams",
+		"get_activity_histogram",
+		"compute_activity_segment_stats",
+		"compute_zone_time",
+		"_meta.method",
+		"_meta.source_tools",
+		"preferred units",
+		"Do not invent missing power",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("ride analysis prompt missing %q:\n%s", want, text)
+		}
+	}
+}
+
+func TestClientPromptPacksStayLinkedToRegistry(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		file   string
+		prompt Prompt
+		args   map[string]string
+	}{
+		{name: "weekly_review", file: "weekly-review.md", prompt: WeeklyReviewPrompt()},
+		{name: "race_week_taper", file: "race-week-taper.md", prompt: RaceWeekTaperPrompt(), args: map[string]string{"race_date": "2026-06-07", "race_name": "A Race"}},
+		{name: "ride_analysis", file: "ride-analysis.md", prompt: RideAnalysisPrompt(), args: map[string]string{"activity_id": "ride-123", "activity_date": "2026-05-17", "focus": "interval execution"}},
+		{name: "coach_roster_triage", file: "coach-roster-triage.md", prompt: CoachRosterTriagePrompt(), args: map[string]string{"athlete_id": "i12345", "start_date": "2026-05-01", "end_date": "2026-05-14"}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			packBytes, err := os.ReadFile(filepath.Join("..", "..", "docs", "prompts", "client-prompt-packs", tc.file))
+			if err != nil {
+				t.Fatalf("read pack: %v", err)
+			}
+			pack := string(packBytes)
+			if !strings.Contains(pack, "Registry prompt: `"+tc.prompt.Name+"`") {
+				t.Fatalf("pack %s missing registry prompt %q", tc.file, tc.prompt.Name)
+			}
+			for _, tool := range renderedPromptTools(t, tc.prompt, tc.args) {
+				if !strings.Contains(pack, tool) {
+					t.Fatalf("pack %s missing source tool %q", tc.file, tool)
+				}
+			}
+		})
+	}
+}
+
+func TestClientPromptPacksAvoidSecretsAndConcreteAthleteIDs(t *testing.T) {
+	t.Parallel()
+
+	files, err := filepath.Glob(filepath.Join("..", "..", "docs", "prompts", "client-prompt-packs", "*.md"))
+	if err != nil {
+		t.Fatalf("glob packs: %v", err)
+	}
+	if len(files) == 0 {
+		t.Fatal("no client prompt packs found")
+	}
+	forbidden := []*regexp.Regexp{
+		regexp.MustCompile(`(?i)authorization:\s*bearer\s+\S+`),
+		regexp.MustCompile(`(?i)bearer\s+[a-z0-9._-]{12,}`),
+		regexp.MustCompile(`(?i)(api[_ -]?key|oauth[_ -]?token|access[_ -]?token)\s*[:=]\s*["'][^"']+["']`),
+		regexp.MustCompile(`\bi\d{3,}\b`),
+		regexp.MustCompile(`(?i)athlete[_ -]?id\s*[:=]\s*["']?\d{3,}`),
+	}
+	for _, file := range files {
+		file := file
+		t.Run(filepath.Base(file), func(t *testing.T) {
+			t.Parallel()
+
+			contentBytes, err := os.ReadFile(file)
+			if err != nil {
+				t.Fatalf("read pack: %v", err)
+			}
+			content := string(contentBytes)
+			for _, re := range forbidden {
+				if loc := re.FindStringIndex(content); loc != nil {
+					t.Fatalf("pack %s contains forbidden secret/id-like example matching %s near %q", filepath.Base(file), re.String(), content[loc[0]:loc[1]])
+				}
+			}
+			if strings.Contains(content, "```json") || strings.Contains(content, "raw tool output") {
+				t.Fatalf("pack %s appears to include raw payload/example output", filepath.Base(file))
+			}
+		})
+	}
+}
+
+func renderedPromptTools(t *testing.T, prompt Prompt, args map[string]string) []string {
+	t.Helper()
+
+	text := renderPromptText(t, prompt, args)
+	for _, line := range strings.Split(text, "\n") {
+		if strings.HasPrefix(line, "Tools: ") {
+			tools := strings.TrimSuffix(strings.TrimPrefix(line, "Tools: "), ".")
+			parts := strings.Split(tools, ", ")
+			for i, part := range parts {
+				parts[i] = strings.TrimSpace(part)
+			}
+			return parts
+		}
+	}
+	t.Fatalf("rendered prompt %s has no Tools line:\n%s", prompt.Name, text)
+	return nil
 }
 
 func TestTrainingAnalysisPromptIncludesHypoxicContextGuardrail(t *testing.T) {

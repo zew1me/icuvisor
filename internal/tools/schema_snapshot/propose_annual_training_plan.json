@@ -1,0 +1,86 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "athlete_id": {
+      "description": "Target athlete; defaults to selected athlete in coach mode, or the only athlete otherwise. Format: i12345 or 12345.",
+      "type": "string"
+    },
+    "current_weekly_hours": {
+      "description": "Current weekly training hours used as a fallback when current_weekly_load is absent.",
+      "maximum": 80,
+      "minimum": 0,
+      "type": "number"
+    },
+    "current_weekly_load": {
+      "description": "Current weekly TSS/load points. Omit to use explicit documented fallbacks and warnings.",
+      "maximum": 7000,
+      "minimum": 0,
+      "type": "number"
+    },
+    "goal_date": {
+      "description": "Required athlete-local YYYY-MM-DD goal/race date. Proposal horizon is capped at 53 inclusive weeks.",
+      "type": "string"
+    },
+    "goal_name": {
+      "description": "Optional race or season-goal name.",
+      "maxLength": 120,
+      "type": "string"
+    },
+    "goal_type": {
+      "default": "race",
+      "description": "Caller-provided anchor type; v1 does not fetch existing race events.",
+      "enum": [
+        "race",
+        "event",
+        "season_goal",
+        "other"
+      ],
+      "type": "string"
+    },
+    "include_full": {
+      "default": false,
+      "description": "When true, include all proposal rows after normal response shaping.",
+      "type": "boolean"
+    },
+    "max_hours_per_week": {
+      "description": "Hard weekly time cap; infeasible load-derived hours warn instead of exceeding this cap.",
+      "maximum": 80,
+      "minimum": 0,
+      "type": "number"
+    },
+    "sports": {
+      "description": "Caller-provided sport context echoed as assumptions only; no sport allocation is fetched or invented.",
+      "items": {
+        "maxLength": 40,
+        "type": "string"
+      },
+      "maxItems": 12,
+      "type": "array"
+    },
+    "start_date": {
+      "description": "Optional athlete-local Monday YYYY-MM-DD start. Must be strictly after athlete-local today; omitted defaults to the next Monday strictly after today.",
+      "type": "string"
+    },
+    "strength_context": {
+      "description": "Free-form caller-provided strength context echoed as an assumption; not first-class upstream strength data.",
+      "maxLength": 500,
+      "type": "string"
+    },
+    "target_hours_per_week": {
+      "description": "Target weekly training hours; may cap time targets independently from load.",
+      "maximum": 80,
+      "minimum": 0,
+      "type": "number"
+    },
+    "target_weekly_load": {
+      "description": "Target weekly TSS/load points for the goal build.",
+      "maximum": 7000,
+      "minimum": 0,
+      "type": "number"
+    }
+  },
+  "required": [
+    "goal_date"
+  ],
+  "type": "object"
+}

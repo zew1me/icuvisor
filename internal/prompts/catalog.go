@@ -10,6 +10,7 @@ import (
 
 const (
 	TrainingAnalysisName        = "training_analysis"
+	RideAnalysisName            = "ride_analysis"
 	RecoveryCheckName           = "recovery_check"
 	WeeklyPlanningName          = "weekly_planning"
 	WeeklyReviewName            = "weekly_review"
@@ -43,6 +44,41 @@ func TrainingAnalysisPrompt() Prompt {
 				"If the user explicitly mentions hypoxic training, altitude tents/chambers, or reduced oxygen exposure, state that CTL/ATL/Form use logged training_load: power-based load may under-represent extra hypoxic strain, HR/RPE/feel/recovery can be supporting context, and you must not apply a hypoxia multiplier without evidence.",
 			},
 			Return: "load/trend readout with notable changes, likely drivers, missing-data caveats, and 2-3 next-step questions or actions",
+		}),
+	}
+}
+
+// RideAnalysisPrompt guides one-activity ride analysis with deterministic analyzers.
+func RideAnalysisPrompt() Prompt {
+	return Prompt{
+		Name:        RideAnalysisName,
+		Title:       "Ride analysis",
+		Description: "Guide a unit-safe analysis of one ride using activity lookup, details, intervals, streams, and analyzer tools instead of chat-side reductions.",
+		Arguments: []Argument{
+			{Name: "activity_id", Title: "Activity ID", Description: "Optional intervals.icu activity ID when known; otherwise resolve the ride from date/name context first."},
+			{Name: "activity_date", Title: "Activity date", Description: "Optional athlete-local date string (YYYY-MM-DD) used to find the ride when activity_id is not supplied."},
+			{Name: "focus", Title: "Focus", Description: "Optional analysis focus such as pacing, intervals, power, heart rate, fueling, or durability."},
+		},
+		Handler: staticPromptHandler(promptSpec{
+			Title:        "Ride analysis",
+			DefaultScope: "analyze the specified ride; if activity_id is absent, resolve the ride from athlete-local date/name context before fetching details",
+			ArgOrder:     []string{"activity_id", "activity_date", "focus"},
+			Resources:    []string{"icuvisor://athlete-profile", "icuvisor://analysis-formulas"},
+			Tools:        []string{"get_athlete_profile", "get_activities", "get_activity_details", "get_activity_intervals", "get_activity_streams", "get_activity_histogram", "compute_activity_segment_stats", "compute_zone_time", "analyze_distribution", "analyze_efforts_delta", "icuvisor_list_advanced_capabilities"},
+			Do: []string{
+				"Read profile first for athlete-local timezone, sport settings, thresholds/zones, and preferred units before comparing or labeling metrics.",
+				"If activity_id is missing, use get_activities with athlete-local date/name context to identify the ride; do not guess from client-local dates or partial titles.",
+				"Fetch get_activity_details before deeper analysis so tags, gear, calories_burned, carbs_ingested_g, carbs_used_g, unit-labelled metrics, and unavailable Strava-import fields are explicit.",
+				"Use get_activity_intervals for lap/rep structure and interval_source/interval_source_caveat before judging workout execution; when a single collapsed/imported lap is ambiguous, say so and use compute_activity_segment_stats only for explicit segment questions.",
+				"Prefer analyzer tools such as get_activity_histogram, compute_activity_segment_stats, compute_zone_time, analyze_distribution, and analyze_efforts_delta for deterministic math; cite `_meta.method`, `_meta.source_tools`, assumptions, caveats, and units instead of reducing raw streams in chat.",
+				"Use get_activity_streams only when a deterministic analyzer cannot answer the user's specific question or when the user explicitly requests samples; keep include_full false unless full samples are required.",
+			},
+			Guardrails: []string{
+				"Do not request or accept intervals.icu API keys in chat.",
+				"Do not invent missing power, heart-rate, pace, weather, location, fueling, or baseline data; report unavailable fields and Strava import restrictions plainly.",
+				"Do not diagnose medical issues or prescribe treatment from ride data; keep recommendations framed as training observations and questions.",
+			},
+			Return: "ride analysis with resolved activity identity, key unit-safe metrics, interval/segment evidence, deterministic analyzer findings with `_meta.method` and caveats, and focused next-step questions",
 		}),
 	}
 }
@@ -97,7 +133,7 @@ func WeeklyPlanningPrompt() Prompt {
 			DefaultScope: "use the upcoming athlete-local week unless week_start is supplied",
 			ArgOrder:     []string{"week_start"},
 			Resources:    []string{"icuvisor://athlete-profile", "icuvisor://event-categories", "icuvisor://workout-syntax"},
-			Tools:        []string{"get_athlete_profile", "resolve_calendar_dates", "get_planning_context", "get_events", "get_training_plan", "get_fitness", "get_training_summary", "get_activities", "compute_compliance_rate", "icuvisor_list_advanced_capabilities"},
+			Tools:        []string{"get_athlete_profile", "resolve_calendar_dates", "get_planning_context", "propose_annual_training_plan", "get_events", "get_training_plan", "get_fitness", "get_training_summary", "get_activities", "compute_compliance_rate", "icuvisor_list_advanced_capabilities"},
 			Do: []string{
 				"Read profile/timezone, then ask or confirm the planning anchor: race date, priority/category, goal, and constraints when missing; for relative dates, weekdays, countdowns, or stale conversations, call resolve_calendar_dates and use its athlete-local date/weekday instead of UTC, client-time, or model arithmetic.",
 				"Use get_planning_context when available to gather week events, active training-plan context, upcoming races, fitness context, and SEASON_START season boundaries before suggesting changes.",
@@ -105,6 +141,7 @@ func WeeklyPlanningPrompt() Prompt {
 				"Use fitness, training summary, recent activities, and compute_compliance_rate workout_status/status counts/caveats to summarize current load, fatigue/freshness, and planned-versus-completed work without inferring completion from calendar/activity co-occurrence.",
 				"If get_training_plan or compute_compliance_rate is unavailable, call icuvisor_list_advanced_capabilities and proceed from get_events, get_fitness, get_training_summary, and activities.",
 				"Use event categories and workout syntax resources by URI if the user asks for edits or workout details.",
+				"For season or ATP proposals, call propose_annual_training_plan to get deterministic read-only phases, weekly targets, assumptions, warnings, and projection-ready weekly_plan_targets instead of doing ATP math in chat.",
 				"Draft a season/block/week proposal with assumptions, load constraints, and follow-up questions before any edits.",
 				"When proposing endurance workouts, prefer the structured `workout_doc` form on write tools and include any coaching notes via `description` on the same event; both fields coexist, but `description` replaces the upstream description/DSL on writes, so for updates include the desired `workout_doc` whenever preserving structured steps matters. Call `validate_workout` before the write if uncertain about the DSL syntax, and read `icuvisor://workout-syntax` for the cheat sheet and common mistakes.",
 				"When the user asks for gym or strength work, schedule a simple `NOTE` time block or free-text supported calendar event; do not invent structured exercises, sets, reps, loads, or rest periods unless documented upstream strength-training support is available.",
