@@ -168,6 +168,48 @@ func TestAnalyzeDistributionRejectsBucketAndQuantileContractViolations(t *testin
 	}
 }
 
+func TestAnalyzeTrendHRVSDNNCurrentWindowFreshnessCaveat(t *testing.T) {
+	client := newFakeComputeClient()
+	client.wellness = []intervals.Wellness{
+		decodeWellnessRow(t, `{"id":"2026-04-24","hrvSDNN":51,"source":"oura","bridge_fetched_at":"2026-04-24T08:00:00Z"}`),
+		decodeWellnessRow(t, `{"id":"2026-04-25","hrvSDNN":52,"source":"oura","bridge_fetched_at":"2026-04-25T08:00:00Z"}`),
+		decodeWellnessRow(t, `{"id":"2026-04-26","hrvSDNN":53,"source":"oura","bridge_fetched_at":"2026-04-26T08:00:00Z"}`),
+		decodeWellnessRow(t, `{"id":"2026-04-27","hrvSDNN":54,"source":"oura","bridge_fetched_at":"2026-04-27T08:00:00Z"}`),
+		decodeWellnessRow(t, `{"id":"2026-04-28","hrvSDNN":55,"source":"oura","bridge_fetched_at":"2026-04-28T08:00:00Z"}`),
+		decodeWellnessRow(t, `{"id":"2026-04-29","hrvSDNN":56,"source":"oura","bridge_fetched_at":"2026-04-29T08:00:00Z"}`),
+		decodeWellnessRow(t, `{"id":"2026-04-30","hrvSDNN":57,"source":"oura","bridge_fetched_at":"2026-04-30T08:00:00Z"}`),
+		decodeWellnessRow(t, `{"id":"2026-05-01","hrvSDNN":47,"source":"oura","bridge_fetched_at":"2026-05-01T08:00:00Z"}`),
+		decodeWellnessRow(t, `{"id":"2026-05-02","hrvSDNN":46,"source":"oura","bridge_fetched_at":"2026-05-02T08:00:00Z"}`),
+		decodeWellnessRow(t, `{"id":"2026-05-03","hrvSDNN":45,"source":"oura","bridge_fetched_at":"2026-05-03T08:00:00Z"}`),
+		decodeWellnessRow(t, `{"id":"2026-05-04","hrvSDNN":44,"source":"oura","bridge_fetched_at":"2026-05-04T08:00:00Z"}`),
+		decodeWellnessRow(t, `{"id":"2026-05-05","hrvSDNN":43,"source":"oura","bridge_fetched_at":"2026-05-05T08:00:00Z"}`),
+		decodeWellnessRow(t, `{"id":"2026-05-06","hrvSDNN":42,"source":"oura","bridge_fetched_at":"2026-05-06T08:00:00Z"}`),
+	}
+	tool := newAnalyzeTrendTool(nil, client, nil, client, "test", "UTC", false)
+
+	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"metric":"hrv_sdnn","window":{"start_date":"2026-05-01","end_date":"2026-05-07"},"baseline_window":{"start_date":"2026-04-24","end_date":"2026-04-30"},"rolling_window_days":3,"include_full":true}`)})
+	if err != nil {
+		t.Fatalf("Handler() error = %v", err)
+	}
+	payload := resultMap(t, result)
+	body := payload["result"].(map[string]any)
+	meta := payload["_meta"].(map[string]any)
+	if body["freshness_status"] != "stale_current_window" || body["latest_sample_date"] != "2026-05-06" || body["window_end_date"] != "2026-05-07" {
+		t.Fatalf("trend freshness fields = %#v, want stale_current_window latest/end dates", body)
+	}
+	caveats := joinedStrings(body["caveats"].([]any))
+	if !strings.Contains(caveats, "latest HRV-SDNN sample 2026-05-06 predates trend window end 2026-05-07") || !strings.Contains(caveats, "1 missing day") {
+		t.Fatalf("caveats = %q, want latest-sample and missing-day wording", caveats)
+	}
+	if !slices.Contains(stringSliceFromAny(meta["source_tools"]), getWellnessDataName) {
+		t.Fatalf("source_tools = %#v, want get_wellness_data", meta["source_tools"])
+	}
+	freshness := meta["assumptions"].(map[string]any)["wellness_freshness"].(map[string]any)
+	if freshness["status"] != "stale_current_window" || freshness["latest_sample_date"] != "2026-05-06" || freshness["window_end_date"] != "2026-05-07" {
+		t.Fatalf("wellness_freshness = %#v", freshness)
+	}
+}
+
 func TestAnalyzeTrendPropagatesBaselineCancellation(t *testing.T) {
 	client := &cancelSecondSummaryClient{rows: decodeSummaries(t, `[
 		{"date":"2026-05-01","fitness":70},{"date":"2026-05-02","fitness":71},{"date":"2026-05-03","fitness":72},{"date":"2026-05-04","fitness":73},{"date":"2026-05-05","fitness":74},{"date":"2026-05-06","fitness":75},{"date":"2026-05-07","fitness":76}
