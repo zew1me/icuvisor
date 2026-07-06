@@ -102,7 +102,7 @@ brews:
     directory: Formula
     repository:
       owner: ricardocabral
-      name: homebrew-icuvisor
+      name: homebrew-tap
       branch: main
       token: "{{ .Env.HOMEBREW_TAP_PAT }}"
     install: |

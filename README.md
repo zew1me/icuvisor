@@ -46,7 +46,7 @@ iwr -useb https://icuvisor.app/install.ps1 | iex
 
 See [SECURITY.md](SECURITY.md#installer-integrity) for installer signature verification and in-place update behaviour.
 
-Prefer a package manager? Use `brew install ricardocabral/icuvisor/icuvisor` on macOS, or install from Winget on Windows:
+Prefer a package manager? Use `brew install ricardocabral/tap/icuvisor` on macOS, or install from Winget on Windows:
 
 ```powershell
 winget install --id RicardoCabral.icuvisor --exact
