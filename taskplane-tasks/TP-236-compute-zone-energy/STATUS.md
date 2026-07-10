@@ -1,10 +1,10 @@
 # TP-236: Add deterministic power-zone energy analysis — Status
 
-**Current Step:** Step 1: Lock the numerical and response contract
+**Current Step:** Step 2: Implement and test the pure calculation
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
-**Review Counter:** 4
+**Review Counter:** 5
 **Iteration:** 2
 **Size:** L
 
@@ -22,7 +22,7 @@
 
 ### Step 1: Lock the numerical and response contract
 
-**Status:** 🟨 In Progress
+**Status:** ✅ Complete
 
 - [x] Integration and boundary rules defined
 - [x] Range limits and statuses defined
@@ -105,6 +105,8 @@
 | R001 | Plan | 1 | REVISE | `.reviews/R001-plan-step1.md` |
 | R002 | Plan | 1 | REVISE | `.reviews/R002-plan-step1.md` |
 | R003 | Plan | 1 | REVISE | `.reviews/R003-plan-step1.md` |
+| R004 | Plan | 1 | APPROVE | `.reviews/R004-plan-step1.md` |
+| R005 | Code | 1 | APPROVE | `.reviews/R005-code-step1.md` |
 
 ## Discoveries
 
@@ -154,3 +156,4 @@
 | 2026-07-10 16:20 | Review R002 | plan Step 1: REVISE |
 | 2026-07-10 16:24 | Review R003 | plan Step 1: REVISE |
 | 2026-07-10 16:27 | Review R004 | plan Step 1: APPROVE |
+| 2026-07-10 16:35 | Review R005 | code Step 1: APPROVE |
