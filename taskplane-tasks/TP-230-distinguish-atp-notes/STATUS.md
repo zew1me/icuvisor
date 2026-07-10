@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
-**Review Counter:** 1
+**Review Counter:** 2
 **Iteration:** 1
 **Size:** M
 
@@ -30,6 +30,7 @@
 - [x] Ordering and terse/full behavior defined
 - [x] Exact collection, status, count, and week-association migration documented
 - [x] Classification boundary, recovery policy, and Step 2 regression matrix documented
+- [ ] Personal-context-only unavailable behavior and wording defined
 
 ---
 
@@ -82,6 +83,7 @@
 | # | Type | Step | Verdict | File |
 |---|------|------|---------|------|
 | R001 | Plan | 1 | REVISE | `.reviews/R001-plan-step1.md` |
+| R002 | Plan | 1 | REVISE | `.reviews/R002-plan-step1.md` |
 
 ## Discoveries
 
@@ -110,3 +112,4 @@
 - Step 1 ordering/full contract: independently order `notes` and `context_notes` by athlete-local start date, then upstream `updated`, then source event ID, preserving the current stable comparator; sort every ATP/context week ID list lexically. Default terse rows always expose `status`, and ATP notes expose `plan_applied`; `include_full: true` additionally exposes the unchanged raw event under `full` for either class, while false omits all `full` payloads.
 - Step 1 recovery policy and regression matrix: remove `recovery_hint`, `annualTrainingPlanRecoveryHint`, and all recovery-note counts; `plan_applied` proves ATP provenance only and never recovery meaning. Step 2 tests will cover null/empty/whitespace `plan_applied` personal `Travel — Rest`, localized ATP notes sharing a non-empty timestamp, multi-day note/week associations, independent stable ordering, terse versus `include_full`, real one-day TARGET Monday-through-Sunday boundaries, and unchanged TARGET-only projection bridge rows. Existing English-recovery assertions will migrate to provenance/count assertions.
 | 2026-07-10 12:31 | Review R001 | plan Step 1: REVISE |
+| 2026-07-10 12:34 | Review R002 | plan Step 1: REVISE |
