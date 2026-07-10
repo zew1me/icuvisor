@@ -1,10 +1,10 @@
 # TP-236: Add deterministic power-zone energy analysis — Status
 
-**Current Step:** Step 2: Implement and test the pure calculation
+**Current Step:** Step 3: Add and register the MCP analyzer
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
-**Review Counter:** 6
+**Review Counter:** 7
 **Iteration:** 3
 **Size:** L
 
@@ -44,7 +44,7 @@
 
 ### Step 2: Implement and test the pure calculation
 
-**Status:** 🟨 In Progress
+**Status:** ✅ Complete
 
 - [x] Timestamp-weighted zone integration implemented
 - [x] Invalid and missing samples reported explicitly
