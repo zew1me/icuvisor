@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
-**Review Counter:** 11
+**Review Counter:** 12
 **Iteration:** 4
 **Size:** L
 
@@ -64,14 +64,14 @@
 
 **Status:** ⬜ Not Started
 
-- [ ] PRD catalog updated
-- [ ] Website tool/schema data regenerated
-- [ ] Changelog updated
-- [ ] R010: Generator golden fixtures and website data reflect the 70-tool catalog and public create/update schemas
-- [ ] R010: PRD makes threshold-only create and indoor FTP write boundaries explicit
-- [ ] R010: Unreleased Added entry covers both capabilities and no-zone-replacement limit
-- [ ] R010: Docs generation and cmd/gendocs freshness tests pass with a reviewed diff
-- [ ] R011: PRD current-catalog counts are 70 total, 30 core, and 40 additional full tools
+- [x] PRD catalog updated
+- [x] Website tool/schema data regenerated
+- [x] Changelog updated
+- [x] R010: Generator golden fixtures and website data reflect the 70-tool catalog and public create/update schemas
+- [x] R010: PRD makes threshold-only create and indoor FTP write boundaries explicit
+- [x] R010: Unreleased Added entry covers both capabilities and no-zone-replacement limit
+- [x] R010: Docs generation and cmd/gendocs freshness tests pass with a reviewed diff
+- [x] R011: PRD current-catalog counts are 70 total, 30 core, and 40 additional full tools
 
 ---
 
@@ -155,3 +155,4 @@
 | 2026-07-10 23:49 | Review R009 | code Step 3: APPROVE |
 | 2026-07-10 23:51 | Review R010 | plan Step 4: REVISE |
 | 2026-07-10 23:54 | Review R011 | plan Step 4: REVISE |
+| 2026-07-10 23:55 | Review R012 | plan Step 4: APPROVE |
