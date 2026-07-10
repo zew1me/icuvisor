@@ -1,7 +1,7 @@
 # TP-234: Add persistent loopback HTTP service recipes — Status
 
 **Current Step:** Step 5: Documentation & Delivery
-**Status:** 🟡 In Progress
+**Status:** ✅ Complete
 **Last Updated:** 2026-07-10
 **Review Level:** 1
 **Review Counter:** 8
@@ -100,11 +100,11 @@ The executable-only negative assertions will reject `INTERVALS_ICU_API_KEY` assi
 
 ### Step 5: Documentation & Delivery
 
-**Status:** 🟨 In Progress
+**Status:** ✅ Complete
 
-- [ ] Must Update docs modified
-- [ ] Check If Affected docs reviewed
-- [ ] Discoveries logged
+- [x] Must Update docs modified
+- [x] Check If Affected docs reviewed
+- [x] Discoveries logged
 
 ---
 
@@ -125,6 +125,9 @@ The executable-only negative assertions will reject `INTERVALS_ICU_API_KEY` assi
 
 | Discovery | Disposition | Location |
 |-----------|-------------|----------|
+| launchd does not expand shell home notation in plist log paths. | Generated the plist with an unquoted heredoc so log paths are absolute before launchd loads it. | `web/content/guides/persistent-http-service.md` |
+| The Linux installer can retain an existing binary path or choose `/usr/local/bin` or `~/.local/bin`. | The systemd recipe resolves and validates the actual absolute path before writing `ExecStart`. | `web/static/install.sh`, `web/content/guides/persistent-http-service.md` |
+| The task context file named by the prompt is absent. | Used the authoritative task, HTTP, install, privacy, and configuration documents; no scope impact. | `taskplane-tasks/CONTEXT.md` |
 
 ## Execution Log
 
