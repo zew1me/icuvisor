@@ -47,7 +47,7 @@
 - [ ] Threshold pace read shaping corrected
 - [ ] Percentage zone response added
 - [ ] Unknown-unit fallback preserved
-- [ ] R010: Document the typed-field, response/fallback, and table-driven coverage plan
+- [x] R010: Document the typed-field, response/fallback, and table-driven coverage plan
 
 ---
 
@@ -132,6 +132,7 @@
 
 - Preflight evidence (2026-07-10): the upstream forum confirms `threshold_pace` is always stored in SI m/s and `MINS_KM` is GUI-only presentation metadata; the server-model reference defines `pace_zones` as percentage-of-threshold boundaries.
 - Step 1 plan: centralize two inverse conversions: display seconds = selected pace-distance metres / stored m/s, and stored m/s = selected pace-distance metres / supplied seconds. `pace_units` selects only the display distance, while `pace_zones` are copied as percent values to a newly named percentage field; existing `pace_zones_seconds_per_*` fields will be omitted rather than returned with false duration semantics. The migration is intentionally additive for correct values (`pace_zones_percent_of_threshold`) and omits false legacy duration fields rather than retaining a deprecated lie. Preserve unknown display units by returning m/s plus the raw `pace_units` source. Live OpenAPI confirms `pace_load_type` values `RUN`/`SWIM` and presentation enums including `SECS_100M`, `SECS_100Y`, `MINS_KM`, `MINS_MILE`, and `SECS_500M`.
+- Step 2 plan: add `PaceLoadType string \`json:"pace_load_type"\`` to `intervals.SportSettings` and preserve its raw `RUN`/`SWIM` value into a `pace_load_type` response field. Shape `ThresholdPace` only as m/s through `PaceSecondsFromMetersPerSecond` for its `pace_units` distance, never profile-wide units or `PaceThreshold`; copy `PaceZones` unchanged to `pace_zones_percent_of_threshold` with names and metadata legend. Known `NONE`, unknown tokens, and finite conversion overflows retain only `threshold_pace_meters_per_second`; only an unknown non-empty token gets `_meta.unknown_unit`. Add table-driven decoding/shaping coverage for run km/mile, swim 100m/100y, row 500m, pace-load preservation, percentages/names/no legacy duration zones, and all fallback cases; leave fixture replacement to Step 4.
 | 2026-07-10 19:30 | Review R002 | code Step 1: REVISE |
 | 2026-07-10 19:39 | Review R003 | code Step 1: REVISE |
 | 2026-07-10 19:45 | Review R004 | code Step 1: REVISE |
