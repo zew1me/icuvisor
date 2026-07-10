@@ -452,12 +452,53 @@ func TestReconcile_ExcludesInvalidInputCandidates(t *testing.T) {
 }
 
 func TestReconcile_NilTargets(t *testing.T) {
-	// Nil targets → WeeklyTargetMinutes=0 and WeeklyTargetLoad=0 in output.
-	wc := planning.WeekConstraints{WeekStartDate: "2026-07-06"}
+	// Nil targets → WeeklyTargetMinutes and WeeklyTargetLoad are nil in output;
+	// RemainingMinutes and RemainingLoad are nil; no negative remaining from completed/fixed.
+	wc := planning.WeekConstraints{
+		WeekStartDate:    "2026-07-06",
+		CompletedLoad:    50, // untracked; must not produce negative RemainingLoad
+		CompletedMinutes: 30,
+	}
 	recon := planning.Reconcile(wc, nil)
-	if recon.WeeklyTargetMinutes != 0 || recon.WeeklyTargetLoad != 0 {
-		t.Errorf("nil targets should produce 0 in reconciliation, got min=%v load=%v",
-			recon.WeeklyTargetMinutes, recon.WeeklyTargetLoad)
+	if recon.WeeklyTargetMinutes != nil {
+		t.Errorf("nil WeeklyTargetMinutes should produce nil in reconciliation, got %v", recon.WeeklyTargetMinutes)
+	}
+	if recon.WeeklyTargetLoad != nil {
+		t.Errorf("nil WeeklyTargetLoad should produce nil in reconciliation, got %v", recon.WeeklyTargetLoad)
+	}
+	if recon.RemainingMinutes != nil {
+		t.Errorf("nil target: RemainingMinutes should be nil, got %v", recon.RemainingMinutes)
+	}
+	if recon.RemainingLoad != nil {
+		t.Errorf("nil target: RemainingLoad should be nil, got %v", recon.RemainingLoad)
+	}
+
+	// JSON must not contain the nil fields.
+	b, err := json.Marshal(recon)
+	if err != nil {
+		t.Fatalf("JSON marshal failed: %v", err)
+	}
+	s := string(b)
+	if strings.Contains(s, "weekly_target") || strings.Contains(s, "remaining") {
+		t.Errorf("nil target fields should be absent from JSON, got: %s", s)
+	}
+}
+
+func TestReconcile_ExplicitZeroTargetPreserved(t *testing.T) {
+	// pointer-to-0 is an explicit zero budget and must appear in reconciliation output.
+	wc := planning.WeekConstraints{
+		WeekStartDate:       "2026-07-06",
+		WeeklyTargetMinutes: ptrF(0),
+		WeeklyTargetLoad:    ptrF(0),
+		CompletedLoad:       10,
+		CompletedMinutes:    5,
+	}
+	recon := planning.Reconcile(wc, nil)
+	if recon.WeeklyTargetLoad == nil || *recon.WeeklyTargetLoad != 0 {
+		t.Errorf("explicit zero target should appear as 0 in reconciliation")
+	}
+	if recon.RemainingLoad == nil || *recon.RemainingLoad != -10 {
+		t.Errorf("explicit zero target with completed=10 should have RemainingLoad=-10, got %v", recon.RemainingLoad)
 	}
 }
 

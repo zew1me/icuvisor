@@ -25,8 +25,8 @@
 **Status:** 🟨 In Progress
 
 <!-- R010 revision items -->
-- [ ] R010-1: Reconciliation target fields use *float64 to preserve nil vs 0 distinction; RemainingLoad/RemainingMin are nil when untracked; fix nil+nonzero completed calculation
-- [ ] R010-2: Fix design-doc batch-validation and boundary-condition sections to distinguish nil (no cap) from pointer-to-0 (hard zero)
+- [x] R010-1: Reconciliation target fields use *float64 to preserve nil vs 0 distinction; RemainingLoad/RemainingMin are nil when untracked; fix nil+nonzero completed calculation
+- [x] R010-2: Fix design-doc batch-validation and boundary-condition sections to distinguish nil (no cap) from pointer-to-0 (hard zero)
 
 <!-- R009 revision items -->
 - [x] R009-1: Change WeeklyTargetLoad, WeeklyTargetMinutes, RequestedSessionCount to *float64/*int (nil=no cap; 0=explicit zero)

@@ -110,16 +110,16 @@ Computed weekly totals — no rounding, no redistribution.
 
 | Field | Description |
 |---|---|
-| `WeeklyTargetMinutes` | Full-week target (from input). |
-| `WeeklyTargetLoad` | Full-week load target (from input). |
+| `WeeklyTargetMinutes` | `*float64`: mirrors `WeekConstraints.WeeklyTargetMinutes`. Absent from JSON (`omitempty`) when nil (untracked). Present when set, including a pointer-to-zero. |
+| `WeeklyTargetLoad` | `*float64`: mirrors `WeekConstraints.WeeklyTargetLoad`. Same nil/zero semantics. |
 | `CompletedMinutes` | Completed time (from input). |
 | `CompletedLoad` | Completed load (from input). |
 | `FixedMinutes` | Fixed future time (from input). |
 | `FixedLoad` | Fixed future load (from input). |
 | `CandidateMinutes` | Sum of `DurationMinutes` for valid-input candidates only (NaN/negative excluded). |
 | `CandidateLoad` | Sum of `Load` for valid-input candidates only (NaN/negative excluded). |
-| `RemainingMinutes` | `WeeklyTargetMinutes - CompletedMinutes - FixedMinutes`. Scheduling budget. May be negative. |
-| `RemainingLoad` | `WeeklyTargetLoad - CompletedLoad - FixedLoad`. Load budget. May be negative. |
+| `RemainingMinutes` | `*float64`: `*WeeklyTargetMinutes - CompletedMinutes - FixedMinutes`. Nil when time is untracked. Non-nil and possibly negative when tracked. Absent from JSON when nil. |
+| `RemainingLoad` | `*float64`: `*WeeklyTargetLoad - CompletedLoad - FixedLoad`. Nil when load is untracked. Absent from JSON when nil. |
 | `ProjectedMinutes` | `CompletedMinutes + FixedMinutes + CandidateMinutes`. |
 | `ProjectedLoad` | `CompletedLoad + FixedLoad + CandidateLoad`. |
 
@@ -198,7 +198,7 @@ A candidate that is not in the matching gets slot violations:
 - `no_available_slot` if the candidate fits at least one slot's constraints but all compatible slots are claimed by other matched candidates (contention).
 - Specific constraint codes (`slot_duration_exceeded`, `sport_not_allowed`, etc.) or `no_compatible_slot` if the candidate does not fit any slot at all.
 
-**RequestedSessionCount cap:** once `RequestedSessionCount` violation-free candidates have been accepted, subsequent valid candidates receive `requested_session_count_exceeded`. Position in the batch determines priority. A `RequestedSessionCount` of 0 means no cap is applied.
+**RequestedSessionCount cap:** `RequestedSessionCount` is a `*int`. When nil, no session-count cap is enforced. When non-nil, once `*RequestedSessionCount` violation-free candidates have been accepted, subsequent valid candidates receive `requested_session_count_exceeded`. A pointer-to-zero means zero sessions are wanted — all candidates are immediately excess regardless of availability.
 
 **Invalid-input candidates are isolated.** A candidate with `invalid_input` (NaN/negative numeric inputs) increments the day session counter (for deterministic positional tracking) but is excluded from all numeric accumulations: its `DurationMinutes` and `Load` are not added to the per-day minute total, `priorLoad`/`priorMinutes`, or reconciliation sums. This prevents non-finite values from poisoning comparisons or serialized output for subsequent candidates. Valid-input candidates (even those with other violations) follow the pessimistic accumulation rules below.
 
@@ -309,10 +309,14 @@ Constraint struct errors are returned as `error` rather than `Violation` because
 
 | Condition | Behaviour |
 |---|---|
-| `WeeklyTargetLoad == 0` | Load overshoot checks are skipped; no load violations or zero-load warnings. |
-| `WeeklyTargetMinutes == 0` | Time overshoot checks are skipped. |
-| `FixedLoad + CompletedLoad > WeeklyTargetLoad` | RemainingLoad is negative; `zero_remaining_load` warning fires unconditionally. If `candidate.Load > 0`, `weekly_load_overshoot` also fires (session cannot be placed without exceeding the already-exhausted budget). |
-| `FixedMinutes + CompletedMinutes > WeeklyTargetMinutes` | RemainingMinutes is negative; `zero_remaining_time` warning fires unconditionally. If `candidate.DurationMinutes > 0`, `weekly_time_overshoot` also fires. |
+| `WeeklyTargetLoad == nil` | No load budget is tracked. `weekly_load_overshoot`, `zero_remaining_load`, and `WarnInfeasibleLoad` are never emitted. `Reconciliation.WeeklyTargetLoad` and `Reconciliation.RemainingLoad` are absent from JSON output. |
+| `WeeklyTargetLoad == pointer-to-0` | Explicit zero load budget. All candidates with `Load > 0` receive `zero_remaining_load` warning AND `weekly_load_overshoot` violation. |
+| `WeeklyTargetMinutes == nil` | No time budget is tracked. Time overshoot checks are skipped. `Reconciliation.WeeklyTargetMinutes` and `Reconciliation.RemainingMinutes` are absent from JSON output. |
+| `WeeklyTargetMinutes == pointer-to-0` | Explicit zero time budget. All candidates with `DurationMinutes > 0` receive `zero_remaining_time` warning AND `weekly_time_overshoot` violation. |
+| `RequestedSessionCount == nil` | No session-count cap. All valid candidates are accepted regardless of count. |
+| `RequestedSessionCount == pointer-to-0` | Zero sessions requested. Every candidate receives `requested_session_count_exceeded`. |
+| `FixedLoad + CompletedLoad > *WeeklyTargetLoad` | RemainingLoad is negative; `zero_remaining_load` warning fires unconditionally. If `candidate.Load > 0`, `weekly_load_overshoot` also fires. |
+| `FixedMinutes + CompletedMinutes > *WeeklyTargetMinutes` | RemainingMinutes is negative; `zero_remaining_time` warning fires unconditionally. If `candidate.DurationMinutes > 0`, `weekly_time_overshoot` also fires. |
 | `MaxSessionsPerDay == 0` | Day is treated as unavailable; `day_unavailable` fires. |
 | `len(Slots) == 0` | Slot constraints are skipped; only day-level and weekly checks apply. Sessions per day are capped only by `MaxSessionsPerDay`. |
 | All slots consumed by prior candidates | `no_available_slot` fires even if `MaxSessionsPerDay` not yet reached. |

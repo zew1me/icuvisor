@@ -214,25 +214,36 @@ type Warning struct {
 // Reconciliation holds computed weekly time and load totals.
 // CandidateMinutes and CandidateLoad include only valid-input candidates;
 // invalid-input candidates (NaN/negative) are excluded to ensure JSON-safe output.
+//
+// WeeklyTargetMinutes, WeeklyTargetLoad, RemainingMinutes, and RemainingLoad are
+// pointer fields that mirror the nullable WeekConstraints targets:
+//   - nil indicates the dimension was not tracked (WeeklyTarget* was nil in WeekConstraints).
+//   - Non-nil with value 0 indicates an explicit zero budget.
+//
+// JSON output uses omitempty for these fields; absent keys indicate an untracked dimension.
 type Reconciliation struct {
-	WeeklyTargetMinutes float64 `json:"weekly_target_minutes"`
-	WeeklyTargetLoad    float64 `json:"weekly_target_load"`
-	CompletedMinutes    float64 `json:"completed_minutes"`
-	CompletedLoad       float64 `json:"completed_load"`
-	FixedMinutes        float64 `json:"fixed_minutes"`
-	FixedLoad           float64 `json:"fixed_load"`
+	// WeeklyTargetMinutes mirrors WeekConstraints.WeeklyTargetMinutes.
+	// Nil when no time target was set.
+	WeeklyTargetMinutes *float64 `json:"weekly_target_minutes,omitempty"`
+	// WeeklyTargetLoad mirrors WeekConstraints.WeeklyTargetLoad.
+	// Nil when no load target was set.
+	WeeklyTargetLoad *float64 `json:"weekly_target_load,omitempty"`
+	CompletedMinutes float64  `json:"completed_minutes"`
+	CompletedLoad    float64  `json:"completed_load"`
+	FixedMinutes     float64  `json:"fixed_minutes"`
+	FixedLoad        float64  `json:"fixed_load"`
 	// CandidateMinutes is the sum of DurationMinutes for valid-input candidates only.
 	CandidateMinutes float64 `json:"candidate_minutes"`
 	// CandidateLoad is the sum of Load for valid-input candidates only.
 	CandidateLoad float64 `json:"candidate_load"`
 	// RemainingMinutes is WeeklyTargetMinutes - CompletedMinutes - FixedMinutes.
-	// Zero when WeeklyTargetMinutes is nil.
-	RemainingMinutes float64 `json:"remaining_minutes"`
+	// Nil when WeeklyTargetMinutes is nil (dimension untracked).
+	RemainingMinutes *float64 `json:"remaining_minutes,omitempty"`
 	// RemainingLoad is WeeklyTargetLoad - CompletedLoad - FixedLoad.
-	// Zero when WeeklyTargetLoad is nil.
-	RemainingLoad    float64 `json:"remaining_load"`
-	ProjectedMinutes float64 `json:"projected_minutes"`
-	ProjectedLoad    float64 `json:"projected_load"`
+	// Nil when WeeklyTargetLoad is nil (dimension untracked).
+	RemainingLoad    *float64 `json:"remaining_load,omitempty"`
+	ProjectedMinutes float64  `json:"projected_minutes"`
+	ProjectedLoad    float64  `json:"projected_load"`
 }
 
 // CandidateResult is the validation outcome for a single CandidateSession.
@@ -520,7 +531,7 @@ func ValidateCandidates(wc WeekConstraints, candidates []CandidateSession) Batch
 
 	recon := Reconcile(wc, candidates)
 
-	if recon.RemainingLoad > 0 && recon.CandidateLoad < recon.RemainingLoad {
+	if recon.RemainingLoad != nil && *recon.RemainingLoad > 0 && recon.CandidateLoad < *recon.RemainingLoad {
 		weekWarnings = append(weekWarnings, Warning{
 			Code:    WarnInfeasibleLoad,
 			Message: "candidate load total is less than remaining weekly load target",
@@ -816,24 +827,29 @@ func universalSlotViolations(slots []SlotConstraint, candidate CandidateSession)
 }
 
 func buildReconciliation(wc WeekConstraints, candMin, candLoad float64) Reconciliation {
-	targetMin := derefFloat(wc.WeeklyTargetMinutes)
-	targetLoad := derefFloat(wc.WeeklyTargetLoad)
-	remainingMin := targetMin - wc.CompletedMinutes - wc.FixedMinutes
-	remainingLoad := targetLoad - wc.CompletedLoad - wc.FixedLoad
-	return Reconciliation{
-		WeeklyTargetMinutes: targetMin,
-		WeeklyTargetLoad:    targetLoad,
-		CompletedMinutes:    wc.CompletedMinutes,
-		CompletedLoad:       wc.CompletedLoad,
-		FixedMinutes:        wc.FixedMinutes,
-		FixedLoad:           wc.FixedLoad,
-		CandidateMinutes:    candMin,
-		CandidateLoad:       candLoad,
-		RemainingMinutes:    remainingMin,
-		RemainingLoad:       remainingLoad,
-		ProjectedMinutes:    wc.CompletedMinutes + wc.FixedMinutes + candMin,
-		ProjectedLoad:       wc.CompletedLoad + wc.FixedLoad + candLoad,
+	r := Reconciliation{
+		CompletedMinutes: wc.CompletedMinutes,
+		CompletedLoad:    wc.CompletedLoad,
+		FixedMinutes:     wc.FixedMinutes,
+		FixedLoad:        wc.FixedLoad,
+		CandidateMinutes: candMin,
+		CandidateLoad:    candLoad,
+		ProjectedMinutes: wc.CompletedMinutes + wc.FixedMinutes + candMin,
+		ProjectedLoad:    wc.CompletedLoad + wc.FixedLoad + candLoad,
 	}
+	if wc.WeeklyTargetMinutes != nil {
+		target := *wc.WeeklyTargetMinutes
+		r.WeeklyTargetMinutes = &target
+		rem := target - wc.CompletedMinutes - wc.FixedMinutes
+		r.RemainingMinutes = &rem
+	}
+	if wc.WeeklyTargetLoad != nil {
+		target := *wc.WeeklyTargetLoad
+		r.WeeklyTargetLoad = &target
+		rem := target - wc.CompletedLoad - wc.FixedLoad
+		r.RemainingLoad = &rem
+	}
+	return r
 }
 
 func availableSlotCount(wc WeekConstraints) int {
