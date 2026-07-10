@@ -24,12 +24,12 @@
 
 **Status:** 🟨 In Progress
 
-- [ ] ATP and personal note statuses defined
-- [ ] plan_applied provenance rule defined
-- [ ] Counts cannot misclassify personal notes
-- [ ] Ordering and terse/full behavior defined
-- [ ] Exact collection, status, count, and week-association migration documented
-- [ ] Classification boundary, recovery policy, and Step 2 regression matrix documented
+- [x] ATP and personal note statuses defined
+- [x] plan_applied provenance rule defined
+- [x] Counts cannot misclassify personal notes
+- [x] Ordering and terse/full behavior defined
+- [x] Exact collection, status, count, and week-association migration documented
+- [x] Classification boundary, recovery policy, and Step 2 regression matrix documented
 
 ---
 
@@ -104,4 +104,9 @@
 ## Notes
 
 - Preflight audit: `intervals.Event.PlanApplied` already decodes `plan_applied`. The annual-plan path currently groups every `NOTE` as periodization context, increments week `note_count`, and derives `recovery_hint`/`recovery_note_count` solely via `annualTrainingPlanRecoveryHint`, which scans name/type/description/tags for English substrings `recovery`, `rest`, `taper`, and `deload`. No other annual-plan keyword recovery path was found.
+- Step 1 response contract: ATP-generated NOTE rows remain in `notes` and have terse `status: "atp_generated"`; personal NOTE rows move to top-level `context_notes` and have terse `status: "personal_context"`. Both collections retain useful name/description/tags/date context. ATP rows also expose the non-empty `plan_applied` timestamp in terse output; personal rows omit it.
+- Step 1 classification boundary: a NOTE is ATP-generated iff `strings.TrimSpace(stringValue(event.PlanApplied)) != ""`; null, empty, and whitespace-only values are personal context. `for_week`, names, descriptions, types, and tags are never provenance signals. This provenance split applies only to NOTE rows: category-matching PLAN/TARGET rows keep their existing inclusion so explicit target/projection behavior is unchanged; their classification is not being broadened or relabeled by this note-focused fix.
+- Step 1 count/association migration: summary `note_count` becomes `atp_note_count` and adds `context_note_count`; week `note_count`/`note_ids` become `atp_note_count`/`atp_note_ids`, with separate `context_note_count`/`context_note_ids`. `_meta.note_event_count` becomes `_meta.atp_note_event_count` plus `_meta.context_note_event_count`; `_meta.periodization_event_count` counts PLAN, TARGET, and ATP NOTE rows only. Personal context never contributes to an ATP count or ATP ID list. Remove `recovery_note_count` because no locale-neutral upstream recovery semantic exists.
+- Step 1 ordering/full contract: independently order `notes` and `context_notes` by athlete-local start date, then upstream `updated`, then source event ID, preserving the current stable comparator; sort every ATP/context week ID list lexically. Default terse rows always expose `status`, and ATP notes expose `plan_applied`; `include_full: true` additionally exposes the unchanged raw event under `full` for either class, while false omits all `full` payloads.
+- Step 1 recovery policy and regression matrix: remove `recovery_hint`, `annualTrainingPlanRecoveryHint`, and all recovery-note counts; `plan_applied` proves ATP provenance only and never recovery meaning. Step 2 tests will cover null/empty/whitespace `plan_applied` personal `Travel — Rest`, localized ATP notes sharing a non-empty timestamp, multi-day note/week associations, independent stable ordering, terse versus `include_full`, real one-day TARGET Monday-through-Sunday boundaries, and unchanged TARGET-only projection bridge rows. Existing English-recovery assertions will migrate to provenance/count assertions.
 | 2026-07-10 12:31 | Review R001 | plan Step 1: REVISE |
