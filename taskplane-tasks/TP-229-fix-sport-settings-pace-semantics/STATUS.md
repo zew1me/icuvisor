@@ -1,10 +1,10 @@
 # TP-229: Treat threshold pace as m/s and pace zones as percentages — Status
 
-**Current Step:** Step 3: Correct sport-settings writes
+**Current Step:** Step 4: Replace misleading fixtures and lock semantics
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 3
-**Review Counter:** 14
+**Review Counter:** 15
 **Iteration:** 1
 **Size:** L
 
@@ -53,7 +53,7 @@
 
 ### Step 3: Correct sport-settings writes
 
-**Status:** 🟨 In Progress
+**Status:** ✅ Complete
 
 - [x] Explicit pace inputs convert to m/s
 - [x] pace_units and pace_load_type are correct
@@ -65,7 +65,7 @@
 
 ### Step 4: Replace misleading fixtures and lock semantics
 
-**Status:** ⬜ Not Started
+**Status:** 🟨 In Progress
 
 - [ ] Realistic upstream fixture values installed
 - [ ] Run/swim/row round-trip scenarios covered
@@ -114,6 +114,7 @@
 | R012 | Code | 2 | APPROVE | — |
 | R013 | Plan | 3 | REVISE | `.reviews/R013-plan-step3.md` |
 | R014 | Plan | 3 | APPROVE | — |
+| R015 | Code | 3 | APPROVE | — |
 
 ## Discoveries
 
@@ -152,3 +153,4 @@
 | 2026-07-10 20:26 | Review R012 | code Step 2: APPROVE |
 | 2026-07-10 20:31 | Review R013 | plan Step 3: REVISE |
 | 2026-07-10 20:33 | Review R014 | plan Step 3: APPROVE |
+| 2026-07-10 20:44 | Review R015 | code Step 3: APPROVE |
