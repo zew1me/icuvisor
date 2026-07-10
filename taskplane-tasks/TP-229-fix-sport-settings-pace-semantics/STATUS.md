@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 3
-**Review Counter:** 12
+**Review Counter:** 13
 **Iteration:** 1
 **Size:** L
 
@@ -59,6 +59,7 @@
 - [ ] pace_units and pace_load_type are correct
 - [ ] Pace-zone percentage validation implemented
 - [ ] Delete-mode zone gate preserved
+- [ ] R013: Specify m/s transport, truthful write echo, percentage validation, and generated-schema coverage
 
 ---
 
@@ -111,6 +112,7 @@
 | R010 | Plan | 2 | REVISE | `.reviews/R010-plan-step2.md` |
 | R011 | Plan | 2 | APPROVE | — |
 | R012 | Code | 2 | APPROVE | — |
+| R013 | Plan | 3 | REVISE | `.reviews/R013-plan-step3.md` |
 
 ## Discoveries
 
@@ -147,3 +149,4 @@
 | 2026-07-10 20:18 | Review R010 | plan Step 2: REVISE |
 | 2026-07-10 20:21 | Review R011 | plan Step 2: APPROVE |
 | 2026-07-10 20:26 | Review R012 | code Step 2: APPROVE |
+| 2026-07-10 20:31 | Review R013 | plan Step 3: REVISE |
