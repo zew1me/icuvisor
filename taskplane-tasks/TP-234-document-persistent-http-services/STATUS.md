@@ -1,6 +1,6 @@
 # TP-234: Add persistent loopback HTTP service recipes — Status
 
-**Current Step:** Step 0: Preflight
+**Current Step:** Step 1: Design secure service recipes
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 1
@@ -12,7 +12,7 @@
 
 ### Step 0: Preflight
 
-**Status:** 🟨 In Progress
+**Status:** ✅ Complete
 
 - [x] Required files and paths exist
 - [x] TP-232 is complete
@@ -22,7 +22,7 @@
 
 ### Step 1: Design secure service recipes
 
-**Status:** ⬜ Not Started
+**Status:** 🟨 In Progress
 
 - [ ] Built-in lifecycle mechanism selected per OS
 - [ ] Credential-store-only design confirmed
