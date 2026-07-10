@@ -1,10 +1,10 @@
 # TP-239: Add transparent masters plan review prompt — Status
 
-**Current Step:** Step 1: Define evidence and non-claim boundaries
+**Current Step:** Step 2: Register the prompt and add focused tests
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 1
-**Review Counter:** 3
+**Review Counter:** 4
 **Iteration:** 1
 **Size:** M
 
@@ -22,20 +22,20 @@
 
 ### Step 1: Define evidence and non-claim boundaries
 
-**Status:** 🟨 In Progress
+**Status:** ✅ Complete
 
 <!-- R003 plan revision items -->
-- [ ] R003-1: In catalog and portable-pack instructions, order the athlete-local review as profile/timezone and resolved relative dates; non-overlapping baseline/history, completed, planned, and race windows; sourced event/plan/activity reads with pagination or truncation labelled partial; then permitted baseline, spacing, ramp, and wellness checks. Distinguish a confirmed calendar race from a user-supplied scenario anchor and retain current-day wellness as partial.
-- [ ] R003-2: Define mandatory, visibly separate sourced evidence, athlete-stated preference, cautious interpretation, insufficient-evidence/question, and conditional reviewable-proposal output sections; masters is an audience label only
-- [ ] R003-3: Permit hard-session spacing only for athlete-identified sessions or detailed, sourced activity/plan intensity evidence; use compute_baseline one eligible metric at a time with status, sample, missing-day, freshness, method, and formula metadata; use only copyable plan targets or athlete-supplied projection values, surface every projection assumption, and never treat projection defaults as policy
-- [ ] R003-4: Make the workflow absolutely read-only: it never calls write/delete tools, including after approval, and every change remains an unapplied conditional proposal
-- [ ] R003-5: Create `internal/prompts/masters_plan_review_test.go` in Step 1, table-driven and selected by `go test ./internal/prompts -run 'MastersPlanReview'`, to assert section/provenance separation, no age/medical/score claims, absolute no-write behavior, hard-session and projection fallbacks, and the insufficient-evidence matrix: ambiguous/unavailable hard-session or plan detail, absent/invalid zones, short/partial/truncated/missing history, missing/stale/partial wellness or missing/provider-native readiness, missing race context, and insufficient explicit projection targets; each gap names evidence, makes no affected conclusion, and asks one focused question while availability/requested duration remain athlete-stated context
-- [ ] Review evidence sequence defined
+- [x] R003-1: In catalog and portable-pack instructions, order the athlete-local review as profile/timezone and resolved relative dates; non-overlapping baseline/history, completed, planned, and race windows; sourced event/plan/activity reads with pagination or truncation labelled partial; then permitted baseline, spacing, ramp, and wellness checks. Distinguish a confirmed calendar race from a user-supplied scenario anchor and retain current-day wellness as partial.
+- [x] R003-2: Define mandatory, visibly separate sourced evidence, athlete-stated preference, cautious interpretation, insufficient-evidence/question, and conditional reviewable-proposal output sections; masters is an audience label only
+- [x] R003-3: Permit hard-session spacing only for athlete-identified sessions or detailed, sourced activity/plan intensity evidence; use compute_baseline one eligible metric at a time with status, sample, missing-day, freshness, method, and formula metadata; use only copyable plan targets or athlete-supplied projection values, surface every projection assumption, and never treat projection defaults as policy
+- [x] R003-4: Make the workflow absolutely read-only: it never calls write/delete tools, including after approval, and every change remains an unapplied conditional proposal
+- [x] R003-5: Create `internal/prompts/masters_plan_review_test.go` in Step 1, table-driven and selected by `go test ./internal/prompts -run 'MastersPlanReview'`, to assert section/provenance separation, no age/medical/score claims, absolute no-write behavior, hard-session and projection fallbacks, and the insufficient-evidence matrix: ambiguous/unavailable hard-session or plan detail, absent/invalid zones, short/partial/truncated/missing history, missing/stale/partial wellness or missing/provider-native readiness, missing race context, and insufficient explicit projection targets; each gap names evidence, makes no affected conclusion, and asks one focused question while availability/requested duration remain athlete-stated context
+- [x] Review evidence sequence defined
 
 **Step 1 artifacts:** `internal/prompts/catalog.go`, `docs/prompts/client-prompt-packs/masters-plan-review.md`, and `internal/prompts/masters_plan_review_test.go`.
-- [ ] Evidence, preferences, interpretation, and proposals separated
-- [ ] Unsupported age and medical claims prohibited
-- [ ] Insufficient-evidence behavior defined
+- [x] Evidence, preferences, interpretation, and proposals separated
+- [x] Unsupported age and medical claims prohibited
+- [x] Insufficient-evidence behavior defined
 
 ---
 
@@ -116,3 +116,4 @@
 | 2026-07-10 21:46 | Review R001 | plan Step 1: REVISE |
 | 2026-07-10 21:48 | Review R002 | plan Step 1: REVISE |
 | 2026-07-10 21:51 | Review R003 | plan Step 1: REVISE |
+| 2026-07-10 21:53 | Review R004 | plan Step 1: APPROVE |
