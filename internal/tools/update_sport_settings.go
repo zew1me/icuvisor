@@ -128,6 +128,13 @@ func decodeUpdateSportSettingsRequest(raw json.RawMessage) (updateSportSettingsR
 	if err != nil {
 		return updateSportSettingsRequest{}, err
 	}
+	recalcHRZonesNull, err := rawObjectFieldIsNull(raw, "recalc_hr_zones")
+	if err != nil {
+		return updateSportSettingsRequest{}, err
+	}
+	if recalcHRZonesNull {
+		return updateSportSettingsRequest{}, errors.New("recalc_hr_zones must be a boolean when supplied")
+	}
 	var args updateSportSettingsRequest
 	if strings.TrimSpace(string(raw)) == "" {
 		return args, errors.New("arguments must be a JSON object")
@@ -157,16 +164,33 @@ func decodeUpdateSportSettingsRequest(raw json.RawMessage) (updateSportSettingsR
 }
 
 func rawObjectHasField(raw json.RawMessage, field string) (bool, error) {
-	trimmed := bytes.TrimSpace(raw)
-	if len(trimmed) == 0 || trimmed[0] != '{' {
-		return false, nil
-	}
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(trimmed, &fields); err != nil {
+	fields, err := rawSportSettingsObjectFields(raw)
+	if err != nil {
 		return false, err
 	}
 	_, ok := fields[field]
 	return ok, nil
+}
+
+func rawObjectFieldIsNull(raw json.RawMessage, field string) (bool, error) {
+	fields, err := rawSportSettingsObjectFields(raw)
+	if err != nil {
+		return false, err
+	}
+	value, ok := fields[field]
+	return ok && bytes.Equal(bytes.TrimSpace(value), []byte("null")), nil
+}
+
+func rawSportSettingsObjectFields(raw json.RawMessage) (map[string]json.RawMessage, error) {
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) == 0 || trimmed[0] != '{' {
+		return nil, nil
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(trimmed, &fields); err != nil {
+		return nil, err
+	}
+	return fields, nil
 }
 
 func validateSportSettingsThresholds(args updateSportSettingsRequest) error {

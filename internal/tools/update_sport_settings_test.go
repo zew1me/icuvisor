@@ -163,6 +163,7 @@ func TestUpdateSportSettingsRejectsLegacyAndUnknownArgumentsBeforeClients(t *tes
 	for _, args := range []string{
 		`{"sport":"Ride","effective_date":"2026-05-01","ftp":290}`,
 		`{"sport":"Ride","ftp":290,"unknown":true}`,
+		`{"sport":"Ride","ftp":290,"recalc_hr_zones":null}`,
 	} {
 		t.Run(args, func(t *testing.T) {
 			client := newFakeSportSettingsClient(intervals.SportSettings{ID: 7, Types: []string{"Ride"}})

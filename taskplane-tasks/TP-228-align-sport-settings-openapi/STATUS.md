@@ -57,7 +57,7 @@
 - [x] R007: Preserve explicit-false/default-true decoding and always emit truthful recalculation-requested metadata
 - [x] R007: Narrowly approve only update_sport_settings effective_date removal without weakening generic schema-removal protection
 - [x] R009: Add production schema-stability policy keyed by tool/property and test approved versus unrelated removals through CheckSchemaStability
-- [ ] R011: Reject explicit null recalc_hr_zones before profile or writer calls
+- [x] R011: Reject explicit null recalc_hr_zones before profile or writer calls
 
 ---
 
