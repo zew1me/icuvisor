@@ -1,10 +1,10 @@
 # TP-229: Treat threshold pace as m/s and pace zones as percentages — Status
 
-**Current Step:** Step 1: Define canonical pace conversions
+**Current Step:** Step 2: Correct read shaping and typed models
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 3
-**Review Counter:** 8
+**Review Counter:** 9
 **Iteration:** 1
 **Size:** L
 
@@ -22,7 +22,7 @@
 
 ### Step 1: Define canonical pace conversions
 
-**Status:** 🟨 In Progress
+**Status:** ✅ Complete
 
 - [x] Read and write m/s formulas defined
 - [x] pace_units presentation role defined
@@ -41,7 +41,7 @@
 
 ### Step 2: Correct read shaping and typed models
 
-**Status:** ⬜ Not Started
+**Status:** 🟨 In Progress
 
 - [ ] Typed upstream fields completed
 - [ ] Threshold pace read shaping corrected
@@ -106,6 +106,7 @@
 | R006 | Code | 1 | REVISE | `.reviews/R006-code-step1.md` |
 | R007 | Code | 1 | REVISE | `.reviews/R007-code-step1.md` |
 | R008 | Code | 1 | REVISE | `.reviews/R008-code-step1.md` |
+| R009 | Code | 1 | APPROVE | — |
 
 ## Discoveries
 
@@ -136,3 +137,4 @@
 | 2026-07-10 20:00 | Review R006 | code Step 1: REVISE |
 | 2026-07-10 20:05 | Review R007 | code Step 1: REVISE |
 | 2026-07-10 20:11 | Review R008 | code Step 1: REVISE |
+| 2026-07-10 20:15 | Review R009 | code Step 1: APPROVE |
