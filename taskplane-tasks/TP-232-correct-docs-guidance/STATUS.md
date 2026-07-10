@@ -1,7 +1,7 @@
 # TP-232: Correct athlete-ID normalization and hosted HTTP guidance — Status
 
 **Current Step:** Step 3: Documentation & Delivery
-**Status:** 🟡 In Progress
+**Status:** ✅ Complete
 **Last Updated:** 2026-07-10
 **Review Level:** 1
 **Review Counter:** 4
@@ -85,6 +85,8 @@
 | 2026-07-10 11:42 | Step 1 plan review | R002 required explicit expanded artifacts and CI execution for the content contract |
 | 2026-07-10 11:43 | Step 1 plan review | R003 required path-specific athlete-ID contract coverage including CONTRIBUTING.md |
 | 2026-07-10 11:44 | Step 1 plan review | R004 approved the revised plan |
+| 2026-07-10 11:52 | Worker iter 1 | done in 949s, tools: 88 |
+| 2026-07-10 11:52 | Task complete | .DONE created |
 
 ## Blockers
 

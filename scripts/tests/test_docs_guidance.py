@@ -50,11 +50,17 @@ def main() -> int:
         for phrase in phrases:
             failures.extend(require(content, phrase, path))
 
-    false_normalization = re.compile(r"normaliz\w*[^.\n]{0,100}?to\s+`?i12345`?", re.IGNORECASE)
-    published_docs = list((ROOT / "web/content").rglob("*.md")) + [ROOT / "CONTRIBUTING.md"]
+    false_normalization = re.compile(
+        r"normaliz\w*[^.\n]{0,100}?to\s+`?i12345`?", re.IGNORECASE
+    )
+    published_docs = list((ROOT / "web/content").rglob("*.md")) + [
+        ROOT / "CONTRIBUTING.md"
+    ]
     for path in published_docs:
         if false_normalization.search(path.read_text(encoding="utf-8")):
-            failures.append(f"{path.relative_to(ROOT)} must not claim athlete IDs normalize to i12345")
+            failures.append(
+                f"{path.relative_to(ROOT)} must not claim athlete IDs normalize to i12345"
+            )
 
     http_content = HTTP_GUIDE.read_text(encoding="utf-8")
     for phrase in (
