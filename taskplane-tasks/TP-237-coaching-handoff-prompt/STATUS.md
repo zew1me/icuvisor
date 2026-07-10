@@ -1,10 +1,10 @@
 # TP-237: Add coaching conversation handoff prompt — Status
 
-**Current Step:** Step 3: Publish the portable workflow and eval
+**Current Step:** Step 4: Testing & Verification
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 1
-**Review Counter:** 4
+**Review Counter:** 5
 **Iteration:** 2
 **Size:** M
 
@@ -51,21 +51,21 @@
 
 ### Step 3: Publish the portable workflow and eval
 
-**Status:** 🟨 In Progress
+**Status:** ✅ Complete
 
-- [ ] Cookbook page and client pack added
-- [ ] Eval scenario added
-- [ ] References, PRD, and changelog updated
-- [ ] R004 cookbook and canonical pack publish one six-section manual fresh-chat contract
-- [ ] R004 self-contained `CB-HANDOFF-*` eval enforces required reads, source/freshness separation, privacy, and forbidden routes
-- [ ] R004 registry-backed prompt and pack discovery surfaces reconciled without stale counts
-- [ ] R004 valid front matter, internal links, PRD catalog, and Unreleased entry verified
+- [x] Cookbook page and client pack added
+- [x] Eval scenario added
+- [x] References, PRD, and changelog updated
+- [x] R004 cookbook and canonical pack publish one six-section manual fresh-chat contract
+- [x] R004 self-contained `CB-HANDOFF-*` eval enforces required reads, source/freshness separation, privacy, and forbidden routes
+- [x] R004 registry-backed prompt and pack discovery surfaces reconciled without stale counts
+- [x] R004 valid front matter, internal links, PRD catalog, and Unreleased entry verified
 
 ---
 
 ### Step 4: Testing & Verification
 
-**Status:** ⬜ Not Started
+**Status:** 🟨 In Progress
 
 - [ ] FULL test suite passing
 - [ ] Prompt eval validation passing
@@ -94,6 +94,7 @@
 | R002 | Plan | 1 | APPROVE | `.reviews/R002-plan-step1.md` |
 | R003 | Plan | 2 | APPROVE | `.reviews/R003-plan-step2.md` |
 | R004 | Plan | 3 | REVISE | `.reviews/R004-plan-step3.md` |
+| R005 | Plan | 3 | APPROVE | `.reviews/R005-plan-step3.md` |
 
 ## Discoveries
 
@@ -136,3 +137,4 @@
 - Use established cookbook front matter and `relref` links; add the PRD catalog row and concise Unreleased entry, then run prompt tests and eval validation.
 | 2026-07-10 17:57 | Review R003 | plan Step 2: APPROVE |
 | 2026-07-10 18:05 | Review R004 | plan Step 3: REVISE |
+| 2026-07-10 18:07 | Review R005 | plan Step 3: APPROVE |

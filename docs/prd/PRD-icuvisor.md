@@ -369,7 +369,7 @@ icuvisor ships MCP Resources for long-form, slow-changing content the LLM only o
 - `icuvisor://athlete-profile` — current athlete profile (auto-refreshing).
 - `icuvisor://analysis-formulas` — canonical analyzer formula definitions and stable refs for `_meta.formula_ref`.
 
-It also ships a curated set of MCP Prompts (training analysis, recovery check, weekly planning, weekly review, plan health review, race-week taper, coach roster triage) so users on clients that surface prompts get a "what can this thing do?" entrypoint without having to learn the tool catalog.
+It also ships eleven curated MCP Prompts (`training_analysis`, `ride_analysis`, `recovery_check`, `weekly_planning`, `weekly_review`, `coaching_handoff`, `shareable_training_report`, `plan_health_review`, `race_week_taper`, `coach_roster_triage`, `coach_athlete_onboarding`) so users on clients that surface prompts get a "what can this thing do?" entrypoint without having to learn the tool catalog. `coaching_handoff` is a read-only, privacy-safe workflow for manually carrying reviewed user decisions and source-labelled, athlete-local evidence into a fresh client conversation without server-side conversation storage.
 
 #### H. Configuration
 
