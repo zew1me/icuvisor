@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 1
-**Review Counter:** 2
+**Review Counter:** 3
 **Iteration:** 1
 **Size:** M
 
@@ -24,12 +24,15 @@
 
 **Status:** 🟨 In Progress
 
-<!-- R002 plan revision items -->
-- [ ] R002-1: Define mandatory, visibly separate sourced evidence, athlete-stated preference, cautious interpretation, insufficient-evidence/question, and conditional reviewable-proposal output sections; masters is an audience label only
-- [ ] R002-2: Permit hard-session spacing only for athlete-identified sessions or detailed, sourced activity/plan intensity evidence; use compute_baseline one eligible metric at a time with status, sample, missing-day, freshness, method, and formula metadata; use only copyable plan targets or athlete-supplied projection values, surface every projection assumption, and never treat projection defaults as policy
-- [ ] R002-3: Make the workflow absolutely read-only: it never calls write/delete tools, including after approval, and every change remains an unapplied conditional proposal
-- [ ] R002-4: Add a Step 1 boundary-test artifact and matrix for ambiguous/unavailable hard-session or plan detail, absent/invalid zones, short/partial/truncated/missing history, missing/stale/partial wellness or missing/provider-native readiness, missing race context, and insufficient explicit projection targets; every gap names evidence, makes no affected conclusion, and asks one focused question while availability/requested duration remain athlete-stated context
+<!-- R003 plan revision items -->
+- [ ] R003-1: In catalog and portable-pack instructions, order the athlete-local review as profile/timezone and resolved relative dates; non-overlapping baseline/history, completed, planned, and race windows; sourced event/plan/activity reads with pagination or truncation labelled partial; then permitted baseline, spacing, ramp, and wellness checks. Distinguish a confirmed calendar race from a user-supplied scenario anchor and retain current-day wellness as partial.
+- [ ] R003-2: Define mandatory, visibly separate sourced evidence, athlete-stated preference, cautious interpretation, insufficient-evidence/question, and conditional reviewable-proposal output sections; masters is an audience label only
+- [ ] R003-3: Permit hard-session spacing only for athlete-identified sessions or detailed, sourced activity/plan intensity evidence; use compute_baseline one eligible metric at a time with status, sample, missing-day, freshness, method, and formula metadata; use only copyable plan targets or athlete-supplied projection values, surface every projection assumption, and never treat projection defaults as policy
+- [ ] R003-4: Make the workflow absolutely read-only: it never calls write/delete tools, including after approval, and every change remains an unapplied conditional proposal
+- [ ] R003-5: Create `internal/prompts/masters_plan_review_test.go` in Step 1, table-driven and selected by `go test ./internal/prompts -run 'MastersPlanReview'`, to assert section/provenance separation, no age/medical/score claims, absolute no-write behavior, hard-session and projection fallbacks, and the insufficient-evidence matrix: ambiguous/unavailable hard-session or plan detail, absent/invalid zones, short/partial/truncated/missing history, missing/stale/partial wellness or missing/provider-native readiness, missing race context, and insufficient explicit projection targets; each gap names evidence, makes no affected conclusion, and asks one focused question while availability/requested duration remain athlete-stated context
 - [ ] Review evidence sequence defined
+
+**Step 1 artifacts:** `internal/prompts/catalog.go`, `docs/prompts/client-prompt-packs/masters-plan-review.md`, and `internal/prompts/masters_plan_review_test.go`.
 - [ ] Evidence, preferences, interpretation, and proposals separated
 - [ ] Unsupported age and medical claims prohibited
 - [ ] Insufficient-evidence behavior defined
@@ -87,6 +90,7 @@
 |---|------|------|---------|------|
 | R001 | Plan | 1 | REVISE | `.reviews/R001-plan-step1.md` |
 | R002 | Plan | 1 | REVISE | `.reviews/R002-plan-step1.md` |
+| R003 | Plan | 1 | REVISE | `.reviews/R003-plan-step1.md` |
 
 ## Discoveries
 
@@ -111,3 +115,4 @@
 *Reserved for execution notes*
 | 2026-07-10 21:46 | Review R001 | plan Step 1: REVISE |
 | 2026-07-10 21:48 | Review R002 | plan Step 1: REVISE |
+| 2026-07-10 21:51 | Review R003 | plan Step 1: REVISE |
