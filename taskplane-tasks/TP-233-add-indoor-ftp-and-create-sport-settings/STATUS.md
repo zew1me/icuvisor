@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
-**Review Counter:** 2
+**Review Counter:** 3
 **Iteration:** 2
 **Size:** L
 
@@ -22,7 +22,7 @@
 
 ### Step 1: Extend the typed client
 
-**Status:** 🟨 In Progress
+**Status:** ✅ Complete
 
 - [x] Indoor FTP update support added
 - [x] Typed CreateSportSettings operation added
@@ -93,6 +93,7 @@
 |---|------|------|---------|------|
 | R001 | Plan | 1 | REVISE | `.reviews/R001-plan-step1.md` |
 | R002 | Plan | 1 | APPROVE | `.reviews/R002-plan-step1.md` |
+| R003 | Code | 1 | APPROVE | `.reviews/R003-code-step1.md` |
 
 ## Discoveries
 
@@ -121,3 +122,4 @@
 | 2026-07-10 | R001 validation | Before transport reject blank sport, non-positive FTP/indoor FTP/HR, and non-finite/non-positive canonical pace; errors name create/update and make no request. No `indoor_ftp <= ftp` restriction: no confirmed upstream/product rule. Client leaves sport enum ownership to the MCP layer. |
 | 2026-07-10 | R001 client tests | Local-server cases will assert update-only `indoor_ftp` and create `types:["Ride"]`/indoor FTP method/path/raw-query/sparse body/no zone-or-recalc fields plus returned echo, m/s pace keys, and table-driven invalid update/create calls with zero requests. |
 | 2026-07-10 22:43 | Review R002 | plan Step 1: APPROVE |
+| 2026-07-10 22:49 | Review R003 | code Step 1: APPROVE |
