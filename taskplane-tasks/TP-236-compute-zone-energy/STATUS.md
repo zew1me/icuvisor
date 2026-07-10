@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
-**Review Counter:** 7
+**Review Counter:** 8
 **Iteration:** 3
 **Size:** L
 
@@ -61,6 +61,9 @@
 - [ ] Partial activity coverage reported
 - [ ] Full-toolset registration and schemas added
 - [ ] Catalog, safety, protocol, and tier coverage added
+- [ ] R008 catalog source-of-truth and analyzer-family activation surfaces updated
+- [ ] R008 MCP read-only annotation mapped and asserted through tools/list
+- [ ] R008 rounded cross-activity aggregation and response-wide share reconciliation tested
 
 ---
 
@@ -149,6 +152,12 @@
 - **Coverage/audit:** fetch at most 201 range candidates, sort all fetched candidates, retain the first 200 before sport filtering, and set truncation only for candidate 201. `activity_count` means sport-matched activities among the retained set and exactly equals usable plus skipped; metadata separately exposes all fetched/retained/matched counts. Per-activity status is closed to `usable`, `partial`, or `skipped`. `partial` has reason `invalid_intervals_skipped`. `skipped` reason is one of `no_matching_power_zone_config`, `invalid_power_zone_config`, `required_streams_not_advertised`, `streams_not_found`, `missing_power_stream`, `missing_time_stream`, `misaligned_streams`, `insufficient_stream_samples`, or `no_usable_intervals`.
 - **Pure rejection/result:** `ComputeZoneEnergy(input) (ZoneEnergyResult, error)` validates `PowerZoneConfig` internally and returns `ErrInvalidPowerZoneConfig` for invalid boundaries; callers do not pre-certify it. Mismatch and short streams are data results, not errors. `input_samples = max(len(power),len(timestamps))`, `aligned_samples = min(...)`. On mismatch, `misaligned_samples = abs(...)`, `usable_intervals = 0`, `skipped_intervals = max(input_samples-1,0)`, and all per-invalid-reason counters remain zero. Equal-length input shorter than two has zero usable/skipped intervals. For aligned length N>=2, `usable_intervals + skipped_intervals = N-1`. `TestZoneEnergyContract` will assert config validation, mismatch, short input, diagnostic names, and these counter equations rather than merely compiling.
 
+### Step 3 plan revision (R008)
+
+- Register `newComputeZoneEnergyTool(...)` through `registryBaseTools` in `internal/tools/catalog.go`, classify it in `toolCatalogGroup`, and update `internal/tools/catalog_test.go` analyzer activation coverage so generated metadata and advanced capability discovery remain complete.
+- Map `RequirementRead` to the SDK tool annotation in `internal/mcp/registrar_tools.go` and assert `annotations.readOnlyHint: true` through the `tools/list` protocol response.
+- Aggregate the pure calculator's displayed 3-decimal per-activity zone seconds/kJ so aggregate rows, headline totals, and full audit rows reconcile exactly. Recompute response-wide shares from displayed aggregate totals with deterministic remainder assignment to the last positive output-ordered row, and test multiple activities/configuration groups.
+
 ### Step 1 third revision (R003)
 
 - **Serialized units path:** use `_meta.analysis_units` (not response-owned `_meta.units`) with exact value `{power:"W",time:"s",integration_work:"J",work:"kJ"}` so `response.Shape` preserves it while continuing to add ordinary catalog/common metadata. The Step 3 serialized-response and schema tests assert `analysis_units` after shaping. No response-shaping package change is needed.
@@ -160,3 +169,4 @@
 | 2026-07-10 16:27 | Review R004 | plan Step 1: APPROVE |
 | 2026-07-10 16:35 | Review R005 | code Step 1: APPROVE |
 | 2026-07-10 16:38 | Review R006 | plan Step 2: APPROVE |
+| 2026-07-10 17:01 | Review R008 | plan Step 3: REVISE |

@@ -204,3 +204,5 @@ Commits happen at step boundaries. All commits MUST include TP-236:
 ## Amendments (Added During Execution)
 
 <!-- Workers add amendments here if prerequisites or instructions are contradictory. -->
+
+- Step 3 also permits the actual catalog/registration surfaces `internal/tools/catalog.go`, `internal/tools/catalog_test.go`, and MCP annotation wiring in `internal/mcp/registrar_tools.go` plus its protocol tests. Plan review R008 identified these as required because `registryBaseTools` is the catalog source of truth and read-only SDK annotations are not currently derived from safety requirements.
