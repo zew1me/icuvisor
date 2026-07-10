@@ -3,6 +3,7 @@ package prompts
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/ricardocabral/icuvisor/internal/config"
@@ -14,6 +15,7 @@ const (
 	RecoveryCheckName           = "recovery_check"
 	WeeklyPlanningName          = "weekly_planning"
 	WeeklyReviewName            = "weekly_review"
+	CoachingHandoffName         = "coaching_handoff"
 	ShareableTrainingReportName = "shareable_training_report"
 	PlanHealthReviewName        = "plan_health_review"
 	RaceWeekTaperName           = "race_week_taper"
@@ -199,6 +201,20 @@ func WeeklyReviewPrompt() Prompt {
 	}
 }
 
+// CoachingHandoffPrompt guides a privacy-safe, read-only conversation handoff.
+func CoachingHandoffPrompt() Prompt {
+	return Prompt{
+		Name:        CoachingHandoffName,
+		Title:       "Coaching conversation handoff",
+		Description: "Guide a compact, source-labelled Markdown handoff that preserves durable coaching context for a fresh client conversation.",
+		Arguments: []Argument{
+			{Name: "lookback_days", Title: "Lookback days", Description: "Optional positive integer string from 1 to 90 for recent training evidence; default 28."},
+			{Name: "race_context_days", Title: "Race context days", Description: "Optional positive integer string from 1 to 365 for upcoming race/event context; default 90."},
+		},
+		Handler: coachingHandoffHandler,
+	}
+}
+
 // ShareableTrainingReportPrompt guides a user-reviewed shareable report draft.
 func ShareableTrainingReportPrompt() Prompt {
 	return Prompt{
@@ -339,6 +355,66 @@ func staticPromptHandler(spec promptSpec) Handler {
 		}
 		return renderSpec(spec, req.Arguments), nil
 	}
+}
+
+func coachingHandoffHandler(ctx context.Context, req Request) (Result, error) {
+	if err := ctx.Err(); err != nil {
+		return Result{}, err
+	}
+	lookbackDays, err := boundedPromptDays(req.Arguments["lookback_days"], 28, 90)
+	if err != nil {
+		return Result{}, NewUserError("invalid lookback_days; provide an integer from 1 to 90", err)
+	}
+	raceContextDays, err := boundedPromptDays(req.Arguments["race_context_days"], 90, 365)
+	if err != nil {
+		return Result{}, NewUserError("invalid race_context_days; provide an integer from 1 to 365", err)
+	}
+	args := cloneArgs(req.Arguments)
+	args["lookback_days"] = strconv.Itoa(lookbackDays)
+	args["race_context_days"] = strconv.Itoa(raceContextDays)
+
+	return renderSpec(promptSpec{
+		Title:        "Coaching conversation handoff",
+		DefaultScope: "use the last 28 athlete-local days and the next 90 athlete-local days of race/event context",
+		ArgOrder:     []string{"lookback_days", "race_context_days"},
+		Resources:    []string{"icuvisor://athlete-profile", "icuvisor://event-categories"},
+		Tools:        []string{"get_athlete_profile", "resolve_calendar_dates", "get_events", "get_training_plan", "get_fitness", "get_training_summary", "get_activities", "get_wellness_data", "icuvisor_list_advanced_capabilities"},
+		Do: []string{
+			"Call get_athlete_profile for the athlete timezone and resolve_calendar_dates for today's athlete-local anchor or any relative date; state the generated-on date, timezone, lookback window, and race-context window.",
+			"Return compact Markdown sections in this exact order: Handoff scope; Conversation-stated context (Goals, Constraints, Accepted decisions); Icuvisor evidence; Current plan state; Data gaps and unresolved questions; Next actions.",
+			"Put only user-stated goals and constraints in Conversation-stated context. Put a decision in Accepted decisions only when the user explicitly stated or accepted it; never promote an assistant suggestion, model summary, or calendar row into a user decision.",
+			"Keep tool-sourced facts separate. Render Icuvisor evidence as Claim | Source tool | Athlete-local evidence date/window | Freshness/as-of, and keep Current plan state limited to sourced event and training-plan state.",
+			"Distinguish the date/window when evidence applies from returned as_of or provider freshness. Preserve trustworthy freshness markers; write 'not provided' when none exists, and never invent fetched_at or another retrieval timestamp.",
+			"Use terse get_events, get_training_plan, get_fitness, get_training_summary, get_activities, and get_wellness_data only as needed for durable context; do not dump full history.",
+			"Surface _meta.stale, _meta.missing_fields, unavailable or Strava-blocked data, current-day partial data, and unresolved tool failures. Never treat a missing value as zero or fill a tool gap from chat memory.",
+			"When next_page_token is present, fetch every page needed before claiming completeness or label the evidence partial with the covered window/count; never include the opaque token in the handoff.",
+			"If an advanced analyzer material to the conversation is unavailable, call icuvisor_list_advanced_capabilities, name the missing capability, and preserve the unresolved question instead of calculating a substitute in chat.",
+			"Ask the athlete to review the Markdown, then manually copy it into a fresh Claude, ChatGPT, Cursor, or other client conversation; do not claim any client automatically imports, persists, or remembers it.",
+		},
+		Guardrails: []string{
+			"This workflow is read-only: do not call write or delete tools.",
+			"Never use include_full, raw streams, raw tool payloads, or full histories for the handoff.",
+			"Exclude credentials, API/OAuth tokens, secrets, raw athlete identifiers, local or config paths, pagination tokens, and transport or debug metadata.",
+			"Omit health details, precise locations, and private free-text notes by default; include only the minimum the user explicitly approves.",
+			"Do not make diagnoses, unsupported physiological conclusions, or claims sourced only from model memory.",
+		},
+		Return: "the six-section Markdown handoff with explicit source separation, athlete-local dates, freshness and coverage caveats, unresolved questions, next actions, and a manual-review reminder",
+	}, args), nil
+}
+
+func boundedPromptDays(value string, defaultValue, maxValue int) (int, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return defaultValue, nil
+	}
+	days, err := strconv.Atoi(value)
+	if err != nil {
+		return 0, err
+	}
+	if days < 1 || days > maxValue {
+		return 0, fmt.Errorf("value %d outside 1-%d", days, maxValue)
+	}
+	return days, nil
 }
 
 func raceWeekTaperHandler(ctx context.Context, req Request) (Result, error) {

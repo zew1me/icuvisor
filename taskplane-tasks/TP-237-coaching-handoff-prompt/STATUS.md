@@ -1,11 +1,11 @@
 # TP-237: Add coaching conversation handoff prompt — Status
 
-**Current Step:** Step 1: Define the handoff contract
+**Current Step:** Step 2: Register the prompt and add golden coverage
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 1
-**Review Counter:** 1
-**Iteration:** 1
+**Review Counter:** 2
+**Iteration:** 2
 **Size:** M
 
 ---
@@ -22,25 +22,25 @@
 
 ### Step 1: Define the handoff contract
 
-**Status:** 🟨 In Progress
+**Status:** ✅ Complete
 
-- [ ] Compact handoff sections defined
-- [ ] Conversation statements separated from tool evidence
-- [ ] Privacy and data-quality rules defined
-- [ ] Read-only portable workflow defined
-- [ ] R001 exact section order, acceptance semantics, and evidence-row shape locked
-- [ ] R001 athlete-local date, record-window, and freshness semantics locked
-- [ ] R001 stale, missing, unavailable, partial-day, tool-failure, and pagination handling locked
-- [ ] R001 privacy, portability, manual-review, and sensitive-detail boundaries locked
-- [ ] R001 minimum read route, terse payload policy, advanced fallback, and bounded arguments locked
-- [ ] R001 Step 1 artifact ownership and non-vacuous verification clarified
-- [ ] R001 portable pack index added to allowed documentation scope
+- [x] Compact handoff sections defined
+- [x] Conversation statements separated from tool evidence
+- [x] Privacy and data-quality rules defined
+- [x] Read-only portable workflow defined
+- [x] R001 exact section order, acceptance semantics, and evidence-row shape locked
+- [x] R001 athlete-local date, record-window, and freshness semantics locked
+- [x] R001 stale, missing, unavailable, partial-day, tool-failure, and pagination handling locked
+- [x] R001 privacy, portability, manual-review, and sensitive-detail boundaries locked
+- [x] R001 minimum read route, terse payload policy, advanced fallback, and bounded arguments locked
+- [x] R001 Step 1 artifact ownership and non-vacuous verification clarified
+- [x] R001 portable pack index added to allowed documentation scope
 
 ---
 
 ### Step 2: Register the prompt and add golden coverage
 
-**Status:** ⬜ Not Started
+**Status:** 🟨 In Progress
 
 - [ ] Prompt implemented and registered
 - [ ] Catalog expectations updated
@@ -101,6 +101,7 @@
 | 2026-07-10 | Task staged | PROMPT.md and STATUS.md created |
 | 2026-07-10 17:42 | Task started | Runtime V2 lane-runner execution |
 | 2026-07-10 17:42 | Step 0 started | Preflight |
+| 2026-07-10 17:52 | Worker iter 1 | done in 599s, tools: 64 |
 
 ## Blockers
 
@@ -118,3 +119,4 @@
 - **Arguments:** `lookback_days` is optional, defaults to 28, and accepts 1-90; `race_context_days` is optional, defaults to 90, and accepts 1-365. Invalid values return short user-facing errors. Race context remains sourced from athlete-local events/plan data, not inferred from chat.
 - **Artifacts/checkpoint:** Step 1 creates the prompt function, portable pack, and focused `TestCoachingHandoff...` contract tests, making `go test ./internal/prompts -run 'CoachingHandoff'` non-vacuous. Step 2 only registers it, updates shared catalog/golden expectations, and adds the golden fixture. Step 3 updates `docs/prompts/README.md` along with public docs.
 | 2026-07-10 17:46 | Review R001 | plan Step 1: REVISE |
+| 2026-07-10 17:49 | Review R002 | plan Step 1: APPROVE |
