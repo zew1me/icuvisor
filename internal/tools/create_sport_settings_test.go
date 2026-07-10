@@ -44,6 +44,13 @@ func TestCreateSportSettingsSchemaDocumentsThresholdOnlyCreation(t *testing.T) {
 	}
 }
 
+func TestCreateSportSettingsSchemaExcludesCredentialsAndUnsafeControls(t *testing.T) {
+	t.Parallel()
+
+	tool := newCreateSportSettingsTool(&fakeSportSettingsCreatorClient{}, &fakeProfileClient{}, "test", "UTC", false)
+	assertCreateSportSettingsSchemaSafe(t, tool.InputSchema.(map[string]any), false)
+}
+
 func TestCreateSportSettingsCreatesThresholdOnlySettings(t *testing.T) {
 	t.Parallel()
 
@@ -142,6 +149,110 @@ func TestCreateSportSettingsCreatesThresholdOnlySettings(t *testing.T) {
 				t.Fatalf("meta = %#v, want create operation and fields %v", meta, tc.wantFields)
 			}
 		})
+	}
+}
+
+func TestCreateSportSettingsRejectsMalformedArgumentsBeforeProfileLookup(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		arguments string
+	}{
+		{name: "blank sport", arguments: `{"sport":" ","ftp":250}`},
+		{name: "unsupported sport", arguments: `{"sport":"Triathlon","ftp":250}`},
+		{name: "no threshold field", arguments: `{"sport":"Ride"}`},
+		{name: "non-positive FTP", arguments: `{"sport":"Ride","ftp":0}`},
+		{name: "non-positive indoor FTP", arguments: `{"sport":"Ride","indoor_ftp":-1}`},
+		{name: "non-positive threshold heart rate", arguments: `{"sport":"Ride","threshold_hr":0}`},
+		{name: "malformed pace", arguments: `{"sport":"Run","threshold_pace":{"value":300}}`},
+		{name: "unsupported pace", arguments: `{"sport":"Run","threshold_pace":{"value":300,"unit":"seconds_per_furlong"}}`},
+		{name: "confirm is forbidden", arguments: `{"sport":"Ride","ftp":250,"confirm":true}`},
+		{name: "recalculation is forbidden", arguments: `{"sport":"Ride","ftp":250,"recalc_hr_zones":true}`},
+		{name: "zones are forbidden", arguments: `{"sport":"Ride","ftp":250,"zones":[]}`},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			client := &fakeSportSettingsCreatorClient{}
+			tool := newCreateSportSettingsTool(client, client, "test", "UTC", false)
+
+			_, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(tc.arguments)})
+			if err == nil || !strings.Contains(err.Error(), invalidCreateSportSettingsArgumentsMessage) {
+				t.Fatalf("Handler() error = %v, want actionable create-arguments rejection", err)
+			}
+			if client.fakeProfileClient.calls != 0 {
+				t.Fatalf("profile calls = %d, want 0 before malformed-argument rejection", client.fakeProfileClient.calls)
+			}
+			if len(client.calls) != 0 {
+				t.Fatalf("create calls = %#v, want none before malformed-argument rejection", client.calls)
+			}
+		})
+	}
+}
+
+func TestCreateSportSettingsRejectsExistingSettingsWithoutCreate(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		settings []intervals.SportSettings
+	}{
+		{name: "upstream type", settings: []intervals.SportSettings{{ID: 7, Type: "Ride"}}},
+		{name: "upstream types", settings: []intervals.SportSettings{{ID: 8, Types: []string{"Ride"}}}},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			client := &fakeSportSettingsCreatorClient{fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{SportSettings: tc.settings}}}
+			tool := newCreateSportSettingsTool(client, client, "test", "UTC", false)
+
+			_, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"sport":"Ride","ftp":250}`)})
+			if err == nil || !strings.Contains(err.Error(), sportSettingsAlreadyExistMessage) || !strings.Contains(err.Error(), "use update_sport_settings") {
+				t.Fatalf("Handler() error = %v, want duplicate guidance", err)
+			}
+			if client.fakeProfileClient.calls != 1 {
+				t.Fatalf("profile calls = %d, want one duplicate lookup", client.fakeProfileClient.calls)
+			}
+			if len(client.calls) != 0 {
+				t.Fatalf("create calls = %#v, want no write after duplicate lookup", client.calls)
+			}
+		})
+	}
+}
+
+func assertCreateSportSettingsSchemaSafe(t *testing.T, schema map[string]any, allowAthleteID bool) {
+	t.Helper()
+
+	if schema["type"] != "object" || schema["additionalProperties"] != false {
+		t.Fatalf("schema = %#v, want closed input object", schema)
+	}
+	properties, ok := schema["properties"].(map[string]any)
+	if !ok {
+		t.Fatalf("schema properties = %#v, want object", schema["properties"])
+	}
+	allowed := map[string]struct{}{
+		"sport": {}, "ftp": {}, "indoor_ftp": {}, "threshold_hr": {}, "threshold_pace": {},
+	}
+	if allowAthleteID {
+		allowed["athlete_id"] = struct{}{}
+	}
+	if len(properties) != len(allowed) {
+		t.Fatalf("schema properties = %#v, want only %#v", properties, allowed)
+	}
+	for name := range allowed {
+		if _, ok := properties[name]; !ok {
+			t.Fatalf("schema properties = %#v, missing allowed %q", properties, name)
+		}
+	}
+	for _, forbidden := range []string{
+		"api_key", "apikey", "apiKey", "token", "credential", "credential_ref", "credentials",
+		"confirm", "recalc_hr_zones", "recalcHrZones", "zones", "power_zones", "power_zone_names",
+		"hr_zones", "hr_zone_names", "pace_zones", "pace_zone_names", "apply", "apply_to_activities",
+	} {
+		if _, ok := properties[forbidden]; ok {
+			t.Fatalf("create schema exposes forbidden %q: %#v", forbidden, properties)
+		}
 	}
 }
 
