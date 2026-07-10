@@ -1,10 +1,10 @@
 # TP-238: Add grounded fueling review prompt pack — Status
 
-**Current Step:** Step 2: Register the prompt and add regression coverage
+**Current Step:** Step 3: Publish cookbook, portable pack, and evals
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 1
-**Review Counter:** 8
+**Review Counter:** 9
 **Iteration:** 1
 **Size:** M
 
@@ -36,7 +36,7 @@
 
 ### Step 2: Register the prompt and add regression coverage
 
-**Status:** 🟨 In Progress
+**Status:** ✅ Complete
 
 - [x] Prompt implemented and registered across catalog, registry, and MCP protocol surfaces
 - [x] Date, unit, and missing-data discipline encoded
@@ -47,12 +47,12 @@
 
 ### Step 3: Publish cookbook, portable pack, and evals
 
-**Status:** ⬜ Not Started
+**Status:** 🟨 In Progress
 
-- [ ] Cookbook and client pack added
-- [ ] Prompt library aligned
-- [ ] Eval scenarios added
-- [ ] References, PRD, and changelog updated
+- [ ] Publish a `fueling-review` cookbook recipe and preserve the single registered portable pack contract
+- [ ] Replace unsafe prompt-library fueling examples and matching eval copy with source-correct, no-target language
+- [ ] Add concrete read-only `CB-FUEL-*` eval scenarios that assert field distinctions, g/h eligibility, missing logs, and target refusal
+- [ ] Update prompt/cookbook references, PRD catalog/guardrails, cookbook index, and changelog with the twelve-prompt workflow
 
 ---
 
@@ -91,6 +91,7 @@
 | R006 | Plan | 1 | APPROVE | `.reviews/R006-plan-step1.md` |
 | R007 | Plan | 2 | REVISE | `.reviews/R007-plan-step2.md` |
 | R008 | Plan | 2 | APPROVE | `.reviews/R008-plan-step2.md` |
+| R009 | Plan | 3 | REVISE | `.reviews/R009-plan-step3.md` |
 
 ## Discoveries
 
@@ -112,6 +113,14 @@
 
 ## Notes
 
+### Step 3 publishing-and-eval plan
+
+- Create `web/content/cookbook/fueling-review.md` and its `_index.md` card. Its recent-session/date-range workflow calls the profile-first, athlete-local, terse `get_activities` route with `include_unnamed:true`, follows pagination, calculates only `carbs_ingested_g / (moving_time_seconds / 3600)` for non-negative logged intake and positive duration, and states coverage/exclusions. Its optional race workflow reads only same-day `race_date` events and labels sourced calendar facts separately from conditional general education; it never scans by race name alone.
+- Preserve the Step 1 `docs/prompts/client-prompt-packs/fueling-review.md` as the one portable pack, revising it only in lockstep with the cookbook/registered prompt. Every public example marks sourced facts versus general guidance and prohibits nutrition targets/prescriptions, product invention, writes, streams, raw payloads, and `include_full`.
+- Replace the legacy prompt-library nutrition examples and remove or rewrite `CB-LIB-02` so neither judges underfueling/low intake or mixes daily macros with session load. Replacements use eligible logged g/h, label absent logs missing rather than zero/inadequate, and preserve `carbs_ingested_g`, `carbs_used_g`, and daily macros as distinct.
+- Add valid `CB-FUEL-*` records for g/h eligibility/coverage, missing logs, carbs-used distinction, and individualized target refusal. Each sets `recipe: "fueling-review"`, expected read tools, forbidden write tools plus `get_activity_streams`, and must-address/anti-pattern text covering athlete-local dates, source labels, terse/no-raw reads, no writes, and the required semantic assertion.
+- Update `resources-prompts.md` with the five prompt arguments and constrained route; update cookbook/PRD eleven-to-twelve prompt prose/lists and guardrails; add the `[Unreleased]` changelog entry for prompt, pack, recipe, and evals.
+
 ### Step 2 registration-and-validation plan
 
 - Register `fueling_review` in `NewRegistry`, then update every consumer: registry count/order, golden table, client-pack linkage table, terse-resource prompt list, and `internal/mcp/protocol_test.go` `prompts/list` expectation (11 to 12, sorted `fueling_review`) plus MCP prompt retrieval coverage.
@@ -132,3 +141,4 @@
 | 2026-07-10 18:44 | Review R006 | plan Step 1: APPROVE |
 | 2026-07-10 18:50 | Review R007 | plan Step 2: REVISE |
 | 2026-07-10 18:52 | Review R008 | plan Step 2: APPROVE |
+| 2026-07-10 18:58 | Review R009 | plan Step 3: REVISE |
