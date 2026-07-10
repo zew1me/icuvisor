@@ -1,10 +1,10 @@
 # TP-238: Add grounded fueling review prompt pack — Status
 
-**Current Step:** Step 1: Define the fueling evidence contract
+**Current Step:** Step 2: Register the prompt and add regression coverage
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 1
-**Review Counter:** 6
+**Review Counter:** 7
 **Iteration:** 1
 **Size:** M
 
@@ -22,7 +22,7 @@
 
 ### Step 1: Define the fueling evidence contract
 
-**Status:** 🟨 In Progress
+**Status:** ✅ Complete
 
 - [x] Define executable date-only arguments, mode precedence, validated athlete-local dates, source-tool route, pagination, and optional race context
 - [x] Require all-session date-range activity reads to retain unnamed rows and report their availability separately
@@ -36,11 +36,11 @@
 
 ### Step 2: Register the prompt and add regression coverage
 
-**Status:** ⬜ Not Started
+**Status:** 🟨 In Progress
 
-- [ ] Prompt implemented and registered
+- [ ] Prompt implemented and registered across catalog, registry, and MCP protocol surfaces
 - [ ] Date, unit, and missing-data discipline encoded
-- [ ] Focused tests and golden fixture added
+- [ ] Focused tests and golden fixture added, including name-only race-context handler rejection
 - [ ] Read-only and no-product-library behavior covered
 
 ---
@@ -89,6 +89,7 @@
 | R004 | Plan | 1 | REVISE | `.reviews/R004-plan-step1.md` |
 | R005 | Plan | 1 | REVISE | `.reviews/R005-plan-step1.md` |
 | R006 | Plan | 1 | APPROVE | `.reviews/R006-plan-step1.md` |
+| R007 | Plan | 2 | REVISE | `.reviews/R007-plan-step2.md` |
 
 ## Discoveries
 
@@ -110,6 +111,11 @@
 
 ## Notes
 
+### Step 2 registration-and-validation plan
+
+- Register `fueling_review` in `NewRegistry`, then update every consumer: registry count/order, golden table, client-pack linkage table, terse-resource prompt list, and `internal/mcp/protocol_test.go` `prompts/list` expectation (11 to 12, sorted `fueling_review`) plus MCP prompt retrieval coverage.
+- Implement strict date-only pre-render validation in `FuelingReviewPrompt` for the approved modes. `race_name` without `race_date` returns `missing race_date; provide YYYY-MM-DD`; valid race context renders same-day `get_events` bounds and `limit:100`, never name-only scan. Handler table tests cover this alongside defaults, valid modes, conflicts, partial/malformed/date-time/reversed/overlong dates, and malformed race dates.
+
 ### Step 1 revised evidence-contract plan
 
 - **Modes, arguments, and source route:** Arguments are optional `activity_id`, `start_date`, `end_date`, `race_date`, and `race_name`. `activity_id` is mutually exclusive with either range endpoint; `start_date`, `end_date`, and `race_date` are strict athlete-local `YYYY-MM-DD` dates (not date-times), and supplied ranges require both endpoints, must be in athlete-local order, inclusive, and 1–90 days. With neither mode argument, call `resolve_calendar_dates` for offsets `-14` and `-1` and use that resolved 14-completed-day range. Step 2's handler rejects conflicting, incomplete, malformed (including date-time), reversed, or overlong arguments before rendering; its table-driven tests cover the default, valid activity/range modes, activity/date conflict, one-sided range, malformed date/date-time, reversed/over-90-day ranges, and malformed `race_date`. Activity-ID mode uses `get_athlete_profile`, then `get_activity_details` for the selected activity. Date-range mode uses `get_athlete_profile`, then `get_activities` with `include_unnamed:true` and terse pages as the index/source for duration, load, and activity carbs; it uses `get_activity_details` only for a selected session needing more context, never for every row. Both modes call `get_wellness_data` only when daily nutrition evidence is requested or useful, with `fields:["kcalConsumed","carbohydrates","protein","fatTotal"]` plus only explicit user-requested custom codes; returned aliases remain `calories_intake`, `carbs_g`, `protein_g`, and `fat_g`, and unavailable nutrition freshness/provenance remains unavailable rather than widening into health fields. They call `get_training_summary` only for aggregate load context, and `get_events` only for a supplied `race_date`; `race_name` alone asks for `race_date` rather than scanning an unbounded calendar. Race reads use athlete-local `oldest`/`newest` equal to `race_date`, `limit:100`, and label any `_meta.truncated` response partial rather than treating a missing match as unconfirmed. The prompt fetches all activity pages needed before saying a range is complete; otherwise it reports count/window as partial and omits the opaque token.
@@ -123,3 +129,4 @@
 | 2026-07-10 18:38 | Review R004 | plan Step 1: REVISE |
 | 2026-07-10 18:41 | Review R005 | plan Step 1: REVISE |
 | 2026-07-10 18:44 | Review R006 | plan Step 1: APPROVE |
+| 2026-07-10 18:50 | Review R007 | plan Step 2: REVISE |
