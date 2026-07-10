@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
-**Review Counter:** 2
+**Review Counter:** 3
 **Iteration:** 1
 **Size:** L
 
@@ -36,6 +36,9 @@
 - [ ] R002 tool-specific metadata emission path and exact metadata shapes locked
 - [ ] R002 deterministic mixed-zone identity, ordering, shares, counts, and audit enums locked
 - [ ] R002 pure validation, mismatch, and short-input result semantics locked
+- [ ] R003 serialized analysis-units and shared analyzer-meta semantics locked
+- [ ] R003 insufficient-reason precedence and zone-config absence semantics locked
+- [ ] R003 literal interpretation and ordered boundary text locked
 
 ---
 
@@ -101,6 +104,7 @@
 |---|------|------|---------|------|
 | R001 | Plan | 1 | REVISE | `.reviews/R001-plan-step1.md` |
 | R002 | Plan | 1 | REVISE | `.reviews/R002-plan-step1.md` |
+| R003 | Plan | 1 | REVISE | `.reviews/R003-plan-step1.md` |
 
 ## Discoveries
 
@@ -139,4 +143,12 @@
 - **Zone identity/order/shares:** canonical setting sport is trimmed `SportSettings.Type`, else the first trimmed `Types` entry that matched the activity candidate. A configuration fingerprint is the first 12 lowercase hex characters of SHA-256 over canonical JSON `{sport,boundaries_watts,names}`. Positive IDs use `zone_key = "setting-<id>-<fingerprint>"`; zero IDs use `zone_key = "config-<fingerprint>"`. Identity is `(positive ID, fingerprint)` or fingerprint alone for ID zero, so duplicate IDs with different definitions remain separate and duplicate identical definitions coalesce. Groups sort by case-folded canonical sport, numeric setting ID, then `zone_key`; rows sort by zone ordinal. Row `sport` is canonical setting sport, never an arbitrary activity type. Time/energy-share denominators span the whole response; independent rounding remainders go to the last output-ordered row with positive displayed seconds/kJ respectively.
 - **Coverage/audit:** fetch at most 201 range candidates, sort all fetched candidates, retain the first 200 before sport filtering, and set truncation only for candidate 201. `activity_count` means sport-matched activities among the retained set and exactly equals usable plus skipped; metadata separately exposes all fetched/retained/matched counts. Per-activity status is closed to `usable`, `partial`, or `skipped`. `partial` has reason `invalid_intervals_skipped`. `skipped` reason is one of `no_matching_power_zone_config`, `invalid_power_zone_config`, `required_streams_not_advertised`, `streams_not_found`, `missing_power_stream`, `missing_time_stream`, `misaligned_streams`, `insufficient_stream_samples`, or `no_usable_intervals`.
 - **Pure rejection/result:** `ComputeZoneEnergy(input) (ZoneEnergyResult, error)` validates `PowerZoneConfig` internally and returns `ErrInvalidPowerZoneConfig` for invalid boundaries; callers do not pre-certify it. Mismatch and short streams are data results, not errors. `input_samples = max(len(power),len(timestamps))`, `aligned_samples = min(...)`. On mismatch, `misaligned_samples = abs(...)`, `usable_intervals = 0`, `skipped_intervals = max(input_samples-1,0)`, and all per-invalid-reason counters remain zero. Equal-length input shorter than two has zero usable/skipped intervals. For aligned length N>=2, `usable_intervals + skipped_intervals = N-1`. `TestZoneEnergyContract` will assert config validation, mismatch, short input, diagnostic names, and these counter equations rather than merely compiling.
+
+### Step 1 third revision (R003)
+
+- **Serialized units path:** use `_meta.analysis_units` (not response-owned `_meta.units`) with exact value `{power:"W",time:"s",integration_work:"J",work:"kJ"}` so `response.Shape` preserves it while continuing to add ordinary catalog/common metadata. The Step 3 serialized-response and schema tests assert `analysis_units` after shaping. No response-shaping package change is needed.
+- **Shared analyzer semantics:** `zoneEnergyMeta` embeds `analysis.AnalyzerMeta`. Its `n` is usable activity count (both `usable` and `partial` activity audit rows), `missing_days` is always `0` because rest days are not missing observations and coverage is activity-count based, `missing_action` is `"skip"`, and `insufficient_sample` is computed with `MinSamples: 1`, exactly matching whether usable activity count is zero and the result status is `insufficient`.
+- **Insufficient decision table:** `no_activities` means zero retained sport-matched candidates after optional sport filtering. A zero-length boundary list is absence and yields activity reason `no_matching_power_zone_config`, not invalidity. Nonempty malformed boundaries yield `invalid_power_zone_config`. When no activity is usable: all `no_matching_power_zone_config` => `missing_power_zones`; all reasons zone-related with at least one invalid configuration => `invalid_power_zones`; any activity that reached stream eligibility but had unavailable/misaligned/invalid stream data, including a mixture with zone-related skips => `no_usable_power_streams`. Thus precedence is `no_activities`, then all-missing zones, then all-zone-related with invalid, else no usable streams.
+- **Literal model-visible text:** `result.interpretation` is exactly `"Power-derived kJ is external mechanical work only; it is not metabolic energy, calorie expenditure, or food calories."` The ordered `_meta.boundaries` array is exactly: (1) `"Mechanical work from recorded power is not metabolic energy, calorie expenditure, or food calories."`; (2) `"Left-endpoint integration; the final sample contributes no duration or work."`; (3) `"Intervals longer than 60 seconds and invalid samples are skipped; missing power is not interpolated."`; (4) `"Raw stream samples are never returned."`.
 | 2026-07-10 16:20 | Review R002 | plan Step 1: REVISE |
+| 2026-07-10 16:24 | Review R003 | plan Step 1: REVISE |
