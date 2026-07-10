@@ -15,7 +15,7 @@ import (
 
 const (
 	getAnnualTrainingPlanName        = "get_annual_training_plan"
-	getAnnualTrainingPlanDescription = "Use when the prompt asks about annual training plan, season phase, weekly load/TSS targets, recovery weeks, taper context, or periodization summary; do not manually join raw get_events rows in chat. Summarizes existing PLAN, TARGET, and NOTE calendar events into phases, weekly targets, recovery/context notes, and projection-ready weekly_plan_targets without writing calendar data."
+	getAnnualTrainingPlanDescription = "Use when the prompt asks about annual training plan, season phase, weekly load/TSS targets, recovery weeks, taper context, or periodization summary; plan_applied identifies ATP-generated notes, while personal calendar notes are neutral context, never ATP instructions; do not manually join raw get_events rows in chat. Summarizes existing PLAN, TARGET, and NOTE calendar events into phases, weekly targets, provenance-aware notes, and projection-ready weekly_plan_targets without writing calendar data."
 	invalidAnnualTrainingPlanMessage = "invalid get_annual_training_plan arguments; provide oldest/newest as YYYY-MM-DD with an optional capped limit"
 	fetchAnnualTrainingPlanMessage   = "could not fetch annual training plan events; check intervals.icu credentials, athlete ID, and date range"
 
@@ -627,10 +627,10 @@ func getAnnualTrainingPlanInputSchema() map[string]any {
 		"newest":       map[string]any{"type": "string", "description": "Required athlete-local end date YYYY-MM-DD for the ATP/periodization event scan; must be on or after oldest."},
 		"calendar_id":  map[string]any{"type": "string", "description": "Optional upstream calendar ID filter when the athlete uses separate planning calendars."},
 		"limit":        map[string]any{"type": "integer", "default": annualTrainingPlanEventLimit, "minimum": 1, "maximum": annualTrainingPlanEventLimit, "description": "Maximum raw calendar events to scan before filtering PLAN/TARGET/NOTE periodization rows; defaults to 500 and values above 500 are capped."},
-		"include_full": map[string]any{"type": "boolean", "default": false, "description": "When true, include raw upstream PLAN/TARGET/NOTE event payloads only on the corresponding phase, target_event, and note rows. Default output is a compact summary."},
+		"include_full": map[string]any{"type": "boolean", "default": false, "description": "When true, include raw upstream PLAN/TARGET/NOTE event payloads only on the corresponding phase, target_event, ATP note, and personal context_note rows. Default output is a compact provenance-aware summary."},
 	}}
 }
 
 func getAnnualTrainingPlanOutputSchema() map[string]any {
-	return map[string]any{"type": "object", "additionalProperties": true, "description": "Read-only annual training plan/periodization summary derived from existing PLAN, TARGET, and NOTE calendar events. Returns summary counts/totals, phases, ISO-week target totals, recovery/context notes, source/truncation caveats, and projection_bridge.weekly_plan_targets rows that can be copied to get_fitness_projection.weekly_plan_targets."}
+	return map[string]any{"type": "object", "additionalProperties": true, "description": "Read-only annual training plan/periodization summary derived from existing PLAN, TARGET, and NOTE calendar events. ATP-generated notes are identified only by non-empty plan_applied provenance; personal notes are returned separately as neutral context and never counted as ATP instructions or recovery conclusions. Returns provenance-separated note counts and week associations, phases, ISO-week target totals, source/truncation caveats, and projection_bridge.weekly_plan_targets rows that can be copied to get_fitness_projection.weekly_plan_targets."}
 }
