@@ -1,10 +1,10 @@
 # TP-236: Add deterministic power-zone energy analysis — Status
 
-**Current Step:** Step 4: Formula resource, generated data, and docs
+**Current Step:** Step 5: Testing & Verification
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
-**Review Counter:** 13
+**Review Counter:** 14
 **Iteration:** 4
 **Size:** L
 
@@ -81,7 +81,7 @@
 
 ### Step 5: Testing & Verification
 
-**Status:** ⬜ Not Started
+**Status:** 🟨 In Progress
 
 - [ ] FULL test suite passing
 - [ ] Race suite passing
@@ -89,6 +89,7 @@
 - [ ] All failures fixed
 - [ ] Build passes
 - [ ] Generated docs clean
+- [ ] R014 generated tool and schema data reproducible with `git diff --exit-code` and repository diff whitespace-clean
 
 ---
 
@@ -177,3 +178,4 @@
 | 2026-07-10 17:21 | Review R010 | code Step 3: APPROVE |
 | 2026-07-10 17:28 | Review R012 | code Step 4: REVISE |
 | 2026-07-10 17:31 | Review R013 | code Step 4: APPROVE |
+| 2026-07-10 17:32 | Review R014 | plan Step 5: REVISE |
