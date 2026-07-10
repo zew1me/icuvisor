@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
-**Review Counter:** 0
+**Review Counter:** 1
 **Iteration:** 1
 **Size:** M
 
@@ -28,6 +28,8 @@
 - [ ] plan_applied provenance rule defined
 - [ ] Counts cannot misclassify personal notes
 - [ ] Ordering and terse/full behavior defined
+- [ ] Exact collection, status, count, and week-association migration documented
+- [ ] Classification boundary, recovery policy, and Step 2 regression matrix documented
 
 ---
 
@@ -79,6 +81,7 @@
 
 | # | Type | Step | Verdict | File |
 |---|------|------|---------|------|
+| R001 | Plan | 1 | REVISE | `.reviews/R001-plan-step1.md` |
 
 ## Discoveries
 
@@ -101,3 +104,4 @@
 ## Notes
 
 - Preflight audit: `intervals.Event.PlanApplied` already decodes `plan_applied`. The annual-plan path currently groups every `NOTE` as periodization context, increments week `note_count`, and derives `recovery_hint`/`recovery_note_count` solely via `annualTrainingPlanRecoveryHint`, which scans name/type/description/tags for English substrings `recovery`, `rest`, `taper`, and `deload`. No other annual-plan keyword recovery path was found.
+| 2026-07-10 12:31 | Review R001 | plan Step 1: REVISE |
