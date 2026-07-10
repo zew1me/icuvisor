@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
-**Review Counter:** 3
+**Review Counter:** 4
 **Iteration:** 1
 **Size:** L
 
@@ -23,6 +23,11 @@
 ### Step 1: Define the constraint contract
 
 **Status:** 🟨 In Progress
+
+<!-- R004 revision items -->
+- [ ] R004-1: Exhausted budgets (remaining <= 0) must also violate when candidate.Load > 0 / candidate.DurationMinutes > 0 (not just warn)
+- [ ] R004-2: Add input validation — finite non-negative candidate.Load and DurationMinutes; ValidateWeekConstraints() for constraint struct validation; ViolationInvalidInput code
+- [ ] R004-3: Fix duplicate-date inconsistency — ValidateCandidates must use first-match (same as findDay); add duplicate detection to ValidateWeekConstraints
 
 <!-- R003 revision items -->
 - [x] R003-1: Add ViolationRequestedSessionCountExceeded code; enforce RequestedSessionCount cap in ValidateCandidates (reject excess valid candidates)
@@ -131,3 +136,4 @@
 | 2026-07-10 13:57 | Review R001 | plan Step 1: APPROVE |
 | 2026-07-10 14:10 | Review R002 | code Step 1: REVISE |
 | 2026-07-10 14:16 | Review R003 | code Step 1: REVISE |
+| 2026-07-10 14:25 | Review R004 | code Step 1: REVISE |
