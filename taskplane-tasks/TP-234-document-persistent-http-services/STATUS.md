@@ -40,9 +40,9 @@ All foreground HTTP-start commands in `http-transport.md`, including macOS and W
 - [x] R001: Session-safe credential boundary and `.env`-safe working directories specified
 - [x] R001: Failure recovery and removal behavior specified for each manager
 - [x] R001: LAN executable example removal and Make/CI contract scope specified
-- [ ] R002: Foreground HTTP commands and config examples pinned to loopback-only
-- [ ] R002: Copy-pasteable absolute-path service creation and recovery mechanics specified
-- [ ] R002: Fenced-snippet contract and existing Make/CI invocation specified
+- [x] R002: Foreground HTTP commands and config examples pinned to loopback-only
+- [x] R002: Copy-pasteable absolute-path service creation and recovery mechanics specified
+- [x] R002: Fenced-snippet contract and existing Make/CI invocation specified
 
 ---
 
