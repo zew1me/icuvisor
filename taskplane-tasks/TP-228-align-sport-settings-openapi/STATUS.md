@@ -1,10 +1,10 @@
 # TP-228: Align sport-settings update and apply requests with live OpenAPI — Status
 
-**Current Step:** Step 2: Align the intervals.icu client
+**Current Step:** Step 3: Align the MCP schema and response
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 3
-**Review Counter:** 6
+**Review Counter:** 7
 **Iteration:** 1
 **Size:** L
 
@@ -48,12 +48,14 @@
 
 ### Step 3: Align the MCP schema and response
 
-**Status:** ⬜ Not Started
+**Status:** 🟨 In Progress
 
 - [ ] recalc_hr_zones schema and forwarding implemented
 - [ ] Unsupported effective-date behavior removed
 - [ ] Response metadata corrected
 - [ ] Schema snapshots and generated data updated
+- [ ] R007: Preserve explicit-false/default-true decoding and always emit truthful recalculation-requested metadata
+- [ ] R007: Narrowly approve only update_sport_settings effective_date removal without weakening generic schema-removal protection
 
 ---
 
@@ -115,9 +117,11 @@
 
 - R001 plan review: legacy `effective_date` must be rejected by strict decoding before an upstream request; response metadata may only report the requested HR-zone recalculation boolean.
 - R004 plan review: client resolves no input defaults; it encodes a resolved `RecalcHRZones` bool and uses body-plus-query update and bodyless-PUT apply transports that preserve retries and 422 handling.
+- R007 plan review: schema stability needs a TP-228-only approved effective_date-removal exception; generic property-removal detection remains enforced.
 | 2026-07-10 11:40 | Review R001 | plan Step 1: REVISE |
 | 2026-07-10 11:42 | Review R002 | plan Step 1: APPROVE |
 | 2026-07-10 11:45 | Review R003 | code Step 1: APPROVE |
 | 2026-07-10 11:47 | Review R004 | plan Step 2: REVISE |
 | 2026-07-10 11:50 | Review R005 | plan Step 2: APPROVE |
 | 2026-07-10 11:55 | Review R006 | code Step 2: APPROVE |
+| 2026-07-10 11:57 | Review R007 | plan Step 3: REVISE |

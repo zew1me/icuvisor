@@ -26,6 +26,14 @@ The upstream operation is asynchronous and its public contract does not provide 
 
 The update response reports `hr_zone_recalculation_requested`, the boolean sent as `recalcHrZones`. This describes the requested update option only; it does not claim that activity recomputation is pending or complete. The former `effective_date` and `recompute_pending` metadata claims are removed.
 
+## Schema migration and stability approval
+
+The request uses `*bool` while decoding to preserve whether `recalc_hr_zones` was supplied. Decoding resolves nil to true and copies that resolved value to `WriteSportSettingsParams.RecalcHRZones`; `EffectiveDate` is removed from both types. The input schema requires only `sport`, exposes optional boolean `recalc_hr_zones` with `default: true`, and uses examples without dates.
+
+The response `_meta` always emits `hr_zone_recalculation_requested`, exactly the resolved option. It retains delete-mode and unit metadata but removes `effective_date` and `recompute_pending`.
+
+Schema stability retains its generic property-removal protection. TP-228 adds a narrow documented approval for removal of only `effective_date` from only `update_sport_settings`; tests prove that unrelated removed properties remain failures. The schema snapshot and generated website data are refreshed with `make docs-tools`.
+
 ## Regression boundary
 
 Wire tests assert update method, path, sparse JSON body, and both resolved query values. Apply tests assert a bodyless, queryless PUT. Tool tests assert omitted/default-true and explicit-false forwarding, rejection of legacy `effective_date` before an upstream call, and no implicit apply path.
