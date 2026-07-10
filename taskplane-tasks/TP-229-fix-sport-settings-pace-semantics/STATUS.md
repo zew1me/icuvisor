@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 3
-**Review Counter:** 4
+**Review Counter:** 5
 **Iteration:** 1
 **Size:** L
 
@@ -31,6 +31,8 @@
 - [x] R002: Apply the declared m/s and percentage response migration before advertising it in `_meta`
 - [x] R003: Propagate every recognized pace display unit and treat `NONE` as a known m/s fallback
 - [x] R004: Reject finite pace inputs whose reciprocal conversion overflows
+- [ ] R005: Correct workout previews and configured histogram zones for m/s thresholds and percentage boundaries
+- [ ] R005: Omit ambiguous source-unit fallback values
 
 ---
 
@@ -97,6 +99,7 @@
 | R002 | Code | 1 | REVISE | `.reviews/R002-code-step1.md` |
 | R003 | Code | 1 | REVISE | `.reviews/R003-code-step1.md` |
 | R004 | Code | 1 | REVISE | `.reviews/R004-code-step1.md` |
+| R005 | Code | 1 | REVISE | `.reviews/R005-code-step1.md` |
 
 ## Discoveries
 
@@ -123,3 +126,4 @@
 | 2026-07-10 19:30 | Review R002 | code Step 1: REVISE |
 | 2026-07-10 19:39 | Review R003 | code Step 1: REVISE |
 | 2026-07-10 19:45 | Review R004 | code Step 1: REVISE |
+| 2026-07-10 19:50 | Review R005 | code Step 1: REVISE |
