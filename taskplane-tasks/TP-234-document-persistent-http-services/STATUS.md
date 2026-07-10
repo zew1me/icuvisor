@@ -59,9 +59,9 @@ All foreground HTTP-start commands in `http-transport.md`, including macOS and W
 - [ ] Connector key guidance included
 - [ ] LAN and hosted warnings preserved
 - [ ] Targeted website build passes
-- [ ] R004: New-guide outline and fenced service samples mapped to the approved design
-- [ ] R004: Foreground, navigation, troubleshooting, and changelog edits mapped file by file
-- [ ] R004: Link rendering and website-build verification sequence specified
+- [x] R004: New-guide outline and fenced service samples mapped to the approved design
+- [x] R004: Foreground, navigation, troubleshooting, and changelog edits mapped file by file
+- [x] R004: Link rendering and website-build verification sequence specified
 
 ---
 
