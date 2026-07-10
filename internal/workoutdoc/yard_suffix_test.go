@@ -45,33 +45,33 @@ func TestYardSuffixDSLRoundTrip(t *testing.T) {
 	t.Parallel()
 
 	for _, tc := range []struct {
-		name        string
-		input       string
-		wantUnit    string
+		name         string
+		input        string
+		wantUnit     string
 		wantReserial string
 	}{
 		{
-			name:        "canonical yrd token parses and is idempotent",
-			input:       "- Swim 100yrd 95% Pace",
-			wantUnit:    "yrd",
+			name:         "canonical yrd token parses and is idempotent",
+			input:        "- Swim 100yrd 95% Pace",
+			wantUnit:     "yrd",
 			wantReserial: "- Swim 100yrd 95% Pace",
 		},
 		{
-			name:        "legacy yd token parses and round-trips to yrd",
-			input:       "- Swim 100yd 95% Pace",
-			wantUnit:    "yd",
+			name:         "legacy yd token parses and round-trips to yrd",
+			input:        "- Swim 100yd 95% Pace",
+			wantUnit:     "yd",
 			wantReserial: "- Swim 100yrd 95% Pace",
 		},
 		{
-			name:        "yard token parses and round-trips to yrd",
-			input:       "- Swim 100yard 95% Pace",
-			wantUnit:    "yard",
+			name:         "yard token parses and round-trips to yrd",
+			input:        "- Swim 100yard 95% Pace",
+			wantUnit:     "yard",
 			wantReserial: "- Swim 100yrd 95% Pace",
 		},
 		{
-			name:        "yards token parses and round-trips to yrd",
-			input:       "- Swim 100yards 95% Pace",
-			wantUnit:    "yards",
+			name:         "yards token parses and round-trips to yrd",
+			input:        "- Swim 100yards 95% Pace",
+			wantUnit:     "yards",
 			wantReserial: "- Swim 100yrd 95% Pace",
 		},
 	} {
