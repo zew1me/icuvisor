@@ -263,18 +263,24 @@ type BatchResult struct {
 //   - AvailableDays must not contain duplicate Date values.
 //   - SlotConstraint and DayConstraints numeric caps must be finite and non-negative.
 //
-// Call before ValidateCandidate or ValidateCandidates to ensure constraint inputs are sound.
+// Field checks are performed in a fixed deterministic order; the first invalid field
+// encountered is reported. Call before ValidateCandidate or ValidateCandidates.
 func ValidateWeekConstraints(wc WeekConstraints) error {
-	fields := map[string]float64{
-		"weekly_target_minutes": wc.WeeklyTargetMinutes,
-		"weekly_target_load":    wc.WeeklyTargetLoad,
-		"completed_minutes":     wc.CompletedMinutes,
-		"completed_load":        wc.CompletedLoad,
-		"fixed_minutes":         wc.FixedMinutes,
-		"fixed_load":            wc.FixedLoad,
+	// Top-level fields in a fixed order for deterministic error reporting.
+	type fieldCheck struct {
+		name string
+		val  float64
 	}
-	for name, v := range fields {
-		if err := requireFiniteNonNegative(name, v); err != nil {
+	topLevel := []fieldCheck{
+		{"weekly_target_minutes", wc.WeeklyTargetMinutes},
+		{"weekly_target_load", wc.WeeklyTargetLoad},
+		{"completed_minutes", wc.CompletedMinutes},
+		{"completed_load", wc.CompletedLoad},
+		{"fixed_minutes", wc.FixedMinutes},
+		{"fixed_load", wc.FixedLoad},
+	}
+	for _, fc := range topLevel {
+		if err := requireFiniteNonNegative(fc.name, fc.val); err != nil {
 			return err
 		}
 	}
@@ -401,9 +407,21 @@ func ValidateCandidates(wc WeekConstraints, candidates []CandidateSession) Batch
 	for i, candidate := range candidates {
 		var result CandidateResult
 
-		// Input validation first.
+		// Input validation first. Invalid candidates are not accumulated into budget
+		// totals to prevent NaN/negative values from poisoning subsequent comparisons
+		// or reconciliation. The embedded candidate is sanitized before serialization.
 		if v := invalidCandidateInputViolation(candidate); v != nil {
-			result = CandidateResult{Candidate: candidate, Valid: false, Violations: []Violation{*v}}
+			result = CandidateResult{
+				Candidate:  sanitizeCandidateForResult(candidate),
+				Valid:      false,
+				Violations: []Violation{*v},
+			}
+			// Still increment the day session counter (pessimistic positional tracking),
+			// but skip all numeric accumulations to avoid NaN propagation.
+			if ds := dayStates[candidate.Date]; ds != nil {
+				ds.sessions++
+				// do not add candidate.DurationMinutes — may be NaN/negative
+			}
 		} else {
 			ds := dayStates[candidate.Date]
 
@@ -440,19 +458,19 @@ func ValidateCandidates(wc WeekConstraints, candidates []CandidateSession) Batch
 					})
 				}
 
-				// Update day state (all candidates consume the daily counter).
+				// Update day state (valid-input candidates consume daily state).
 				ds.sessions++
 				ds.minutes += candidate.DurationMinutes
 			}
+
+			// Valid-input candidates consume weekly budget (pessimistic for valid inputs).
+			priorLoad += candidate.Load
+			priorMinutes += candidate.DurationMinutes
 		}
 
 		if result.Valid {
 			validCount++
 		}
-
-		// All candidates consume the weekly accumulation budget (pessimistic).
-		priorLoad += candidate.Load
-		priorMinutes += candidate.DurationMinutes
 
 		results[i] = result
 	}
@@ -470,14 +488,19 @@ func ValidateCandidates(wc WeekConstraints, candidates []CandidateSession) Batch
 		})
 	}
 
+	// Only sum valid-input candidates; invalid (NaN/negative) values must not propagate
+	// into Reconciliation fields, which are serializable output.
 	var candMin, candLoad float64
 	for _, c := range candidates {
+		if invalidCandidateInputViolation(c) != nil {
+			continue
+		}
 		candMin += c.DurationMinutes
 		candLoad += c.Load
 	}
 	recon := buildReconciliation(wc, candMin, candLoad)
 
-	// Warn when candidates cannot satisfy the remaining load target (includes invalid candidates).
+	// Warn when valid-input candidate totals cannot satisfy the remaining load target.
 	if recon.RemainingLoad > 0 && candLoad < recon.RemainingLoad {
 		weekWarnings = append(weekWarnings, Warning{
 			Code:    WarnInfeasibleLoad,
@@ -608,6 +631,18 @@ func validateAgainstDay(wc WeekConstraints, day DayConstraints, availableSlots [
 	}
 }
 
+// sanitizeCandidateForResult returns a copy of candidate with any non-finite or negative
+// DurationMinutes/Load replaced by zero, ensuring the result can be JSON-marshaled.
+func sanitizeCandidateForResult(c CandidateSession) CandidateSession {
+	if math.IsNaN(c.DurationMinutes) || math.IsInf(c.DurationMinutes, 0) || c.DurationMinutes < 0 {
+		c.DurationMinutes = 0
+	}
+	if math.IsNaN(c.Load) || math.IsInf(c.Load, 0) || c.Load < 0 {
+		c.Load = 0
+	}
+	return c
+}
+
 // invalidCandidateInputViolation returns a ViolationInvalidInput if DurationMinutes or Load
 // are non-finite or negative, or nil if inputs are acceptable.
 func invalidCandidateInputViolation(candidate CandidateSession) *Violation {
@@ -616,7 +651,7 @@ func invalidCandidateInputViolation(candidate CandidateSession) *Violation {
 			Code:    ViolationInvalidInput,
 			Message: "duration_minutes must be a finite non-negative number",
 			Field:   "duration_minutes",
-			Value:   candidate.DurationMinutes,
+			Value:   fmt.Sprintf("%v", candidate.DurationMinutes), // string to avoid JSON NaN
 		}
 	}
 	if math.IsNaN(candidate.Load) || math.IsInf(candidate.Load, 0) || candidate.Load < 0 {
@@ -624,7 +659,7 @@ func invalidCandidateInputViolation(candidate CandidateSession) *Violation {
 			Code:    ViolationInvalidInput,
 			Message: "load must be a finite non-negative number",
 			Field:   "load",
-			Value:   candidate.Load,
+			Value:   fmt.Sprintf("%v", candidate.Load), // string to avoid JSON NaN
 		}
 	}
 	return nil

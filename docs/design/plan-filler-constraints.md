@@ -43,7 +43,7 @@ The package contains no intervals.icu client calls, no calendar writes, no worko
 
 5. **Fixed events reduce remaining budget, not availability.** Races, A-priority events, and unavailable blocks are represented as `FixedMinutes`/`FixedLoad` in `WeekConstraints`. They are subtracted from the weekly target to compute the remaining budget but are not candidates themselves and do not occupy `AvailableDays` slots.
 
-6. **Deficits are never redistributed silently.** If the remaining load budget is zero or negative (completed + fixed already meet the target), the validator emits a `zero_remaining_load` warning and lets the caller decide. It never invents availability or adjusts the target downward to accommodate a request.
+6. **Exhausted budgets block positive work.** If the remaining load or time budget is zero or negative (completed + fixed already meet the target), the validator emits a `zero_remaining_load` / `zero_remaining_time` warning to explain the state, AND emits a `weekly_load_overshoot` / `weekly_time_overshoot` violation for any candidate that would add positive load or duration. A zero-load or zero-duration candidate (e.g. mobility notes) does not receive the violation but still receives the warning. Deficits and overruns are never redistributed or silently absorbed.
 
 ---
 
@@ -184,8 +184,8 @@ Outcome for all candidates in a week.
 2. **Daily session count:** if `sessionsAlreadyOnDay >= MaxSessionsPerDay`, emit `daily_session_count_exceeded`.
 3. **Combined daily duration:** if `MaxTotalDailyMinutes > 0` and the new total would exceed it, emit `daily_time_exceeded`.
 4. **Slot matching:** find the first available slot where all constraints pass (duration, indoor cap, sport, mode). If none found, emit violation codes for constraints that are universally violated (every slot rejects for the same reason). If no reason is universal (slot A rejects for duration, slot B for sport), emit `no_compatible_slot` as the deterministic fallback.
-5. **Weekly load:** compute `remainingLoad = WeeklyTargetLoad - CompletedLoad - FixedLoad - priorLoad`. If `remainingLoad ≤ 0`, emit `zero_remaining_load` warning (unconditional; fires regardless of `candidate.Load`). Otherwise if `candidate.Load > remainingLoad`, emit `weekly_load_overshoot`.
-6. **Weekly time:** compute `remainingMin = WeeklyTargetMinutes - CompletedMinutes - FixedMinutes - priorMinutes`. If `remainingMin ≤ 0`, emit `zero_remaining_time` warning (parallel to `zero_remaining_load`). Otherwise if `candidate.DurationMinutes > remainingMin`, emit `weekly_time_overshoot`.
+5. **Weekly load:** compute `remainingLoad = WeeklyTargetLoad - CompletedLoad - FixedLoad - priorLoad`. If `remainingLoad ≤ 0`: emit `zero_remaining_load` warning unconditionally; if `candidate.Load > 0`, also emit `weekly_load_overshoot` (hard block — session cannot be placed). If `remainingLoad > 0` and `candidate.Load > remainingLoad`: emit `weekly_load_overshoot`.
+6. **Weekly time:** compute `remainingMin = WeeklyTargetMinutes - CompletedMinutes - FixedMinutes - priorMinutes`. If `remainingMin ≤ 0`: emit `zero_remaining_time` warning unconditionally; if `candidate.DurationMinutes > 0`, also emit `weekly_time_overshoot` (hard block). If `remainingMin > 0` and `candidate.DurationMinutes > remainingMin`: emit `weekly_time_overshoot`.
 
 ### Batch validation (`ValidateCandidates`)
 
@@ -257,8 +257,12 @@ Candidate(Load: 250) → Valid
 WeeklyTargetLoad: 300    CompletedLoad: 200    FixedLoad: 150
 → RemainingLoad = -50
 
-Candidate(Load: 50) → Warning: zero_remaining_load
-                      (target already met by completed + fixed)
+Candidate(Load: 50) → Warning: zero_remaining_load  (budget exhausted)
+                   → Violation: weekly_load_overshoot (Load > 0, cannot be placed)
+                   Valid: false
+
+Candidate(Load: 0)  → Warning: zero_remaining_load  (budget exhausted)
+                   Valid: true  (zero-load session, e.g. mobility notes)
 ```
 
 ### Infeasible session count
