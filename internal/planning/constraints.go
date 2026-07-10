@@ -16,8 +16,9 @@ import (
 
 // SlotConstraint defines limits for one available training window within a day.
 // Two slots are independent — a session must fit within exactly one slot and
-// cannot span multiple slots. Each slot can hold at most one session; once a session
-// claims a slot in a batch validation pass, that slot is unavailable to later candidates.
+// cannot span multiple slots. Each slot can hold at most one session per batch
+// validation pass. Slot assignment in ValidateCandidates uses maximum bipartite
+// matching so feasible schedules are accepted regardless of candidate order.
 type SlotConstraint struct {
 	// MaxDurationMinutes caps session duration for this slot. Zero means uncapped.
 	MaxDurationMinutes float64
@@ -41,11 +42,11 @@ type DayConstraints struct {
 	// Zero means the day is effectively unavailable regardless of slot count.
 	MaxSessionsPerDay int
 	// MaxTotalDailyMinutes caps the combined duration of all sessions on this day.
-	// Zero means uncapped. Two sessions of 45 min each produce a combined total of 90 min.
+	// Zero means uncapped.
 	MaxTotalDailyMinutes float64
 	// Slots lists the independent training windows available on this day.
 	// A candidate session must fit within exactly one slot; slots do not combine.
-	// Each slot can hold at most one session (consumed in batch validation).
+	// Each slot can hold at most one session; slot assignment uses bipartite matching.
 	Slots []SlotConstraint
 }
 
@@ -61,7 +62,7 @@ type DayConstraints struct {
 type WeekConstraints struct {
 	// WeekStartDate is the athlete-local Monday in YYYY-MM-DD format.
 	WeekStartDate string
-	// WeeklyTargetMinutes is the full-week training-time target (e.g. for a complete week).
+	// WeeklyTargetMinutes is the full-week training-time target.
 	// For an in-progress week, use the original full target here and report
 	// actual completed time in CompletedMinutes; the validator derives RemainingMinutes
 	// from WeeklyTargetMinutes - CompletedMinutes - FixedMinutes.
@@ -69,18 +70,14 @@ type WeekConstraints struct {
 	// WeeklyTargetLoad is the full-week training-load target (e.g. TSS, ATL points).
 	WeeklyTargetLoad float64
 	// CompletedMinutes is already-logged training time this week (read-only past data).
-	// Callers must not redistribute or zero this to create headroom.
 	CompletedMinutes float64
 	// CompletedLoad is already-logged training load this week (read-only past data).
 	CompletedLoad float64
-	// FixedMinutes is committed future training time from locked events
-	// (e.g. races, A-priority events, unavailable blocks). These reduce the
-	// remaining scheduling budget without being candidates themselves.
+	// FixedMinutes is committed future training time from locked events (races, etc.).
 	FixedMinutes float64
 	// FixedLoad is committed future training load from locked events.
 	FixedLoad float64
-	// RequestedSessionCount is the number of sessions the caller wants placed
-	// into available slots. It is a scheduling intent and a hard cap —
+	// RequestedSessionCount is the number of sessions the caller wants placed.
 	// ValidateCandidates marks valid candidates beyond this count as excess.
 	// Zero means no session-count cap is applied.
 	RequestedSessionCount int
@@ -115,6 +112,7 @@ type ViolationCode string
 const (
 	// ViolationInvalidInput fires when a candidate has non-finite or negative
 	// DurationMinutes or Load. Checked before all other constraints.
+	// The invalid field is replaced by 0 in the embedded Candidate to ensure JSON-safe output.
 	ViolationInvalidInput ViolationCode = "invalid_input"
 
 	// ViolationDayUnavailable fires when the candidate date has no DayConstraints
@@ -128,42 +126,40 @@ const (
 	// duration over DayConstraints.MaxTotalDailyMinutes.
 	ViolationDailyTimeExceeded ViolationCode = "daily_time_exceeded"
 
-	// ViolationSlotDuration fires when the candidate duration exceeds every available
-	// slot's MaxDurationMinutes. Two 45-minute slots cannot accommodate a 95-minute session.
-	// Only emitted when ALL available (unconsumed) slots reject for this reason.
+	// ViolationSlotDuration fires when the candidate duration exceeds every slot's
+	// MaxDurationMinutes. Only emitted when ALL slots reject for this reason.
 	ViolationSlotDuration ViolationCode = "slot_duration_exceeded"
 
-	// ViolationIndoorDuration fires when an indoor candidate's duration exceeds
-	// every available slot's MaxIndoorMinutes. Outdoor sessions with the same duration
-	// are not affected. Only emitted when ALL available slots reject for this reason.
+	// ViolationIndoorDuration fires when an indoor candidate duration exceeds every
+	// slot's MaxIndoorMinutes. Only emitted when ALL slots reject for this reason.
 	ViolationIndoorDuration ViolationCode = "indoor_duration_exceeded"
 
-	// ViolationSportNotAllowed fires when the candidate sport is excluded by
-	// every available slot's AllowedSports list. Only emitted when ALL slots reject.
+	// ViolationSportNotAllowed fires when the candidate sport is excluded by every
+	// slot's AllowedSports list. Only emitted when ALL slots reject for this reason.
 	ViolationSportNotAllowed ViolationCode = "sport_not_allowed"
 
-	// ViolationModeNotAllowed fires when the candidate mode is excluded by
-	// every available slot's AllowedModes list. Only emitted when ALL slots reject.
+	// ViolationModeNotAllowed fires when the candidate mode is excluded by every
+	// slot's AllowedModes list. Only emitted when ALL slots reject for this reason.
 	ViolationModeNotAllowed ViolationCode = "mode_not_allowed"
 
-	// ViolationNoCompatibleSlot fires when no available slot can accommodate the
-	// candidate and no single constraint reason is universal across all slots.
-	// This is the deterministic fallback for mixed-reason slot rejections
-	// (e.g. slot A rejects for duration, slot B rejects for sport).
+	// ViolationNoCompatibleSlot fires when no slot can accommodate the candidate
+	// and no single constraint reason is universal across all slots (mixed-reason
+	// rejection). Deterministic fallback for slot A rejects for duration,
+	// slot B rejects for sport, etc.
 	ViolationNoCompatibleSlot ViolationCode = "no_compatible_slot"
 
-	// ViolationNoAvailableSlot fires when all slots for the day have been consumed
-	// by prior candidates in a batch validation pass, even if MaxSessionsPerDay has
-	// not been reached.
+	// ViolationNoAvailableSlot fires when the candidate fits the slot constraints
+	// of at least one slot but all compatible slots are claimed by other candidates
+	// in the bipartite matching (contention, not constraint failure).
 	ViolationNoAvailableSlot ViolationCode = "no_available_slot"
 
 	// ViolationWeeklyLoadOvershoot fires when the candidate would push projected load
-	// over the remaining load budget, including when the budget is already exhausted.
+	// over the remaining budget, including when the budget is already exhausted.
 	// Fires for any candidate with Load > 0 when remainingLoad <= 0.
 	ViolationWeeklyLoadOvershoot ViolationCode = "weekly_load_overshoot"
 
 	// ViolationWeeklyTimeOvershoot fires when the candidate would push projected time
-	// over the remaining time budget, including when the budget is already exhausted.
+	// over the remaining budget, including when the budget is already exhausted.
 	// Fires for any candidate with DurationMinutes > 0 when remainingMin <= 0.
 	ViolationWeeklyTimeOvershoot ViolationCode = "weekly_time_overshoot"
 
@@ -173,8 +169,7 @@ const (
 	ViolationRequestedSessionCountExceeded ViolationCode = "requested_session_count_exceeded"
 )
 
-// WarningCode identifies a soft constraint concern that does not block placement
-// but deserves caller attention.
+// WarningCode identifies a soft constraint concern.
 type WarningCode string
 
 const (
@@ -190,13 +185,13 @@ const (
 	WarnInfeasibleLoad WarningCode = "infeasible_load"
 
 	// WarnZeroRemainingLoad fires when the remaining load budget is zero or negative.
-	// Fires unconditionally when remaining <= 0, regardless of the candidate's Load value.
-	// When Load > 0, WarnZeroRemainingLoad is accompanied by ViolationWeeklyLoadOvershoot.
+	// Fires unconditionally when remaining <= 0. When Load > 0, also accompanied by
+	// ViolationWeeklyLoadOvershoot (hard block — session cannot be placed).
 	WarnZeroRemainingLoad WarningCode = "zero_remaining_load"
 
 	// WarnZeroRemainingTime fires when the remaining time budget is zero or negative.
-	// Parallel to WarnZeroRemainingLoad for the time dimension.
-	// When DurationMinutes > 0, WarnZeroRemainingTime is accompanied by ViolationWeeklyTimeOvershoot.
+	// Parallel to WarnZeroRemainingLoad. When DurationMinutes > 0, also accompanied
+	// by ViolationWeeklyTimeOvershoot.
 	WarnZeroRemainingTime WarningCode = "zero_remaining_time"
 )
 
@@ -216,9 +211,10 @@ type Warning struct {
 	Value   any         `json:"value,omitempty"`
 }
 
-// Reconciliation holds computed weekly time and load totals for a set of candidates.
+// Reconciliation holds computed weekly time and load totals.
 // All fields are derived from WeekConstraints and caller-supplied candidates;
-// no values are redistributed, inferred, or smoothed.
+// no values are redistributed, inferred, or smoothed. Invalid-input candidates
+// (NaN/negative) are excluded from CandidateMinutes and CandidateLoad.
 type Reconciliation struct {
 	WeeklyTargetMinutes float64 `json:"weekly_target_minutes"`
 	WeeklyTargetLoad    float64 `json:"weekly_target_load"`
@@ -229,7 +225,6 @@ type Reconciliation struct {
 	CandidateMinutes    float64 `json:"candidate_minutes"`
 	CandidateLoad       float64 `json:"candidate_load"`
 	// RemainingMinutes is WeeklyTargetMinutes - CompletedMinutes - FixedMinutes.
-	// This is the scheduling budget for new sessions; negative when already over target.
 	RemainingMinutes float64 `json:"remaining_minutes"`
 	// RemainingLoad is WeeklyTargetLoad - CompletedLoad - FixedLoad.
 	RemainingLoad float64 `json:"remaining_load"`
@@ -241,6 +236,8 @@ type Reconciliation struct {
 
 // CandidateResult is the validation outcome for a single CandidateSession.
 type CandidateResult struct {
+	// Candidate echoes the input. For invalid-input results, non-finite or negative
+	// DurationMinutes/Load are replaced by 0 to ensure JSON-safe output.
 	Candidate  CandidateSession `json:"candidate"`
 	Valid      bool             `json:"valid"`
 	Violations []Violation      `json:"violations"`
@@ -249,24 +246,15 @@ type CandidateResult struct {
 
 // BatchResult is the validation outcome for all candidate sessions in a week.
 type BatchResult struct {
-	// Results contains one CandidateResult per input candidate, in order.
-	Results []CandidateResult `json:"results"`
-	// Warnings contains week-level warnings that apply to the batch as a whole
-	// rather than to any individual candidate.
-	Warnings []Warning `json:"warnings,omitempty"`
-	// Reconciliation holds the computed weekly totals for all candidates combined.
-	Reconciliation Reconciliation `json:"reconciliation"`
+	Results        []CandidateResult `json:"results"`
+	Warnings       []Warning         `json:"warnings,omitempty"`
+	Reconciliation Reconciliation    `json:"reconciliation"`
 }
 
 // ValidateWeekConstraints checks a WeekConstraints struct for structural and numeric validity.
-// Returns a non-nil error if any field value is outside its valid domain:
-//   - All float64 fields must be finite and non-negative.
-//   - RequestedSessionCount must be non-negative.
-//   - AvailableDays must not contain duplicate Date values.
-//   - SlotConstraint and DayConstraints numeric caps must be finite and non-negative.
-//
-// Field checks are performed in a fixed deterministic order; the first invalid field
-// encountered is reported. Call before ValidateCandidate or ValidateCandidates.
+// Returns a non-nil error if any field is outside its valid domain. Errors are reported in
+// a fixed deterministic order (date fields first, then numeric, then day entries).
+// Call before ValidateCandidate or ValidateCandidates.
 func ValidateWeekConstraints(wc WeekConstraints) error {
 	// 1. Parse and validate WeekStartDate.
 	if wc.WeekStartDate == "" {
@@ -279,22 +267,21 @@ func ValidateWeekConstraints(wc WeekConstraints) error {
 	if weekStart.Weekday() != time.Monday {
 		return fmt.Errorf("week_start_date must be a Monday, got %s (%s)", wc.WeekStartDate, weekStart.Weekday())
 	}
-	weekEnd := weekStart.AddDate(0, 0, 6) // Sunday
+	weekEnd := weekStart.AddDate(0, 0, 6)
 
-	// 2. Top-level numeric fields in a fixed order for deterministic error reporting.
+	// 2. Top-level numeric fields in fixed order for deterministic error reporting.
 	type fieldCheck struct {
 		name string
 		val  float64
 	}
-	topLevel := []fieldCheck{
+	for _, fc := range []fieldCheck{
 		{"weekly_target_minutes", wc.WeeklyTargetMinutes},
 		{"weekly_target_load", wc.WeeklyTargetLoad},
 		{"completed_minutes", wc.CompletedMinutes},
 		{"completed_load", wc.CompletedLoad},
 		{"fixed_minutes", wc.FixedMinutes},
 		{"fixed_load", wc.FixedLoad},
-	}
-	for _, fc := range topLevel {
+	} {
 		if err := requireFiniteNonNegative(fc.name, fc.val); err != nil {
 			return err
 		}
@@ -348,27 +335,30 @@ func requireFiniteNonNegative(field string, v float64) error {
 	return nil
 }
 
-// Reconcile computes weekly time and load totals from WeekConstraints and a set
-// of candidates. It does not validate any constraints; call ValidateCandidates for
-// full constraint checking.
+// Reconcile computes weekly time and load totals from WeekConstraints and candidates.
+// Invalid-input candidates (NaN/negative DurationMinutes or Load) are excluded from
+// CandidateMinutes and CandidateLoad to prevent non-finite values from propagating
+// into the result. Does not validate other constraints; call ValidateCandidates for full checking.
 func Reconcile(wc WeekConstraints, candidates []CandidateSession) Reconciliation {
 	var candMin, candLoad float64
 	for _, c := range candidates {
+		if invalidCandidateInputViolation(c) != nil {
+			continue // skip non-finite/negative values
+		}
 		candMin += c.DurationMinutes
 		candLoad += c.Load
 	}
 	return buildReconciliation(wc, candMin, candLoad)
 }
 
-// ValidateCandidate validates a single candidate session against the week constraints,
-// assuming it is the first (and only) session being considered for its date and no
-// prior candidates have been processed in the current batch. All slots in the day are
-// treated as available (no slot consumption).
+// ValidateCandidate validates a single candidate session in isolation against the
+// week constraints. All slots in the day are treated as available (no slot
+// consumption or matching with other candidates).
 //
-// For batch validation with slot-consumption and session-count cap tracking, use ValidateCandidates.
+// For batch validation with bipartite slot matching and session-count tracking,
+// use ValidateCandidates.
 func ValidateCandidate(wc WeekConstraints, candidate CandidateSession) CandidateResult {
 	if v := invalidCandidateInputViolation(candidate); v != nil {
-		// Sanitize before embedding so the result is safe to JSON-marshal.
 		return CandidateResult{Candidate: sanitizeCandidateForResult(candidate), Valid: false, Violations: []Violation{*v}}
 	}
 	day, ok := findDay(wc.AvailableDays, candidate.Date)
@@ -384,48 +374,96 @@ func ValidateCandidate(wc WeekConstraints, candidate CandidateSession) Candidate
 			}},
 		}
 	}
-	return validateAgainstDay(wc, day, day.Slots, 0, 0, 0, 0, candidate)
+	return validateCore(wc, day, day.Slots, false, 0, 0, 0, 0, candidate)
 }
 
-// ValidateCandidates validates all candidates in order with slot-consumption tracking,
-// daily session-count tracking, and RequestedSessionCount cap enforcement.
+// ValidateCandidates validates all candidates in order with:
+//   - Bipartite matching for slot assignment (feasible schedules are accepted
+//     regardless of candidate input order).
+//   - Per-day session-count and cumulative-minutes tracking.
+//   - Accumulated weekly load/time from prior valid-input candidates.
+//   - RequestedSessionCount cap enforcement.
 //
-// Slot consumption: each slot holds at most one session. When a candidate passes all
-// slot-level constraints and claims a slot, that slot is removed from the available set
-// for subsequent candidates on the same day. A candidate that finds a compatible slot
-// claims it even if it also has a weekly overshoot violation (pessimistic accumulation).
+// Slot matching: for each day, a maximum bipartite matching is pre-computed across
+// all valid-input candidates on that day. A candidate not matched (no compatible slot
+// exists, or all compatible slots claimed by others) receives slot violations.
+// Position in the input determines priority for the daily count cap and the
+// RequestedSessionCount cap.
 //
-// Session-count cap: once RequestedSessionCount valid (violation-free) candidates have been
-// accepted, subsequent valid candidates receive ViolationRequestedSessionCountExceeded.
-// Position within the slice determines which candidates are accepted.
-//
-// Accumulation: all candidates (valid or not) increment the per-day session counter,
-// per-day minute total, and weekly priorLoad/priorMinutes. This pessimistic approach
-// ensures deterministic position-based rejection for daily caps.
-//
-// Duplicate dates in AvailableDays: first entry wins (same as ValidateCandidate/findDay).
-// Call ValidateWeekConstraints before use to detect and reject duplicate dates.
+// Invalid-input candidates (NaN/negative) increment the day session counter for
+// positional tracking but are excluded from all numeric accumulations (weekly
+// priorLoad/priorMinutes, daily minutes, reconciliation).
 func ValidateCandidates(wc WeekConstraints, candidates []CandidateSession) BatchResult {
+	// Build day state using first-match semantics (same as findDay).
 	type dayState struct {
-		day            DayConstraints
-		sessions       int
-		minutes        float64
-		availableSlots []SlotConstraint
+		day DayConstraints
+		// sessions counts all candidates (including invalid-input) for positional tracking.
+		sessions int
+		// minutes counts valid-input candidates' durations for daily-time checks.
+		minutes float64
 	}
-
-	// Build dayStates using first-match semantics (same as findDay).
 	dayStates := map[string]*dayState{}
 	for _, day := range wc.AvailableDays {
 		if _, exists := dayStates[day.Date]; exists {
-			continue // first entry wins; duplicates ignored
+			continue
 		}
 		d := day
-		dayStates[day.Date] = &dayState{
-			day:            d,
-			availableSlots: slices.Clone(d.Slots),
+		dayStates[day.Date] = &dayState{day: d}
+	}
+
+	// Pre-pass: compute bipartite slot matching per day.
+	// matchedSlot[i] = slot index for candidate i in day-local candidate list, or -1.
+	// dayLocalIdx[i] = index of candidate i in its day's candidate list, or -1.
+	dayLocalIdx := make([]int, len(candidates))
+	for i := range dayLocalIdx {
+		dayLocalIdx[i] = -1
+	}
+
+	type dayBatch struct {
+		day       DayConstraints
+		candIdxs  []int // global candidate indices for this day (valid-input only)
+		cands     []CandidateSession
+		matchSlot []int // matchSlot[j] = local cand idx matched to slot j
+	}
+	dayBatches := map[string]*dayBatch{}
+	for i, c := range candidates {
+		if invalidCandidateInputViolation(c) != nil {
+			continue
+		}
+		ds := dayStates[c.Date]
+		if ds == nil || ds.day.MaxSessionsPerDay == 0 {
+			continue
+		}
+		db := dayBatches[c.Date]
+		if db == nil {
+			dayBatches[c.Date] = &dayBatch{day: ds.day}
+			db = dayBatches[c.Date]
+		}
+		dayLocalIdx[i] = len(db.candIdxs)
+		db.candIdxs = append(db.candIdxs, i)
+		db.cands = append(db.cands, c)
+	}
+
+	// Run augmenting-path matching for each day.
+	for _, db := range dayBatches {
+		db.matchSlot = matchSlotsToOwner(db.day.Slots, db.cands)
+	}
+
+	// candidateMatchedSlot[i] = slot index the candidate is matched to, or -1.
+	candidateMatchedSlot := make([]int, len(candidates))
+	for i := range candidateMatchedSlot {
+		candidateMatchedSlot[i] = -1
+	}
+	for _, db := range dayBatches {
+		for slotIdx, localCandIdx := range db.matchSlot {
+			if localCandIdx >= 0 {
+				globalIdx := db.candIdxs[localCandIdx]
+				candidateMatchedSlot[globalIdx] = slotIdx
+			}
 		}
 	}
 
+	// Main validation pass.
 	var priorLoad, priorMinutes float64
 	var validCount int
 	results := make([]CandidateResult, len(candidates))
@@ -433,26 +471,23 @@ func ValidateCandidates(wc WeekConstraints, candidates []CandidateSession) Batch
 	for i, candidate := range candidates {
 		var result CandidateResult
 
-		// Input validation first. Invalid candidates are not accumulated into budget
-		// totals to prevent NaN/negative values from poisoning subsequent comparisons
-		// or reconciliation. The embedded candidate is sanitized before serialization.
 		if v := invalidCandidateInputViolation(candidate); v != nil {
+			// Invalid-input: sanitize, skip numeric accumulations.
 			result = CandidateResult{
 				Candidate:  sanitizeCandidateForResult(candidate),
 				Valid:      false,
 				Violations: []Violation{*v},
 			}
-			// Still increment the day session counter (pessimistic positional tracking),
-			// but skip all numeric accumulations to avoid NaN propagation.
+			// Still increment day session counter for positional tracking.
 			if ds := dayStates[candidate.Date]; ds != nil {
 				ds.sessions++
-				// do not add candidate.DurationMinutes — may be NaN/negative
+				// do not add NaN/negative minutes
 			}
 		} else {
 			ds := dayStates[candidate.Date]
 
 			if ds == nil || ds.day.MaxSessionsPerDay == 0 {
-				// Day not in AvailableDays, or MaxSessionsPerDay is zero (effectively unavailable).
+				// Day unavailable.
 				result = CandidateResult{
 					Candidate: candidate,
 					Valid:     false,
@@ -463,52 +498,47 @@ func ValidateCandidates(wc WeekConstraints, candidates []CandidateSession) Batch
 						Value:   candidate.Date,
 					}},
 				}
-				// Still increment sessions counter for zero-capacity days (pessimistic).
 				if ds != nil {
 					ds.sessions++
 					ds.minutes += candidate.DurationMinutes
 				}
 			} else {
-				result = validateAgainstDay(wc, ds.day, ds.availableSlots, ds.sessions, ds.minutes, priorLoad, priorMinutes, candidate)
+				// Determine slot result from pre-computed matching.
+				hasSlots := len(ds.day.Slots) > 0
+				slotViolations := computeSlotViolations(ds.day.Slots, hasSlots, candidateMatchedSlot[i], candidate)
 
-				// Consume the first compatible slot regardless of other violations
-				// (pessimistic: the candidate occupies a time window in the proposed schedule).
-				slotIdx := findCompatibleSlotIndex(ds.availableSlots, candidate)
-				if slotIdx >= 0 {
-					ds.availableSlots = slices.Delete(ds.availableSlots, slotIdx, slotIdx+1)
-				}
+				result = validateCore(wc, ds.day, nil, true, ds.sessions, ds.minutes, priorLoad, priorMinutes, candidate)
+				// Replace slot violations from validateCore with matching-aware slot violations.
+				result.Violations = replaceSlotViolations(result.Violations, slotViolations)
+				result.Valid = len(result.Violations) == 0
 
-				// Enforce RequestedSessionCount cap after full validation.
-				if result.Valid && wc.RequestedSessionCount > 0 && validCount >= wc.RequestedSessionCount {
-					result.Valid = false
-					result.Violations = append(result.Violations, Violation{
-						Code:    ViolationRequestedSessionCountExceeded,
-						Message: "requested session count already reached; this candidate is excess",
-						Field:   "requested_session_count",
-						Value:   wc.RequestedSessionCount,
-					})
-				}
-
-				// Update day state (valid-input candidates consume daily state).
 				ds.sessions++
 				ds.minutes += candidate.DurationMinutes
 			}
 
-			// Valid-input candidates consume weekly budget (pessimistic for valid inputs).
+			// Valid-input candidates consume the weekly accumulation budget.
 			priorLoad += candidate.Load
 			priorMinutes += candidate.DurationMinutes
+		}
+
+		// Enforce RequestedSessionCount cap after full validation.
+		if result.Valid && wc.RequestedSessionCount > 0 && validCount >= wc.RequestedSessionCount {
+			result.Valid = false
+			result.Violations = append(result.Violations, Violation{
+				Code:    ViolationRequestedSessionCountExceeded,
+				Message: "requested session count already reached; this candidate is excess",
+				Field:   "requested_session_count",
+				Value:   wc.RequestedSessionCount,
+			})
 		}
 
 		if result.Valid {
 			validCount++
 		}
-
 		results[i] = result
 	}
 
 	var weekWarnings []Warning
-
-	// Warn when the requested count cannot be met structurally.
 	totalSlots := availableSlotCount(wc)
 	if wc.RequestedSessionCount > 0 && wc.RequestedSessionCount > totalSlots {
 		weekWarnings = append(weekWarnings, Warning{
@@ -519,20 +549,9 @@ func ValidateCandidates(wc WeekConstraints, candidates []CandidateSession) Batch
 		})
 	}
 
-	// Only sum valid-input candidates; invalid (NaN/negative) values must not propagate
-	// into Reconciliation fields, which are serializable output.
-	var candMin, candLoad float64
-	for _, c := range candidates {
-		if invalidCandidateInputViolation(c) != nil {
-			continue
-		}
-		candMin += c.DurationMinutes
-		candLoad += c.Load
-	}
-	recon := buildReconciliation(wc, candMin, candLoad)
+	recon := Reconcile(wc, candidates)
 
-	// Warn when valid-input candidate totals cannot satisfy the remaining load target.
-	if recon.RemainingLoad > 0 && candLoad < recon.RemainingLoad {
+	if recon.RemainingLoad > 0 && recon.CandidateLoad < recon.RemainingLoad {
 		weekWarnings = append(weekWarnings, Warning{
 			Code:    WarnInfeasibleLoad,
 			Message: "candidate load total is less than remaining weekly load target",
@@ -548,14 +567,97 @@ func ValidateCandidates(wc WeekConstraints, candidates []CandidateSession) Batch
 	}
 }
 
-// validateAgainstDay is the core per-candidate validator.
-// availableSlots is the set of slots still available on this day. In single-candidate
-// validation this equals day.Slots; in batch validation it is the unconsumed subset.
-func validateAgainstDay(wc WeekConstraints, day DayConstraints, availableSlots []SlotConstraint, sessionsAlreadyOnDay int, dailyMinutesAlready float64, priorLoad float64, priorMinutes float64, candidate CandidateSession) CandidateResult {
+// matchSlotsToOwner runs maximum bipartite matching between slots and candidates.
+// Returns matchSlot where matchSlot[slotIdx] = local candidate index, or -1 if unmatched.
+// Uses augmenting-path DFS in candidate input order for determinism.
+func matchSlotsToOwner(slots []SlotConstraint, cands []CandidateSession) []int {
+	n := len(slots)
+	m := len(cands)
+	matchSlot := make([]int, n)
+	for i := range matchSlot {
+		matchSlot[i] = -1
+	}
+	if n == 0 || m == 0 {
+		return matchSlot
+	}
+
+	var augment func(candIdx int, visited []bool) bool
+	augment = func(candIdx int, visited []bool) bool {
+		for slotIdx, slot := range slots {
+			if visited[slotIdx] {
+				continue
+			}
+			if !slotFits(slot, cands[candIdx]) {
+				continue
+			}
+			visited[slotIdx] = true
+			if matchSlot[slotIdx] == -1 || augment(matchSlot[slotIdx], visited) {
+				matchSlot[slotIdx] = candIdx
+				return true
+			}
+		}
+		return false
+	}
+
+	for i := range cands {
+		visited := make([]bool, n)
+		augment(i, visited)
+	}
+	return matchSlot
+}
+
+// computeSlotViolations returns slot-related violations for a candidate in a batch context.
+// matchedSlotIdx is the slot assigned by bipartite matching (-1 if not matched).
+func computeSlotViolations(slots []SlotConstraint, hasSlots bool, matchedSlotIdx int, candidate CandidateSession) []Violation {
+	if !hasSlots {
+		return nil // no slots defined; no slot constraints
+	}
+	if matchedSlotIdx >= 0 {
+		return nil // candidate is matched; slot constraints pass
+	}
+	// Not matched. Determine why.
+	if findCompatibleSlotIndex(slots, candidate) >= 0 {
+		// Candidate could fit in at least one slot, but contention prevents assignment.
+		return []Violation{{
+			Code:    ViolationNoAvailableSlot,
+			Message: "candidate fits slot constraints but all compatible slots are claimed by other candidates",
+			Field:   "date",
+			Value:   candidate.Date,
+		}}
+	}
+	// No compatible slot at all.
+	return universalSlotViolations(slots, candidate)
+}
+
+// replaceSlotViolations removes any slot violations from base and appends newSlot violations.
+var slotViolationCodes = map[ViolationCode]bool{
+	ViolationSlotDuration:     true,
+	ViolationIndoorDuration:   true,
+	ViolationSportNotAllowed:  true,
+	ViolationModeNotAllowed:   true,
+	ViolationNoCompatibleSlot: true,
+	ViolationNoAvailableSlot:  true,
+}
+
+func replaceSlotViolations(base []Violation, newSlot []Violation) []Violation {
+	// Remove existing slot violations from base.
+	filtered := base[:0]
+	for _, v := range base {
+		if !slotViolationCodes[v.Code] {
+			filtered = append(filtered, v)
+		}
+	}
+	return append(filtered, newSlot...)
+}
+
+// validateCore is the core per-candidate validator for non-slot constraints.
+// When batchSlotMode is true, slot validation is skipped (handled by bipartite matching).
+// When false (single-candidate mode), slot validation is performed against availableSlots.
+func validateCore(wc WeekConstraints, day DayConstraints, availableSlots []SlotConstraint, batchSlotMode bool, sessionsAlreadyOnDay int, dailyMinutesAlready float64, priorLoad float64, priorMinutes float64, candidate CandidateSession) CandidateResult {
 	var violations []Violation
 	var warnings []Warning
 
-	// 1. Daily session count.
+	// Daily session count.
 	if sessionsAlreadyOnDay >= day.MaxSessionsPerDay {
 		violations = append(violations, Violation{
 			Code:    ViolationDailySessionCount,
@@ -565,10 +667,9 @@ func validateAgainstDay(wc WeekConstraints, day DayConstraints, availableSlots [
 		})
 	}
 
-	// 2. Combined daily duration.
+	// Combined daily duration.
 	if day.MaxTotalDailyMinutes > 0 {
-		newDailyTotal := dailyMinutesAlready + candidate.DurationMinutes
-		if newDailyTotal > day.MaxTotalDailyMinutes {
+		if dailyMinutesAlready+candidate.DurationMinutes > day.MaxTotalDailyMinutes {
 			violations = append(violations, Violation{
 				Code:    ViolationDailyTimeExceeded,
 				Message: "combined daily training duration would exceed the daily cap",
@@ -578,10 +679,9 @@ func validateAgainstDay(wc WeekConstraints, day DayConstraints, availableSlots [
 		}
 	}
 
-	// 3. Slot constraints (against available/unconsumed slots).
-	if len(day.Slots) > 0 {
+	// Slot constraints (single-candidate mode only; batch mode uses bipartite matching).
+	if !batchSlotMode && len(day.Slots) > 0 {
 		if len(availableSlots) == 0 {
-			// All slots have been consumed by prior candidates.
 			violations = append(violations, Violation{
 				Code:    ViolationNoAvailableSlot,
 				Message: "all training slots for this day are already claimed",
@@ -589,13 +689,11 @@ func validateAgainstDay(wc WeekConstraints, day DayConstraints, availableSlots [
 				Value:   candidate.Date,
 			})
 		} else {
-			slotViolations := universalSlotViolations(availableSlots, candidate)
-			violations = append(violations, slotViolations...)
+			violations = append(violations, universalSlotViolations(availableSlots, candidate)...)
 		}
 	}
 
-	// 4. Weekly remaining load.
-	// Remaining is target minus already-committed (completed + fixed) and prior candidates.
+	// Weekly remaining load.
 	remainingLoad := wc.WeeklyTargetLoad - wc.CompletedLoad - wc.FixedLoad - priorLoad
 	if wc.WeeklyTargetLoad > 0 {
 		if remainingLoad <= 0 {
@@ -605,8 +703,6 @@ func validateAgainstDay(wc WeekConstraints, day DayConstraints, availableSlots [
 				Field:   "remaining_load",
 				Value:   remainingLoad,
 			})
-			// Also a hard violation when the candidate adds positive load — the session
-			// cannot be placed without pushing the projected total further over budget.
 			if candidate.Load > 0 {
 				violations = append(violations, Violation{
 					Code:    ViolationWeeklyLoadOvershoot,
@@ -625,7 +721,7 @@ func validateAgainstDay(wc WeekConstraints, day DayConstraints, availableSlots [
 		}
 	}
 
-	// 5. Weekly remaining time.
+	// Weekly remaining time.
 	remainingMin := wc.WeeklyTargetMinutes - wc.CompletedMinutes - wc.FixedMinutes - priorMinutes
 	if wc.WeeklyTargetMinutes > 0 {
 		if remainingMin <= 0 {
@@ -635,7 +731,6 @@ func validateAgainstDay(wc WeekConstraints, day DayConstraints, availableSlots [
 				Field:   "remaining_minutes",
 				Value:   remainingMin,
 			})
-			// Also a hard violation when the candidate adds positive time.
 			if candidate.DurationMinutes > 0 {
 				violations = append(violations, Violation{
 					Code:    ViolationWeeklyTimeOvershoot,
@@ -662,8 +757,8 @@ func validateAgainstDay(wc WeekConstraints, day DayConstraints, availableSlots [
 	}
 }
 
-// sanitizeCandidateForResult returns a copy of candidate with any non-finite or negative
-// DurationMinutes/Load replaced by zero, ensuring the result can be JSON-marshaled.
+// sanitizeCandidateForResult returns a copy of candidate with non-finite or negative
+// DurationMinutes/Load replaced by zero, ensuring the result is JSON-safe.
 func sanitizeCandidateForResult(c CandidateSession) CandidateSession {
 	if math.IsNaN(c.DurationMinutes) || math.IsInf(c.DurationMinutes, 0) || c.DurationMinutes < 0 {
 		c.DurationMinutes = 0
@@ -675,14 +770,15 @@ func sanitizeCandidateForResult(c CandidateSession) CandidateSession {
 }
 
 // invalidCandidateInputViolation returns a ViolationInvalidInput if DurationMinutes or Load
-// are non-finite or negative, or nil if inputs are acceptable.
+// are non-finite or negative, or nil if inputs are acceptable. The Violation.Value uses
+// fmt.Sprintf to avoid embedding non-marshallable float values.
 func invalidCandidateInputViolation(candidate CandidateSession) *Violation {
 	if math.IsNaN(candidate.DurationMinutes) || math.IsInf(candidate.DurationMinutes, 0) || candidate.DurationMinutes < 0 {
 		return &Violation{
 			Code:    ViolationInvalidInput,
 			Message: "duration_minutes must be a finite non-negative number",
 			Field:   "duration_minutes",
-			Value:   fmt.Sprintf("%v", candidate.DurationMinutes), // string to avoid JSON NaN
+			Value:   fmt.Sprintf("%v", candidate.DurationMinutes),
 		}
 	}
 	if math.IsNaN(candidate.Load) || math.IsInf(candidate.Load, 0) || candidate.Load < 0 {
@@ -690,7 +786,7 @@ func invalidCandidateInputViolation(candidate CandidateSession) *Violation {
 			Code:    ViolationInvalidInput,
 			Message: "load must be a finite non-negative number",
 			Field:   "load",
-			Value:   fmt.Sprintf("%v", candidate.Load), // string to avoid JSON NaN
+			Value:   fmt.Sprintf("%v", candidate.Load),
 		}
 	}
 	return nil
@@ -713,8 +809,7 @@ func slotFits(slot SlotConstraint, candidate CandidateSession) bool {
 	return true
 }
 
-// findCompatibleSlotIndex returns the index of the first slot in slots that the
-// candidate fits, or -1 if none fits.
+// findCompatibleSlotIndex returns the index of the first slot the candidate fits, or -1.
 func findCompatibleSlotIndex(slots []SlotConstraint, candidate CandidateSession) int {
 	for i, slot := range slots {
 		if slotFits(slot, candidate) {
@@ -725,25 +820,17 @@ func findCompatibleSlotIndex(slots []SlotConstraint, candidate CandidateSession)
 }
 
 // universalSlotViolations returns violations when no slot can accommodate the candidate.
-// Violation codes are only emitted when they apply universally — every available slot
-// rejects the candidate for that reason. When reasons are mixed across slots (slot A
-// rejects for duration, slot B rejects for sport), ViolationNoCompatibleSlot is emitted
-// as the deterministic fallback since neither reason is universally true.
+// Only emits a ViolationCode when every slot rejects for the same reason; when reasons
+// differ across slots, emits ViolationNoCompatibleSlot as the deterministic fallback.
 func universalSlotViolations(slots []SlotConstraint, candidate CandidateSession) []Violation {
 	if len(slots) == 0 {
 		return nil
 	}
-
 	if findCompatibleSlotIndex(slots, candidate) >= 0 {
 		return nil
 	}
 
-	// No slot fits. Determine which constraints are universally violated.
-	allDuration := true
-	allIndoor := true
-	allSport := true
-	allMode := true
-
+	allDuration, allIndoor, allSport, allMode := true, true, true, true
 	for _, slot := range slots {
 		if !(slot.MaxDurationMinutes > 0 && candidate.DurationMinutes > slot.MaxDurationMinutes) {
 			allDuration = false
@@ -792,8 +879,6 @@ func universalSlotViolations(slots []SlotConstraint, candidate CandidateSession)
 			Value:   candidate.Mode,
 		})
 	}
-
-	// Fallback: no single reason is universal across all slots (mixed-reason rejection).
 	if len(violations) == 0 {
 		violations = append(violations, Violation{
 			Code:    ViolationNoCompatibleSlot,
@@ -802,7 +887,6 @@ func universalSlotViolations(slots []SlotConstraint, candidate CandidateSession)
 			Value:   candidate.Date,
 		})
 	}
-
 	return violations
 }
 
@@ -828,8 +912,7 @@ func buildReconciliation(wc WeekConstraints, candMin, candLoad float64) Reconcil
 
 // availableSlotCount returns the total structural slot capacity across all available days.
 // Capacity per day is min(MaxSessionsPerDay, len(Slots)) when slots are defined,
-// or MaxSessionsPerDay when no slots are defined (slots are optional constraint templates).
-// Sport/mode filtering is not applied.
+// or MaxSessionsPerDay when no slots are defined.
 func availableSlotCount(wc WeekConstraints) int {
 	total := 0
 	for _, day := range wc.AvailableDays {
@@ -845,8 +928,7 @@ func availableSlotCount(wc WeekConstraints) int {
 	return total
 }
 
-// findDay returns the DayConstraints for the given date, if present.
-// First-match semantics: returns the first entry with a matching Date.
+// findDay returns the DayConstraints for the given date (first-match semantics).
 func findDay(days []DayConstraints, date string) (DayConstraints, bool) {
 	for _, d := range days {
 		if d.Date == date {

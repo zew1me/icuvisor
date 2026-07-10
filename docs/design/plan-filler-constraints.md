@@ -192,7 +192,11 @@ Outcome for all candidates in a week.
 
 Processes candidates in order, maintaining per-day session counts, per-day cumulative duration, and accumulated weekly load/time from prior candidates.
 
-**Slot consumption:** each slot holds at most one session. When a candidate passes all slot-level constraints (duration, indoor, sport, mode), it claims that slot and the slot is removed from the available set for subsequent candidates on the same day. This is independent of other violations — a candidate that finds a compatible slot claims it even if it also has a weekly overshoot violation, because the time window is "occupied" in the proposed schedule. When all slots for a day are consumed but `MaxSessionsPerDay` has not been reached, subsequent candidates receive `no_available_slot`.
+**Slot assignment uses maximum bipartite matching.** For each day, a maximum bipartite matching is pre-computed across all valid-input candidates on that day before per-candidate results are emitted. This ensures feasible schedules are accepted regardless of candidate input order: given slots [any-sport 60 min, Ride-only 60 min] and candidates [Ride 60 min, Run 60 min], the matching finds {Ride → Ride-only, Run → any-sport} regardless of which candidate appears first in the input. Matching uses augmenting-path DFS in candidate input order for determinism when multiple maximum matchings exist.
+
+A candidate that is not in the matching gets slot violations:
+- `no_available_slot` if the candidate fits at least one slot's constraints but all compatible slots are claimed by other matched candidates (contention).
+- Specific constraint codes (`slot_duration_exceeded`, `sport_not_allowed`, etc.) or `no_compatible_slot` if the candidate does not fit any slot at all.
 
 **RequestedSessionCount cap:** once `RequestedSessionCount` violation-free candidates have been accepted, subsequent valid candidates receive `requested_session_count_exceeded`. Position in the batch determines priority. A `RequestedSessionCount` of 0 means no cap is applied.
 

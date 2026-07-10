@@ -25,8 +25,8 @@
 **Status:** 🟨 In Progress
 
 <!-- R008 revision items -->
-- [ ] R008-1: Replace greedy first-fit slot assignment with augmenting-path bipartite matching so all feasible day schedules are accepted regardless of candidate order
-- [ ] R008-2: Fix Reconcile to skip invalid-input (NaN/negative) candidates, same as ValidateCandidates
+- [x] R008-1: Replace greedy first-fit slot assignment with augmenting-path bipartite matching so all feasible day schedules are accepted regardless of candidate order
+- [x] R008-2: Fix Reconcile to skip invalid-input (NaN/negative) candidates, same as ValidateCandidates
 
 <!-- R007 revision items -->
 - [x] R007-1: ValidateCandidates must treat MaxSessionsPerDay==0 as day_unavailable (same as ValidateCandidate), before calling validateAgainstDay
