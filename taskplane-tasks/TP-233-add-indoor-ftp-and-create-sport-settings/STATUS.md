@@ -4,8 +4,8 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
-**Review Counter:** 4
-**Iteration:** 2
+**Review Counter:** 5
+**Iteration:** 3
 **Size:** L
 
 ---
@@ -35,12 +35,12 @@
 
 ### Step 2: Add and register MCP surfaces
 
-**Status:** ⬜ Not Started
+**Status:** 🟨 In Progress
 
-- [ ] update_sport_settings indoor_ftp field added
-- [ ] create_sport_settings tool implemented
-- [ ] Full-toolset registration and annotations added
-- [ ] Schemas, examples, catalog, and snapshots updated
+- [x] update_sport_settings indoor_ftp field added
+- [x] create_sport_settings tool implemented
+- [x] Full-toolset registration and annotations added
+- [x] Schemas, examples, catalog, and snapshots updated
 - [x] R004 plan: create validation ordering, exact catalog/snapshot integration, and public echo contract recorded
 
 ---
@@ -110,6 +110,8 @@
 | 2026-07-10 22:35 | Task started | Runtime V2 lane-runner execution |
 | 2026-07-10 22:35 | Step 0 started | Preflight |
 | 2026-07-10 22:40 | Worker iter 1 | done in 264s, tools: 25 |
+| 2026-07-10 23:14 | Worker iter 2 | done in 2050s, tools: 81 |
+| 2026-07-10 23:14 | Step 2 started | Add and register MCP surfaces |
 
 ## Blockers
 
@@ -130,3 +132,4 @@
 | 2026-07-10 22:43 | Review R002 | plan Step 1: APPROVE |
 | 2026-07-10 22:49 | Review R003 | code Step 1: APPROVE |
 | 2026-07-10 22:53 | Review R004 | plan Step 2: REVISE |
+| 2026-07-10 22:55 | Review R005 | plan Step 2: APPROVE |
