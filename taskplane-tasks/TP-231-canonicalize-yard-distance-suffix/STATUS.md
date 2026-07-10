@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
-**Review Counter:** 3
+**Review Counter:** 4
 **Iteration:** 1
 **Size:** M
 
@@ -38,7 +38,7 @@
 
 ### Step 2: Update resources, examples, and round-trip fixtures
 
-**Status:** 🟨 In Progress
+**Status:** ✅ Complete
 
 - [x] Update workout_syntax.md golden file (yd → yrd)
 - [x] Update validate_test.go yard coverage
@@ -99,3 +99,4 @@
 | 2026-07-10 13:29 | Review R001 | plan Step 1: REVISE |
 | 2026-07-10 13:36 | Review R002 | code Step 1: REVISE |
 | 2026-07-10 13:38 | Review R003 | code Step 1: APPROVE |
+| 2026-07-10 13:48 | Review R004 | code Step 2: APPROVE |
