@@ -75,7 +75,7 @@ Forum-derived analytics requests are prioritized by whether icuvisor already has
 
 ### v2.0 - Planning automation
 
-- `fill_calendar_from_library` ("Plan Filler"): propose workouts from an existing library folder over a date range using target weekly load/hours and weekday availability. Commit remains a separate explicit call.
+- `fill_calendar_from_library` ("Plan Filler"): propose workouts from an existing library folder over a date range using target weekly load/hours and weekday availability. Commit remains a separate explicit call. **Future-tool acceptance criteria (not shipped):** before the separate commit, validate each proposed schedule against structured constraints that keep requested session count distinct from athlete-local availability and independent slots; enforce per-session, daily, indoor, mode, sport, and remaining-week time/load caps; account for completed training and protected fixed commitments; and return deterministic violations plus reconciliation totals without silently redistributing deficits.
 - Training-plan editing workflows that preserve existing races, notes, unavailable blocks, and user-authored descriptions.
 - Workout-template curation: AI-generated and athlete-curated template sets built on top of the existing workout-library tools.
 - Plan-preview evaluation that reports load distribution, compliance assumptions, conflicts, and lossy workout fields before writes.
@@ -89,7 +89,7 @@ Forum-derived analytics requests are prioritized by whether icuvisor already has
 
 ### v2.2 - Plan safety and coaching guardrails
 
-- Science-backed validation tool for generated plans, with transparent rules and citations rather than hidden coaching opinion.
+- Science-backed validation tool for generated plans, with transparent rules and citations rather than hidden coaching opinion. This evidence-based layer is separate from v2.0's deterministic placement, availability, and budget validation.
 - Guardrails for ramp rate, recovery weeks, taper shape, intensity distribution, and race-week workload when the required inputs are available.
 - Explicit "insufficient evidence" responses when a plan cannot be validated from available athlete data.
 - Versioned rule definitions so plan-validation behavior does not drift silently.

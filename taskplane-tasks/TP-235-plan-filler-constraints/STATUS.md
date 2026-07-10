@@ -127,13 +127,13 @@
 **Status:** 🟨 In Progress
 
 <!-- R018 revision items -->
-- [ ] R018-1: Add explicit v2.0 acceptance criteria for the future Plan Filler constraint validator without claiming its tool/write path is shipped
-- [ ] R018-2: Record the PRD/changelog review and no-change rationale for this internal unregistered validator
-- [ ] R018-3: Verify roadmap/design boundary wording with a focused documentation diff review
+- [x] R018-1: Add explicit v2.0 acceptance criteria for the future Plan Filler constraint validator without claiming its tool/write path is shipped
+- [x] R018-2: Record the PRD/changelog review and no-change rationale for this internal unregistered validator
+- [x] R018-3: Verify roadmap/design boundary wording with a focused documentation diff review (`git diff -- ROADMAP.md docs/prd/PRD-icuvisor.md docs/design/plan-filler-constraints.md CHANGELOG.md`)
 
-- [ ] v2.0 acceptance criteria updated
-- [ ] v2.2 boundary clarified
-- [ ] PRD and changelog reviewed for user-visible impact
+- [x] v2.0 acceptance criteria updated
+- [x] v2.2 boundary clarified
+- [x] PRD and changelog reviewed for user-visible impact
 
 ---
 
@@ -187,7 +187,7 @@
 
 ## Notes
 
-*Reserved for execution notes*
+- 2026-07-10: Reviewed `docs/prd/PRD-icuvisor.md` and `CHANGELOG.md`; no edits are required because this pure, unregistered internal validator does not change the current public MCP catalog or expose a user-visible capability. The roadmap remains the forward-looking contract for the future Plan Filler.
 | 2026-07-10 13:57 | Review R001 | plan Step 1: APPROVE |
 | 2026-07-10 14:10 | Review R002 | code Step 1: REVISE |
 | 2026-07-10 14:16 | Review R003 | code Step 1: REVISE |
