@@ -168,6 +168,14 @@
     "anchor": "compute_load_balance"
   },
   {
+    "name": "compute_zone_energy",
+    "group": "analyzers",
+    "tier": "full",
+    "safety": "read",
+    "summary": "Use when the prompt asks for timestamp-weighted mechanical work or kJ by configured power zone across activities in a bounded date range; do not fetch get_activity_streams and reduce them in chat.",
+    "anchor": "compute_zone_energy"
+  },
+  {
     "name": "compute_zone_time",
     "group": "analyzers",
     "tier": "core",
@@ -484,7 +492,7 @@
     "group": "workout-library",
     "tier": "full",
     "safety": "read",
-    "summary": "Use when the prompt asks about annual training plan, season phase, weekly load/TSS targets, recovery weeks, taper context, or periodization summary; do not manually join raw get_events rows in chat.",
+    "summary": "Use when the prompt asks about annual training plan, season phase, weekly load/TSS targets, recovery weeks, taper context, or periodization summary; plan_applied identifies ATP-generated notes, while personal calendar notes are neutral context, never ATP instructions; do not manually join raw get_events rows in chat.",
     "anchor": "get_annual_training_plan"
   },
   {

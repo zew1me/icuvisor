@@ -18,8 +18,8 @@ import (
 const (
 	updateSportSettingsName                    = "update_sport_settings"
 	updateSportSettingsDescription             = "Update one sport's FTP, threshold heart rate, threshold pace, or zone definitions referenced by get_athlete_profile _meta.warnings. Threshold-only writes are allowed in safe/full modes; supplying zones overwrites prior zone definitions and requires ICUVISOR_DELETE_MODE=full."
-	invalidUpdateSportSettingsArgumentsMessage = "invalid update_sport_settings arguments; provide sport, effective_date, and at least one documented threshold or gated zones field"
-	writeSportSettingsMessage                  = "could not update sport settings; check intervals.icu credentials, athlete ID, sport, effective date, and writable fields"
+	invalidUpdateSportSettingsArgumentsMessage = "invalid update_sport_settings arguments; provide sport and at least one documented threshold or gated zones field"
+	writeSportSettingsMessage                  = "could not update sport settings; check intervals.icu credentials, athlete ID, sport, and writable fields"
 	zoneOverwriteGateMessage                   = "zones overwrite prior sport-setting zone definitions; set ICUVISOR_DELETE_MODE=full to allow this destructive argument"
 	metersPer100Yards                          = 91.44
 )
@@ -32,7 +32,7 @@ type SportSettingsWriterClient interface {
 
 type updateSportSettingsRequest struct {
 	Sport         string                           `json:"sport"`
-	EffectiveDate string                           `json:"effective_date"`
+	RecalcHRZones *bool                            `json:"recalc_hr_zones,omitempty"`
 	FTP           *int                             `json:"ftp,omitempty"`
 	ThresholdHR   *int                             `json:"threshold_hr,omitempty"`
 	ThresholdPace *updateSportSettingsPaceRequest  `json:"threshold_pace,omitempty"`
@@ -68,16 +68,15 @@ type updateSportSettingsEcho struct {
 }
 
 type updateSportSettingsMeta struct {
-	ServerVersion    string            `json:"server_version"`
-	DeleteMode       string            `json:"delete_mode"`
-	EffectiveDate    string            `json:"effective_date"`
-	Timezone         string            `json:"timezone,omitempty"`
-	FieldsUpdated    []string          `json:"fields_updated"`
-	RecomputePending bool              `json:"recompute_pending"`
-	ZonesProvided    bool              `json:"zones_provided"`
-	PaceInputUnit    string            `json:"pace_input_unit,omitempty"`
-	PaceUpstreamUnit string            `json:"pace_upstream_unit,omitempty"`
-	Units            map[string]string `json:"units,omitempty"`
+	ServerVersion                string            `json:"server_version"`
+	DeleteMode                   string            `json:"delete_mode"`
+	Timezone                     string            `json:"timezone,omitempty"`
+	FieldsUpdated                []string          `json:"fields_updated"`
+	HRZoneRecalculationRequested bool              `json:"hr_zone_recalculation_requested"`
+	ZonesProvided                bool              `json:"zones_provided"`
+	PaceInputUnit                string            `json:"pace_input_unit,omitempty"`
+	PaceUpstreamUnit             string            `json:"pace_upstream_unit,omitempty"`
+	Units                        map[string]string `json:"units,omitempty"`
 }
 
 func newUpdateSportSettingsTool(client SportSettingsWriterClient, profileClient ProfileClient, version string, timezoneFallback string, debugMetadata bool, capability safety.Capability, shaping ...responseShaping) Tool {
@@ -129,6 +128,13 @@ func decodeUpdateSportSettingsRequest(raw json.RawMessage) (updateSportSettingsR
 	if err != nil {
 		return updateSportSettingsRequest{}, err
 	}
+	recalcHRZonesNull, err := rawObjectFieldIsNull(raw, "recalc_hr_zones")
+	if err != nil {
+		return updateSportSettingsRequest{}, err
+	}
+	if recalcHRZonesNull {
+		return updateSportSettingsRequest{}, errors.New("recalc_hr_zones must be a boolean when supplied")
+	}
 	var args updateSportSettingsRequest
 	if strings.TrimSpace(string(raw)) == "" {
 		return args, errors.New("arguments must be a JSON object")
@@ -140,12 +146,8 @@ func decodeUpdateSportSettingsRequest(raw json.RawMessage) (updateSportSettingsR
 	args = decoded
 	args.zonesProvided = zonesProvided
 	args.Sport = canonicalSport(args.Sport)
-	args.EffectiveDate = strings.TrimSpace(args.EffectiveDate)
 	if args.Sport == "" || !validSport(args.Sport) {
 		return args, errors.New("sport must be one of the documented enum values")
-	}
-	if !validDate(args.EffectiveDate) {
-		return args, errors.New("effective_date must be athlete-local YYYY-MM-DD")
 	}
 	if err := validateSportSettingsThresholds(args); err != nil {
 		return args, err
@@ -162,16 +164,33 @@ func decodeUpdateSportSettingsRequest(raw json.RawMessage) (updateSportSettingsR
 }
 
 func rawObjectHasField(raw json.RawMessage, field string) (bool, error) {
-	trimmed := bytes.TrimSpace(raw)
-	if len(trimmed) == 0 || trimmed[0] != '{' {
-		return false, nil
-	}
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(trimmed, &fields); err != nil {
+	fields, err := rawSportSettingsObjectFields(raw)
+	if err != nil {
 		return false, err
 	}
 	_, ok := fields[field]
 	return ok, nil
+}
+
+func rawObjectFieldIsNull(raw json.RawMessage, field string) (bool, error) {
+	fields, err := rawSportSettingsObjectFields(raw)
+	if err != nil {
+		return false, err
+	}
+	value, ok := fields[field]
+	return ok && bytes.Equal(bytes.TrimSpace(value), []byte("null")), nil
+}
+
+func rawSportSettingsObjectFields(raw json.RawMessage) (map[string]json.RawMessage, error) {
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) == 0 || trimmed[0] != '{' {
+		return nil, nil
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(trimmed, &fields); err != nil {
+		return nil, err
+	}
+	return fields, nil
 }
 
 func validateSportSettingsThresholds(args updateSportSettingsRequest) error {
@@ -190,8 +209,12 @@ func validateSportSettingsThresholds(args updateSportSettingsRequest) error {
 }
 
 func sportSettingsWriteParams(args updateSportSettingsRequest, setting intervals.SportSettings, profile intervals.AthleteWithSportSettings, timezoneFallback string, version string, deleteMode string) (intervals.WriteSportSettingsParams, updateSportSettingsMeta, error) {
-	params := intervals.WriteSportSettingsParams{SportSettingID: setting.ID, EffectiveDate: args.EffectiveDate, FTP: args.FTP, ThresholdHR: args.ThresholdHR, ZonesProvided: args.zonesProvided}
-	meta := updateSportSettingsMeta{ServerVersion: normalizeVersion(version), DeleteMode: deleteMode, EffectiveDate: args.EffectiveDate, Timezone: profileTimezone(profile.Timezone, timezoneFallback), FieldsUpdated: updateSportSettingsFieldsUpdated(args), RecomputePending: true, ZonesProvided: args.zonesProvided, Units: profileUnitSystem(profile).Metadata()}
+	recalcHRZones := true
+	if args.RecalcHRZones != nil {
+		recalcHRZones = *args.RecalcHRZones
+	}
+	params := intervals.WriteSportSettingsParams{SportSettingID: setting.ID, RecalcHRZones: recalcHRZones, FTP: args.FTP, ThresholdHR: args.ThresholdHR, ZonesProvided: args.zonesProvided}
+	meta := updateSportSettingsMeta{ServerVersion: normalizeVersion(version), DeleteMode: deleteMode, Timezone: profileTimezone(profile.Timezone, timezoneFallback), FieldsUpdated: updateSportSettingsFieldsUpdated(args), HRZoneRecalculationRequested: recalcHRZones, ZonesProvided: args.zonesProvided, Units: profileUnitSystem(profile).Metadata()}
 	if args.ThresholdPace != nil {
 		pace, upstreamUnit, err := convertThresholdPaceForUpstream(*args.ThresholdPace, setting, profileUnitSystem(profile))
 		if err != nil {
@@ -435,11 +458,11 @@ func isSupportedPaceInputUnit(value string) bool {
 
 func updateSportSettingsInputSchema() map[string]any {
 	examples := updateSportSettingsInputExamples()
-	return map[string]any{"type": "object", "additionalProperties": false, "required": []string{"sport", "effective_date"}, "examples": examples, "input_examples": examples, "properties": map[string]any{
-		"sport":          map[string]any{"type": "string", "enum": supportedSportSettingsSports, "description": "Sport setting to update, matching intervals.icu sport type (for example Ride, Run, Swim)."},
-		"effective_date": map[string]any{"type": "string", "description": "Required athlete-local effective date as YYYY-MM-DD; used as the oldest date for upstream sport-setting recompute."},
-		"ftp":            map[string]any{"type": "integer", "minimum": 1, "description": "Functional Threshold Power in watts for the selected sport."},
-		"threshold_hr":   map[string]any{"type": "integer", "minimum": 1, "description": "Threshold heart rate in bpm for the selected sport."},
+	return map[string]any{"type": "object", "additionalProperties": false, "required": []string{"sport"}, "examples": examples, "input_examples": examples, "properties": map[string]any{
+		"sport":           map[string]any{"type": "string", "enum": supportedSportSettingsSports, "description": "Sport setting to update, matching intervals.icu sport type (for example Ride, Run, Swim)."},
+		"recalc_hr_zones": map[string]any{"type": "boolean", "default": true, "description": "Whether intervals.icu should recalculate heart-rate zones for the updated sport; defaults to true."},
+		"ftp":             map[string]any{"type": "integer", "minimum": 1, "description": "Functional Threshold Power in watts for the selected sport."},
+		"threshold_hr":    map[string]any{"type": "integer", "minimum": 1, "description": "Threshold heart rate in bpm for the selected sport."},
 		"threshold_pace": map[string]any{"type": "object", "additionalProperties": false, "required": []string{"value", "unit"}, "description": "Threshold pace with an explicit pace-duration unit; seconds_per_km is 4:15/km as 255, seconds_per_mile is 8:00/mi as 480, and seconds_per_100y is 1:30/100y as 90.", "properties": map[string]any{
 			"value": map[string]any{"type": "number", "exclusiveMinimum": 0, "description": "Threshold pace duration in the provided unit, not speed."},
 			"unit":  map[string]any{"type": "string", "enum": []string{"seconds_per_km", "seconds_per_mile", "seconds_per_100m", "seconds_per_100y", "seconds_per_500m", "minutes_per_km", "minutes_per_mile"}, "description": "Pace-duration unit for threshold_pace value."},
@@ -455,26 +478,23 @@ func updateSportSettingsInputSchema() map[string]any {
 func updateSportSettingsInputExamples() []map[string]any {
 	return []map[string]any{
 		{
-			"sport":          "Ride",
-			"effective_date": "2026-06-01",
-			"ftp":            285,
+			"sport": "Ride",
+			"ftp":   285,
 		},
 		{
 			"sport":          "Run",
-			"effective_date": "2026-06-01",
 			"threshold_hr":   172,
 			"threshold_pace": map[string]any{"value": 255, "unit": "seconds_per_km"},
 		},
 		{
 			"sport":          "Swim",
-			"effective_date": "2026-06-01",
 			"threshold_pace": map[string]any{"value": 90, "unit": "seconds_per_100y"},
 		},
 		{
-			"sport":          "Ride",
-			"effective_date": "2026-07-01",
-			"ftp":            290,
-			"threshold_hr":   168,
+			"sport":           "Ride",
+			"recalc_hr_zones": false,
+			"ftp":             290,
+			"threshold_hr":    168,
 			"zones": []any{
 				map[string]any{"kind": "power", "boundaries": []any{150, 200, 250, 300}, "names": []any{"Endurance", "Tempo", "Threshold", "VO2"}},
 			},
@@ -483,5 +503,5 @@ func updateSportSettingsInputExamples() []map[string]any {
 }
 
 func updateSportSettingsOutputSchema() map[string]any {
-	return map[string]any{"type": "object", "additionalProperties": true, "description": "Echoes updated sport settings with recompute metadata, delete-mode metadata, and unit metadata."}
+	return map[string]any{"type": "object", "additionalProperties": true, "description": "Echoes updated sport settings with HR-zone recalculation request, delete-mode, and unit metadata."}
 }

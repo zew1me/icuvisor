@@ -71,7 +71,7 @@ func catalogTools() []Tool {
 
 func registryBaseTools(client *intervals.Client, opts registryToolOptions) []Tool {
 	capability := capabilityOrSafe(opts.capability)
-	tools := make([]Tool, 0, 46)
+	tools := make([]Tool, 0, 69)
 	tools = append(tools,
 		newGetAthleteProfileTool(client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newGetFitnessTool(client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
@@ -125,6 +125,7 @@ func registryBaseTools(client *intervals.Client, opts registryToolOptions) []Too
 		newGetActivityIntervalsTool(client, client, opts.version, opts.debugMetadata, opts.shaping),
 		newGetActivityStreamsTool(client, client, opts.version, opts.debugMetadata, opts.shaping),
 		newComputeActivitySegmentStatsTool(client, opts.version, opts.debugMetadata, opts.shaping),
+		newComputeZoneEnergyTool(client, client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newComputeZoneTimeTool(client, client, client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newComputeLoadBalanceTool(client, client, client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
 		newComputeBaselineTool(client, client, client, client, client, opts.version, opts.timezoneFallback, opts.debugMetadata, opts.shaping),
@@ -163,7 +164,7 @@ func toolCatalogGroup(name string) string {
 		return "wellness"
 	case getActivitiesName, getActivitiesAroundName, getActivityDetailsName, getActivityIntervalsName, getActivityStreamsName, getActivitySplitsName, getActivityHistogramName, getActivityMessagesName, addActivityMessageName, getExtendedMetricsName, deleteActivityName, updateActivityName, setActivityIntervalsName:
 		return "activities"
-	case computeActivitySegmentStatsName, analyzeTrendName, analyzeDistributionName, analyzeCorrelationName, analyzeEffortsDeltaName, computeZoneTimeName, computeLoadBalanceName, computeBaselineName, computeComplianceRateName, getDataQualityReportName:
+	case computeActivitySegmentStatsName, analyzeTrendName, analyzeDistributionName, analyzeCorrelationName, analyzeEffortsDeltaName, computeZoneEnergyName, computeZoneTimeName, computeLoadBalanceName, computeBaselineName, computeComplianceRateName, getDataQualityReportName:
 		return "analyzers"
 	case resolveCalendarDatesName, getEventsName, getEventByIDName, addOrUpdateEventName, addUnavailableDateRangeName, deleteEventName, deleteEventsByDateRangeName, linkActivityToEventName:
 		return "events"

@@ -66,6 +66,7 @@ func TestRegisteredToolTierMembership(t *testing.T) {
 		getActivityStreamsName:          safety.ToolsetFull,
 		getActivityHistogramName:        safety.ToolsetFull,
 		computeActivitySegmentStatsName: safety.ToolsetFull,
+		computeZoneEnergyName:           safety.ToolsetFull,
 		computeZoneTimeName:             safety.ToolsetCore,
 		computeLoadBalanceName:          safety.ToolsetFull,
 		computeBaselineName:             safety.ToolsetCore,

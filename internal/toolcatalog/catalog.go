@@ -20,6 +20,7 @@ const (
 	ComputeBaseline                  = "compute_baseline"
 	ComputeComplianceRate            = "compute_compliance_rate"
 	ComputeLoadBalance               = "compute_load_balance"
+	ComputeZoneEnergy                = "compute_zone_energy"
 	ComputeZoneTime                  = "compute_zone_time"
 	CreateCustomItem                 = "create_custom_item"
 	CreateWorkout                    = "create_workout"
@@ -91,6 +92,7 @@ var athleteScopedToolNames = []string{
 	ComputeBaseline,
 	ComputeComplianceRate,
 	ComputeLoadBalance,
+	ComputeZoneEnergy,
 	ComputeZoneTime,
 	CreateCustomItem,
 	CreateWorkout,

@@ -11,9 +11,11 @@ func NewRegistry() Registry {
 	return staticRegistry{entries: []Prompt{
 		TrainingAnalysisPrompt(),
 		RideAnalysisPrompt(),
+		FuelingReviewPrompt(),
 		RecoveryCheckPrompt(),
 		WeeklyPlanningPrompt(),
 		WeeklyReviewPrompt(),
+		CoachingHandoffPrompt(),
 		ShareableTrainingReportPrompt(),
 		PlanHealthReviewPrompt(),
 		RaceWeekTaperPrompt(),

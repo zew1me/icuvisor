@@ -34,6 +34,7 @@ var v03ToolCatalog = []catalogToolSpec{
 	{name: "compute_baseline", requirement: tools.RequirementRead},
 	{name: "compute_compliance_rate", requirement: tools.RequirementRead},
 	{name: "compute_load_balance", requirement: tools.RequirementRead},
+	{name: "compute_zone_energy", requirement: tools.RequirementRead},
 	{name: "compute_zone_time", requirement: tools.RequirementRead},
 	{name: "create_custom_item", requirement: tools.RequirementWrite},
 	{name: "create_workout", requirement: tools.RequirementWrite},

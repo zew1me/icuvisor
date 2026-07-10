@@ -12,7 +12,7 @@ import (
 func TestAnalysisFormulasMarkdownGolden(t *testing.T) {
 	t.Parallel()
 
-	const wantSHA256 = "ce86e6bda44cca59f2e40de83ff5bd46b13136f8e14eed1b416f68548f2458dd"
+	const wantSHA256 = "1d7aa6e75501914a935f7c3d2f1c15e94d306e170c7ac23f4a3deda66be9295c"
 
 	got := AnalysisFormulasMarkdown()
 	want, err := os.ReadFile("testdata/analysis_formulas.md")
@@ -78,6 +78,12 @@ func TestAnalysisFormulasMarkdownPinsRequiredFormulaRefs(t *testing.T) {
 			formula:  "copy only explicit athlete-profile threshold fields",
 			boundary: "never zero-fill missing thresholds",
 			citation: "get_power_curves",
+		},
+		{
+			ref:      AnalysisFormulaRefPowerZoneMechanicalWork,
+			formula:  "work_i = power_i * delta_t_i",
+			boundary: "final zone open-ended and an explicit below-zone bucket `[0, first_boundary)`",
+			citation: "BIPM",
 		},
 	}
 	for _, check := range checks {

@@ -2,12 +2,10 @@
   "additionalProperties": false,
   "examples": [
     {
-      "effective_date": "2026-06-01",
       "ftp": 285,
       "sport": "Ride"
     },
     {
-      "effective_date": "2026-06-01",
       "sport": "Run",
       "threshold_hr": 172,
       "threshold_pace": {
@@ -16,7 +14,6 @@
       }
     },
     {
-      "effective_date": "2026-06-01",
       "sport": "Swim",
       "threshold_pace": {
         "unit": "seconds_per_100y",
@@ -24,8 +21,8 @@
       }
     },
     {
-      "effective_date": "2026-07-01",
       "ftp": 290,
+      "recalc_hr_zones": false,
       "sport": "Ride",
       "threshold_hr": 168,
       "zones": [
@@ -49,12 +46,10 @@
   ],
   "input_examples": [
     {
-      "effective_date": "2026-06-01",
       "ftp": 285,
       "sport": "Ride"
     },
     {
-      "effective_date": "2026-06-01",
       "sport": "Run",
       "threshold_hr": 172,
       "threshold_pace": {
@@ -63,7 +58,6 @@
       }
     },
     {
-      "effective_date": "2026-06-01",
       "sport": "Swim",
       "threshold_pace": {
         "unit": "seconds_per_100y",
@@ -71,8 +65,8 @@
       }
     },
     {
-      "effective_date": "2026-07-01",
       "ftp": 290,
+      "recalc_hr_zones": false,
       "sport": "Ride",
       "threshold_hr": 168,
       "zones": [
@@ -99,14 +93,15 @@
       "description": "Target athlete; defaults to selected athlete in coach mode, or the only athlete otherwise. Format: i12345 or 12345.",
       "type": "string"
     },
-    "effective_date": {
-      "description": "Required athlete-local effective date as YYYY-MM-DD; used as the oldest date for upstream sport-setting recompute.",
-      "type": "string"
-    },
     "ftp": {
       "description": "Functional Threshold Power in watts for the selected sport.",
       "minimum": 1,
       "type": "integer"
+    },
+    "recalc_hr_zones": {
+      "default": true,
+      "description": "Whether intervals.icu should recalculate heart-rate zones for the updated sport; defaults to true.",
+      "type": "boolean"
     },
     "sport": {
       "description": "Sport setting to update, matching intervals.icu sport type (for example Ride, Run, Swim).",
@@ -200,8 +195,7 @@
     }
   },
   "required": [
-    "sport",
-    "effective_date"
+    "sport"
   ],
   "type": "object"
 }

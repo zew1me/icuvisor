@@ -6,7 +6,7 @@ weight: 35
 
 Claude Projects let you save standing instructions once instead of repeating the same guardrails in every training chat. Use this page when you want Claude to consistently respect your athlete-local timezone, cite icuvisor data sources, handle stale wellness data, and avoid inventing unavailable metrics.
 
-These instructions are client-side guidance. They do not replace icuvisor's registered [MCP prompts]({{< relref "/reference/resources-prompts" >}}) such as `weekly_review`, `recovery_check`, or `race_week_taper`; use those prompts when your client exposes them, and use Project instructions to keep ordinary chats disciplined.
+These instructions are client-side guidance. They do not replace icuvisor's registered [MCP prompts]({{< relref "/reference/resources-prompts" >}}) such as `weekly_review`, `recovery_check`, `race_week_taper`, or `coaching_handoff`; use those prompts when your client exposes them, and use Project instructions to keep ordinary chats disciplined.
 
 ## Where to paste this
 
@@ -90,6 +90,20 @@ For race-week taper questions:
 - If the fitness or calendar window is too short to project confidently, say so and give a conservative taper range instead of a precise claim.
 ```
 
+## Optional block: coaching conversation handoff
+
+Add this when long coaching chats need a controlled fresh start. For the full portable workflow, see [Coaching conversation handoff]({{< relref "../cookbook/conversation-handoff" >}}).
+
+```text
+For coaching conversation handoffs:
+- Use the registered coaching_handoff MCP prompt when available; otherwise use the canonical coaching handoff prompt pack.
+- Keep user-explicit Goals, Constraints, and Accepted decisions separate from Icuvisor evidence and current calendar or plan state. Never promote an assistant suggestion to an accepted decision.
+- Anchor the generated date and evidence windows in my athlete timezone with get_athlete_profile and resolve_calendar_dates. Name each evidence source and preserve returned freshness/as_of; write "not provided" when no trustworthy timestamp exists.
+- Surface stale, missing, partial, paginated, unavailable, and failed reads as gaps. Do not fill missing values or unavailable analyzer results with chat-side calculations.
+- Exclude credentials, raw athlete IDs, local paths, raw payloads/streams, precise locations, and private health or free-text details unless I explicitly approve the minimum needed.
+- Keep the workflow read-only. Ask me to review the Markdown before I manually copy it into a fresh chat; do not claim that a client automatically imports or remembers it.
+```
+
 ## Optional block: stale or missing data
 
 Add this if your data often syncs late from a watch or phone.
@@ -106,5 +120,7 @@ For stale, missing, or unavailable data:
 ## When to start a new chat
 
 Start a new chat after installing or updating icuvisor, changing the MCP server config, changing Claude Project instructions, switching toolsets, or noticing that Claude cannot see a newly documented tool or prompt. Old chats can keep a stale tool catalog; a fresh chat is the simplest way to reload it.
+
+When you need to preserve durable coaching context rather than only reload the catalog, run the read-only `coaching_handoff` prompt (or its portable pack), review the six-section Markdown, and manually paste the reviewed handoff into the new chat. Refresh time-sensitive tool evidence there before relying on it.
 
 For setup-specific stale catalog fixes, see [After upgrading icuvisor]({{< relref "after-upgrade" >}}) and [Troubleshooting]({{< relref "troubleshooting#stale-conversations-and-cached-tool-catalogs" >}}).

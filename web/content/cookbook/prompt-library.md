@@ -131,11 +131,11 @@ Give me a post-race retrospective for activity [ACTIVITY]: pacing, decoupling, t
 ## Nutrition and fueling
 
 ```text
-For my last 7 rides, compare carbs ingested per hour with each session's load. Fetch them in one get_activities call over the last 30 days, read carbs_ingested_g and load from that payload, and flag underfueled sessions. Where carbs weren't logged, say so — don't estimate.
+Review my logged activity fueling for the last 30 athlete-local days. Start with my profile, use terse paginated get_activities with include_unnamed: true, and calculate carbs_ingested_g / (moving_time_seconds / 3600) in g/h only for non-negative logged intake and positive moving time. Count eligible/total sessions and every missing, invalid, unavailable, or Strava-blocked exclusion. Keep carbs_used_g and training load as separate sourced context; never estimate missing intake, label a session underfueled, or recommend a target.
 ```
 
 ```text
-Review my logged nutrition wellness fields for the last 14 days alongside training load and flag days where intake looked low for the work done.
+Review my logged daily wellness nutrition for the last 14 athlete-local days. Read only calories_intake, carbs_g, protein_g, and fat_g when available; identify which fields/days are missing and keep those daily macros separate from activity intake, carbs_used_g, calories_burned, and training load. Report sourced facts and optional general education separately — do not estimate a deficit, call intake low, or prescribe nutrition targets.
 ```
 
 ## Coach mode

@@ -392,16 +392,16 @@ func TestProtocolSharedTransportSuite(t *testing.T) {
 				if err != nil {
 					t.Fatalf("ListPrompts() error = %v", err)
 				}
-				if len(result.Prompts) != 10 {
-					t.Fatalf("prompts/list length = %d, want 10: %#v", len(result.Prompts), result.Prompts)
+				if len(result.Prompts) != 12 {
+					t.Fatalf("prompts/list length = %d, want 12: %#v", len(result.Prompts), result.Prompts)
 				}
-				wantNames := []string{"coach_athlete_onboarding", "coach_roster_triage", "plan_health_review", "race_week_taper", "recovery_check", "ride_analysis", "shareable_training_report", "training_analysis", "weekly_planning", "weekly_review"}
+				wantNames := []string{"coach_athlete_onboarding", "coach_roster_triage", "coaching_handoff", "fueling_review", "plan_health_review", "race_week_taper", "recovery_check", "ride_analysis", "shareable_training_report", "training_analysis", "weekly_planning", "weekly_review"}
 				for i, want := range wantNames {
 					if result.Prompts[i].Name != want || result.Prompts[i].Description == "" {
 						t.Fatalf("prompts[%d] = %#v, want name %q with description", i, result.Prompts[i], want)
 					}
 				}
-				got, err := session.GetPrompt(ctx, &sdkmcp.GetPromptParams{Name: promptscatalog.CoachRosterTriageName, Arguments: map[string]string{"athlete_id": "i12345"}})
+				got, err := session.GetPrompt(ctx, &sdkmcp.GetPromptParams{Name: promptscatalog.FuelingReviewName, Arguments: map[string]string{"start_date": "2026-05-01", "end_date": "2026-05-14", "race_date": "2026-06-07", "race_name": "A Race"}})
 				if err != nil {
 					t.Fatalf("GetPrompt() error = %v", err)
 				}
@@ -412,7 +412,7 @@ func TestProtocolSharedTransportSuite(t *testing.T) {
 				if !ok {
 					t.Fatalf("GetPrompt() content = %T, want TextContent", got.Messages[0].Content)
 				}
-				for _, want := range []string{"Scope: athlete_id=i12345", "athlete_id as a coach-mode selector", "get_wellness_data"} {
+				for _, want := range []string{"Scope: start_date=2026-05-01, end_date=2026-05-14, race_date=2026-06-07, race_name=A Race", "include_unnamed:true", "get_wellness_data", "limit:100"} {
 					if !strings.Contains(text.Text, want) {
 						t.Fatalf("GetPrompt() text missing %q:\n%s", want, text.Text)
 					}
@@ -540,6 +540,9 @@ func TestProtocolListTools(t *testing.T) {
 	}
 	if tool.Description == "" {
 		t.Fatal("tool description is empty")
+	}
+	if tool.Annotations == nil || !tool.Annotations.ReadOnlyHint {
+		t.Fatalf("default-read tool annotations = %#v, want readOnlyHint true", tool.Annotations)
 	}
 }
 
@@ -887,6 +890,43 @@ func TestProtocolCoachACLFiltersCatalogAndResolvesAthleteID(t *testing.T) {
 	text := call.Content[0].(*sdkmcp.TextContent).Text
 	if !strings.Contains(text, `"target_athlete_id":"i222"`) {
 		t.Fatalf("CallTool() text = %s, want target i222", text)
+	}
+}
+
+func TestProtocolComputeZoneEnergyIsFullOnlyReadAnalyzer(t *testing.T) {
+	t.Parallel()
+
+	client := newNoNetworkProtocolClient(t)
+	coreRegistry := tools.NewRegistryWithOptions(client, tools.RegistryOptions{Version: "test", TimezoneFallback: "UTC", Capability: safety.NewCapability(safety.ModeFull), Toolset: safety.ToolsetCore})
+	coreCtx, coreSession, coreCleanup := connectTestClientWithOptions(t, Options{Registry: coreRegistry, Capability: safety.NewCapability(safety.ModeFull), Toolset: safety.ToolsetCore})
+	defer coreCleanup()
+	core, err := coreSession.ListTools(coreCtx, nil)
+	if err != nil {
+		t.Fatalf("core ListTools() error = %v", err)
+	}
+	if hasTool(core.Tools, toolcatalog.ComputeZoneEnergy) {
+		t.Fatalf("core tools/list exposed full-only %s", toolcatalog.ComputeZoneEnergy)
+	}
+
+	fullRegistry := tools.NewRegistryWithOptions(client, tools.RegistryOptions{Version: "test", TimezoneFallback: "UTC", Capability: safety.NewCapability(safety.ModeNone), Toolset: safety.ToolsetFull})
+	fullCtx, fullSession, fullCleanup := connectTestClientWithOptions(t, Options{Registry: fullRegistry, Capability: safety.NewCapability(safety.ModeNone), Toolset: safety.ToolsetFull})
+	defer fullCleanup()
+	full, err := fullSession.ListTools(fullCtx, nil)
+	if err != nil {
+		t.Fatalf("full ListTools() error = %v", err)
+	}
+	var zoneEnergy *sdkmcp.Tool
+	for _, tool := range full.Tools {
+		if tool.Name == toolcatalog.ComputeZoneEnergy {
+			zoneEnergy = tool
+			break
+		}
+	}
+	if zoneEnergy == nil {
+		t.Fatalf("full read-only tools/list missing %s", toolcatalog.ComputeZoneEnergy)
+	}
+	if zoneEnergy.Annotations == nil || !zoneEnergy.Annotations.ReadOnlyHint {
+		t.Fatalf("%s annotations = %#v, want readOnlyHint true", toolcatalog.ComputeZoneEnergy, zoneEnergy.Annotations)
 	}
 }
 

@@ -3,7 +3,9 @@ package prompts
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ricardocabral/icuvisor/internal/config"
 )
@@ -11,9 +13,11 @@ import (
 const (
 	TrainingAnalysisName        = "training_analysis"
 	RideAnalysisName            = "ride_analysis"
+	FuelingReviewName           = "fueling_review"
 	RecoveryCheckName           = "recovery_check"
 	WeeklyPlanningName          = "weekly_planning"
 	WeeklyReviewName            = "weekly_review"
+	CoachingHandoffName         = "coaching_handoff"
 	ShareableTrainingReportName = "shareable_training_report"
 	PlanHealthReviewName        = "plan_health_review"
 	RaceWeekTaperName           = "race_week_taper"
@@ -80,6 +84,23 @@ func RideAnalysisPrompt() Prompt {
 			},
 			Return: "ride analysis with resolved activity identity, key unit-safe metrics, interval/segment evidence, deterministic analyzer findings with `_meta.method` and caveats, and focused next-step questions",
 		}),
+	}
+}
+
+// FuelingReviewPrompt guides a source-labelled review of logged fueling evidence.
+func FuelingReviewPrompt() Prompt {
+	return Prompt{
+		Name:        FuelingReviewName,
+		Title:       "Fueling review",
+		Description: "Guide a read-only review of logged activity and daily nutrition evidence with transparent grams-per-hour calculations and explicit gaps.",
+		Arguments: []Argument{
+			{Name: "activity_id", Title: "Activity ID", Description: "Optional intervals.icu activity ID; cannot be combined with start_date or end_date."},
+			{Name: "start_date", Title: "Start date", Description: "Optional athlete-local YYYY-MM-DD date; requires end_date and cannot be combined with activity_id."},
+			{Name: "end_date", Title: "End date", Description: "Optional athlete-local YYYY-MM-DD date; requires start_date and cannot be combined with activity_id."},
+			{Name: "race_date", Title: "Race date", Description: "Optional athlete-local YYYY-MM-DD date for same-day calendar context."},
+			{Name: "race_name", Title: "Race name", Description: "Optional race name to disambiguate an event on the supplied race_date."},
+		},
+		Handler: fuelingReviewHandler,
 	}
 }
 
@@ -196,6 +217,20 @@ func WeeklyReviewPrompt() Prompt {
 			},
 			Return: "weekly review with wins, concerns, planned-vs-completed gaps, wellness caveats with provider/source labels, load/intensity evidence, next-week preview when requested, and explicit follow-up questions before any write",
 		}),
+	}
+}
+
+// CoachingHandoffPrompt guides a privacy-safe, read-only conversation handoff.
+func CoachingHandoffPrompt() Prompt {
+	return Prompt{
+		Name:        CoachingHandoffName,
+		Title:       "Coaching conversation handoff",
+		Description: "Guide a compact, source-labelled Markdown handoff that preserves durable coaching context for a fresh client conversation.",
+		Arguments: []Argument{
+			{Name: "lookback_days", Title: "Lookback days", Description: "Optional positive integer string from 1 to 90 for recent training evidence; default 28."},
+			{Name: "race_context_days", Title: "Race context days", Description: "Optional positive integer string from 1 to 365 for upcoming race/event context; default 90."},
+		},
+		Handler: coachingHandoffHandler,
 	}
 }
 
@@ -339,6 +374,151 @@ func staticPromptHandler(spec promptSpec) Handler {
 		}
 		return renderSpec(spec, req.Arguments), nil
 	}
+}
+
+func fuelingReviewHandler(ctx context.Context, req Request) (Result, error) {
+	if err := ctx.Err(); err != nil {
+		return Result{}, err
+	}
+
+	args := cloneArgs(req.Arguments)
+	for _, key := range []string{"activity_id", "start_date", "end_date", "race_date", "race_name"} {
+		args[key] = strings.TrimSpace(args[key])
+	}
+	activityID := args["activity_id"]
+	startDate := args["start_date"]
+	endDate := args["end_date"]
+	raceDate := args["race_date"]
+	raceName := args["race_name"]
+
+	if activityID != "" && (startDate != "" || endDate != "") {
+		return Result{}, NewUserError("invalid fueling review arguments; activity_id cannot be combined with start_date or end_date", nil)
+	}
+	if (startDate == "") != (endDate == "") {
+		return Result{}, NewUserError("invalid date range; provide both start_date and end_date as YYYY-MM-DD", nil)
+	}
+	var start, end time.Time
+	if startDate != "" {
+		var err error
+		start, err = parsePromptDate(startDate)
+		if err != nil {
+			return Result{}, NewUserError("invalid start_date; provide YYYY-MM-DD", err)
+		}
+		end, err = parsePromptDate(endDate)
+		if err != nil {
+			return Result{}, NewUserError("invalid end_date; provide YYYY-MM-DD", err)
+		}
+		if end.Before(start) {
+			return Result{}, NewUserError("invalid date range; end_date must be on or after start_date", nil)
+		}
+		if int(end.Sub(start).Hours()/24)+1 > 90 {
+			return Result{}, NewUserError("invalid date range; provide 90 athlete-local days or fewer", nil)
+		}
+	}
+	if raceDate != "" {
+		if _, err := parsePromptDate(raceDate); err != nil {
+			return Result{}, NewUserError("invalid race_date; provide YYYY-MM-DD", err)
+		}
+	}
+	if raceName != "" && raceDate == "" {
+		return Result{}, NewUserError("missing race_date; provide YYYY-MM-DD", nil)
+	}
+
+	return renderSpec(promptSpec{
+		Title:        "Fueling review",
+		DefaultScope: "resolve athlete-local offsets -14 and -1, then review those 14 completed days unless an activity or date range is supplied",
+		ArgOrder:     []string{"activity_id", "start_date", "end_date", "race_date", "race_name"},
+		Resources:    []string{"icuvisor://athlete-profile"},
+		Tools:        []string{"get_athlete_profile", "resolve_calendar_dates", "get_activities", "get_activity_details", "get_wellness_data", "get_training_summary", "get_events"},
+		Do: []string{
+			"Read profile first for athlete-local timezone and units. For a default or relative window, call resolve_calendar_dates with offsets -14 and -1; use returned athlete-local dates, not UTC or client-time arithmetic.",
+			"For activity_id, read terse get_activity_details once. For a date range, read terse paginated get_activities with include_unnamed:true for duration, load, carbs_ingested_g, and carbs_used_g; do not fetch details for every row.",
+			"Fetch every activity page needed before calling a range complete; otherwise state covered count/window as partial, count unavailable or Strava-blocked rows separately, and never reveal next_page_token. Preserve activity timezones and label current-day _meta.as_of data partial.",
+			"Read get_wellness_data only when daily nutrition evidence is useful, with fields kcalConsumed, carbohydrates, protein, and fatTotal plus only explicitly requested custom codes. Keep its returned calories_intake, carbs_g, protein_g, and fat_g as daily fields; do not broaden into health fields when nutrition provenance or freshness is unavailable.",
+			"Keep carbs_ingested_g as athlete-logged during-activity intake, carbs_used_g as an upstream used/burned estimate, and calories_burned/load as context only. Preserve custom-field codes and unknown meanings; never substitute carbs_used_g, wellness totals, calories, or load for intake.",
+			"Use moving_time_seconds only: logged carbs/hour = carbs_ingested_g / (moving_time_seconds / 3600), labelled g/h. Calculate only a non-negative numeric ingested value with positive duration; zero yields 0 g/h, while absent/negative intake, invalid duration, and unavailable rows are counted exclusions. Aggregate only eligible grams and those same durations, then state eligible/total-session coverage.",
+			"When race_date is supplied, call get_events with oldest/newest equal to that athlete-local date and limit:100; race_name only disambiguates that result. Mark _meta.truncated race context partial, and call a complete no-match unconfirmed rather than inventing an event.",
+			"Return separate Sourced activity evidence, Sourced daily-wellness evidence, Sourced race/calendar context, Labelled calculations, Coverage and data gaps, and General educational guidance sections. Surface _meta.stale, _meta.missing_fields, field semantics/provenance, and availability warnings.",
+		},
+		Guardrails: []string{
+			"This workflow is read-only: do not call write/delete tools, include_full, streams, or raw payloads.",
+			"Do not treat missing data as zero or inadequate fueling, extrapolate a rate, invent intake or targets, or create a food/product library.",
+			"Do not diagnose health conditions or eating disorders, prescribe individualized nutrition, infer deficits, recommend carbohydrate/calorie/sodium/fluid/sweat-rate targets, or claim product/performance effects.",
+			"Keep general material visibly separate as conditional educational guidance; refer individualized or medical nutrition requests to a qualified sports dietitian or clinician.",
+		},
+		Return: "source-labelled logged-fueling evidence, transparent g/h calculations where valid, covered-session counts and exclusions, calendar context when confirmed, and clearly separated educational guidance",
+	}, args), nil
+}
+
+func parsePromptDate(value string) (time.Time, error) {
+	date, err := time.Parse(time.DateOnly, value)
+	if err != nil {
+		return time.Time{}, err
+	}
+	if date.Format(time.DateOnly) != value {
+		return time.Time{}, fmt.Errorf("date must use YYYY-MM-DD")
+	}
+	return date, nil
+}
+
+func coachingHandoffHandler(ctx context.Context, req Request) (Result, error) {
+	if err := ctx.Err(); err != nil {
+		return Result{}, err
+	}
+	lookbackDays, err := boundedPromptDays(req.Arguments["lookback_days"], 28, 90)
+	if err != nil {
+		return Result{}, NewUserError("invalid lookback_days; provide an integer from 1 to 90", err)
+	}
+	raceContextDays, err := boundedPromptDays(req.Arguments["race_context_days"], 90, 365)
+	if err != nil {
+		return Result{}, NewUserError("invalid race_context_days; provide an integer from 1 to 365", err)
+	}
+	args := cloneArgs(req.Arguments)
+	args["lookback_days"] = strconv.Itoa(lookbackDays)
+	args["race_context_days"] = strconv.Itoa(raceContextDays)
+
+	return renderSpec(promptSpec{
+		Title:        "Coaching conversation handoff",
+		DefaultScope: "use the last 28 athlete-local days and the next 90 athlete-local days of race/event context",
+		ArgOrder:     []string{"lookback_days", "race_context_days"},
+		Resources:    []string{"icuvisor://athlete-profile", "icuvisor://event-categories"},
+		Tools:        []string{"get_athlete_profile", "resolve_calendar_dates", "get_events", "get_training_plan", "get_fitness", "get_training_summary", "get_activities", "get_wellness_data", "icuvisor_list_advanced_capabilities"},
+		Do: []string{
+			"Call get_athlete_profile for the athlete timezone and resolve_calendar_dates for today's athlete-local anchor or any relative date; state the generated-on date, timezone, lookback window, and race-context window.",
+			"Return compact Markdown sections in this exact order: Handoff scope; Conversation-stated context (Goals, Constraints, Accepted decisions); Icuvisor evidence; Current plan state; Data gaps and unresolved questions; Next actions.",
+			"Put only user-stated goals and constraints in Conversation-stated context. Put a decision in Accepted decisions only when the user explicitly stated or accepted it; never promote an assistant suggestion, model summary, or calendar row into a user decision.",
+			"Keep tool-sourced facts separate. Render Icuvisor evidence as Claim | Source tool | Athlete-local evidence date/window | Freshness/as-of, and keep Current plan state limited to sourced event and training-plan state.",
+			"Distinguish the date/window when evidence applies from returned as_of or provider freshness. Preserve trustworthy freshness markers; write 'not provided' when none exists, and never invent fetched_at or another retrieval timestamp.",
+			"Use terse get_events, get_training_plan, get_fitness, get_training_summary, get_activities, and get_wellness_data only as needed for durable context; do not dump full history.",
+			"Surface _meta.stale, _meta.missing_fields, unavailable or Strava-blocked data, current-day partial data, and unresolved tool failures. Never treat a missing value as zero or fill a tool gap from chat memory.",
+			"When next_page_token is present, fetch every page needed before claiming completeness or label the evidence partial with the covered window/count; never include the opaque token in the handoff.",
+			"If an advanced analyzer material to the conversation is unavailable, call icuvisor_list_advanced_capabilities, name the missing capability, and preserve the unresolved question instead of calculating a substitute in chat.",
+			"Ask the athlete to review the Markdown, then manually copy it into a fresh Claude, ChatGPT, Cursor, or other client conversation; do not claim any client automatically imports, persists, or remembers it.",
+		},
+		Guardrails: []string{
+			"This workflow is read-only: do not call write or delete tools.",
+			"Never use include_full, raw streams, raw tool payloads, or full histories for the handoff.",
+			"Exclude credentials, API/OAuth tokens, secrets, raw athlete identifiers, local or config paths, pagination tokens, and transport or debug metadata.",
+			"Omit health details, precise locations, and private free-text notes by default; include only the minimum the user explicitly approves.",
+			"Do not make diagnoses, unsupported physiological conclusions, or claims sourced only from model memory.",
+		},
+		Return: "the six-section Markdown handoff with explicit source separation, athlete-local dates, freshness and coverage caveats, unresolved questions, next actions, and a manual-review reminder",
+	}, args), nil
+}
+
+func boundedPromptDays(value string, defaultValue, maxValue int) (int, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return defaultValue, nil
+	}
+	days, err := strconv.Atoi(value)
+	if err != nil {
+		return 0, err
+	}
+	if days < 1 || days > maxValue {
+		return 0, fmt.Errorf("value %d outside 1-%d", days, maxValue)
+	}
+	return days, nil
 }
 
 func raceWeekTaperHandler(ctx context.Context, req Request) (Result, error) {

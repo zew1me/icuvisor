@@ -14,8 +14,8 @@ func TestGenerateSchemaSnapshotsCoversFullCoachRegistry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GenerateSchemaSnapshots() error = %v", err)
 	}
-	if len(generated) != 68 {
-		t.Fatalf("GenerateSchemaSnapshots() count = %d, want 68 full-mode coach-enabled registered tools", len(generated))
+	if len(generated) != 69 {
+		t.Fatalf("GenerateSchemaSnapshots() count = %d, want 69 full-mode coach-enabled registered tools", len(generated))
 	}
 	for _, name := range []string{
 		"add_or_update_event",
@@ -23,6 +23,7 @@ func TestGenerateSchemaSnapshotsCoversFullCoachRegistry(t *testing.T) {
 		"analyze_trend",
 		"apply_annual_training_plan",
 		"compute_activity_segment_stats",
+		"compute_zone_energy",
 		"compute_zone_time",
 		"create_custom_item",
 		"delete_event",
@@ -183,6 +184,73 @@ func TestCheckSchemaStability(t *testing.T) {
 			}
 			if tc.wantKind != "" && !hasFailureKind(report, tc.wantKind) {
 				t.Fatalf("failures = %#v, want kind %q", report.Failures, tc.wantKind)
+			}
+		})
+	}
+}
+
+func TestCheckSchemaStabilityAllowsOnlyApprovedPropertyRemoval(t *testing.T) {
+	t.Parallel()
+
+	schema := func(properties map[string]any) map[string]any {
+		return map[string]any{"type": "object", "additionalProperties": false, "properties": properties}
+	}
+	tests := []struct {
+		name      string
+		baseline  map[string]map[string]any
+		generated map[string]map[string]any
+		wantOK    bool
+	}{
+		{
+			name: "permits only TP-228 effective date removal",
+			baseline: map[string]map[string]any{"update_sport_settings": schema(map[string]any{
+				"effective_date": map[string]any{"type": "string"},
+				"ftp":            map[string]any{"type": "integer"},
+			})},
+			generated: map[string]map[string]any{"update_sport_settings": schema(map[string]any{
+				"ftp": map[string]any{"type": "integer"},
+			})},
+			wantOK: true,
+		},
+		{
+			name: "rejects another update sport settings property removal",
+			baseline: map[string]map[string]any{"update_sport_settings": schema(map[string]any{
+				"effective_date": map[string]any{"type": "string"},
+				"ftp":            map[string]any{"type": "integer"},
+			})},
+			generated: map[string]map[string]any{"update_sport_settings": schema(map[string]any{
+				"effective_date": map[string]any{"type": "string"},
+			})},
+			wantOK: false,
+		},
+		{
+			name: "rejects effective date removal from another tool",
+			baseline: map[string]map[string]any{"another_tool": schema(map[string]any{
+				"effective_date": map[string]any{"type": "string"},
+			})},
+			generated: map[string]map[string]any{"another_tool": schema(map[string]any{})},
+			wantOK:    false,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			baselineDir := t.TempDir()
+			currentDir := t.TempDir()
+			for name, value := range tc.baseline {
+				writeTestSnapshot(t, baselineDir, testSnapshot(t, name, value))
+			}
+			generated := map[string]Snapshot{}
+			for name, value := range tc.generated {
+				snapshot := testSnapshot(t, name, value)
+				generated[name] = snapshot
+				writeTestSnapshot(t, currentDir, snapshot)
+			}
+			report, err := CheckSchemaStability(baselineDir, currentDir, generated)
+			if err != nil {
+				t.Fatalf("CheckSchemaStability() error = %v", err)
+			}
+			if report.OK() != tc.wantOK {
+				t.Fatalf("CheckSchemaStability().OK() = %v, want %v; failures = %#v", report.OK(), tc.wantOK, report.Failures)
 			}
 		})
 	}

@@ -64,6 +64,13 @@ type safeRegistrar struct {
 	recentToolCalls        diagnostics.RecentToolCallRecorder
 }
 
+func sdkToolAnnotations(tool tools.Tool) *sdkmcp.ToolAnnotations {
+	if tool.RequiresWrite() {
+		return nil
+	}
+	return &sdkmcp.ToolAnnotations{ReadOnlyHint: true}
+}
+
 func (r *safeRegistrar) AddTool(tool tools.Tool) error {
 	tool = r.prepareTool(tool)
 	if err := r.validateTool(tool); err != nil {
@@ -102,6 +109,7 @@ func (r *safeRegistrar) AddTool(tool tools.Tool) error {
 			Description:  tool.Description,
 			InputSchema:  tool.InputSchema,
 			OutputSchema: tool.OutputSchema,
+			Annotations:  sdkToolAnnotations(tool),
 		}, func(ctx context.Context, req *sdkmcp.CallToolRequest) (res *sdkmcp.CallToolResult, err error) {
 			started := time.Now()
 			argumentBytes := len(req.Params.Arguments)

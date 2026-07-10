@@ -11,7 +11,7 @@
     },
     "include_full": {
       "default": false,
-      "description": "When true, include raw upstream PLAN/TARGET/NOTE event payloads only on the corresponding phase, target_event, and note rows. Default output is a compact summary.",
+      "description": "When true, include raw upstream PLAN/TARGET/NOTE event payloads only on the corresponding phase, target_event, ATP note, and personal context_note rows. Default output is a compact provenance-aware summary.",
       "type": "boolean"
     },
     "limit": {

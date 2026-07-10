@@ -57,6 +57,17 @@ func (schemaCatalogRoundTripper) RoundTrip(*http.Request) (*http.Response, error
 // currently empty; future exclusions must include a durable reason and remain rare.
 var schemaCatalogToolExclusions = map[string]string{}
 
+type schemaProperty struct {
+	ToolName string
+	Property string
+}
+
+// approvedSchemaPropertyRemovals is intentionally limited to safety corrections
+// where retaining an argument would make a false public promise.
+var approvedSchemaPropertyRemovals = map[schemaProperty]string{
+	{ToolName: "update_sport_settings", Property: "effective_date"}: "TP-228: upstream apply is not date-scoped; retaining this argument falsely promised bounded historical recomputation.",
+}
+
 func generateSchemaCatalogTools(ctx context.Context) ([]tools.Tool, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -249,7 +260,9 @@ func compareStableSchema(base Snapshot, current Snapshot) []SchemaFailure {
 	for _, prop := range sortedPropertyNames(baseProps) {
 		currentProp, ok := currentProps[prop]
 		if !ok {
-			failures = append(failures, SchemaFailure{ToolName: base.ToolName, Property: prop, Kind: "property-removed", Message: "baseline argument property is missing; removals and renames require a new tool name", Baseline: base.Path, Current: current.Path})
+			if !isApprovedSchemaPropertyRemoval(base.ToolName, prop) {
+				failures = append(failures, SchemaFailure{ToolName: base.ToolName, Property: prop, Kind: "property-removed", Message: "baseline argument property is missing; removals and renames require a new tool name", Baseline: base.Path, Current: current.Path})
+			}
 			continue
 		}
 		if !reflect.DeepEqual(compatibilitySchema(baseProps[prop]), compatibilitySchema(currentProp)) {
@@ -263,6 +276,11 @@ func compareStableSchema(base Snapshot, current Snapshot) []SchemaFailure {
 		}
 	}
 	return failures
+}
+
+func isApprovedSchemaPropertyRemoval(toolName string, property string) bool {
+	_, ok := approvedSchemaPropertyRemovals[schemaProperty{ToolName: toolName, Property: property}]
+	return ok
 }
 
 func removeExistingSnapshots(dir string) error {
