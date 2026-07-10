@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
-**Review Counter:** 4
+**Review Counter:** 5
 **Iteration:** 1
 **Size:** L
 
@@ -23,6 +23,11 @@
 ### Step 1: Define the constraint contract
 
 **Status:** 🟨 In Progress
+
+<!-- R005 revision items -->
+- [ ] R005-1: Invalid candidates (NaN/negative) must not pollute priorLoad/priorMinutes or reconciliation; sanitize embedded Candidate to avoid JSON NaN failure
+- [ ] R005-2: Align docs — zero-budget case fires warning + violation (hard block), not warning-only; update Key Invariant 2, Validation Logic, example
+- [ ] R005-3: ValidateWeekConstraints — replace map iteration with ordered field checks for deterministic error ordering
 
 <!-- R004 revision items -->
 - [x] R004-1: Exhausted budgets (remaining <= 0) must also violate when candidate.Load > 0 / candidate.DurationMinutes > 0 (not just warn)
@@ -137,3 +142,4 @@
 | 2026-07-10 14:10 | Review R002 | code Step 1: REVISE |
 | 2026-07-10 14:16 | Review R003 | code Step 1: REVISE |
 | 2026-07-10 14:25 | Review R004 | code Step 1: REVISE |
+| 2026-07-10 14:32 | Review R005 | code Step 1: REVISE |
