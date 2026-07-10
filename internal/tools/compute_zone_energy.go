@@ -444,7 +444,11 @@ func orderedZoneEnergyGroups(groups map[string]*zoneEnergyGroup) ([]zoneEnergyRo
 		}
 		return ordered[i].zoneKey < ordered[j].zoneKey
 	})
-	rows := []zoneEnergyRow{}
+	rowCount := 0
+	for _, group := range ordered {
+		rowCount += len(group.rows)
+	}
+	rows := make([]zoneEnergyRow, 0, rowCount)
 	sources := make([]zoneEnergyZoneSource, 0, len(ordered))
 	for _, group := range ordered {
 		rows = append(rows, group.rows...)
