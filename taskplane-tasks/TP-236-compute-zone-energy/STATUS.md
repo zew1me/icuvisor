@@ -4,8 +4,8 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
-**Review Counter:** 8
-**Iteration:** 3
+**Review Counter:** 9
+**Iteration:** 4
 **Size:** L
 
 ---
@@ -55,15 +55,15 @@
 
 ### Step 3: Add and register the MCP analyzer
 
-**Status:** ⬜ Not Started
+**Status:** 🟨 In Progress
 
-- [ ] Range, profile, and stream orchestration implemented
-- [ ] Partial activity coverage reported
-- [ ] Full-toolset registration and schemas added
-- [ ] Catalog, safety, protocol, and tier coverage added
-- [ ] R008 catalog source-of-truth and analyzer-family activation surfaces updated
-- [ ] R008 MCP read-only annotation mapped and asserted through tools/list
-- [ ] R008 rounded cross-activity aggregation and response-wide share reconciliation tested
+- [x] Range, profile, and stream orchestration implemented
+- [x] Partial activity coverage reported
+- [x] Full-toolset registration and schemas added
+- [x] Catalog, safety, protocol, and tier coverage added
+- [x] R008 catalog source-of-truth and analyzer-family activation surfaces updated
+- [x] R008 MCP read-only annotation mapped and asserted through tools/list
+- [x] R008 rounded cross-activity aggregation and response-wide share reconciliation tested
 
 ---
 
@@ -127,6 +127,8 @@
 | 2026-07-10 16:30 | Worker iter 1 | done in 1177s, tools: 86 |
 | 2026-07-10 16:53 | Worker iter 2 | done in 1334s, tools: 16 |
 | 2026-07-10 16:53 | Step 2 started | Implement and test the pure calculation |
+| 2026-07-10 17:08 | Worker iter 3 | done in 951s, tools: 59 |
+| 2026-07-10 17:08 | Step 3 started | Add and register the MCP analyzer |
 
 ## Blockers
 
@@ -170,3 +172,4 @@
 | 2026-07-10 16:35 | Review R005 | code Step 1: APPROVE |
 | 2026-07-10 16:38 | Review R006 | plan Step 2: APPROVE |
 | 2026-07-10 17:01 | Review R008 | plan Step 3: REVISE |
+| 2026-07-10 17:04 | Review R009 | plan Step 3: APPROVE |

@@ -541,6 +541,9 @@ func TestProtocolListTools(t *testing.T) {
 	if tool.Description == "" {
 		t.Fatal("tool description is empty")
 	}
+	if tool.Annotations == nil || !tool.Annotations.ReadOnlyHint {
+		t.Fatalf("default-read tool annotations = %#v, want readOnlyHint true", tool.Annotations)
+	}
 }
 
 func TestProtocolResourceInitializeListAndRead(t *testing.T) {
@@ -887,6 +890,43 @@ func TestProtocolCoachACLFiltersCatalogAndResolvesAthleteID(t *testing.T) {
 	text := call.Content[0].(*sdkmcp.TextContent).Text
 	if !strings.Contains(text, `"target_athlete_id":"i222"`) {
 		t.Fatalf("CallTool() text = %s, want target i222", text)
+	}
+}
+
+func TestProtocolComputeZoneEnergyIsFullOnlyReadAnalyzer(t *testing.T) {
+	t.Parallel()
+
+	client := newNoNetworkProtocolClient(t)
+	coreRegistry := tools.NewRegistryWithOptions(client, tools.RegistryOptions{Version: "test", TimezoneFallback: "UTC", Capability: safety.NewCapability(safety.ModeFull), Toolset: safety.ToolsetCore})
+	coreCtx, coreSession, coreCleanup := connectTestClientWithOptions(t, Options{Registry: coreRegistry, Capability: safety.NewCapability(safety.ModeFull), Toolset: safety.ToolsetCore})
+	defer coreCleanup()
+	core, err := coreSession.ListTools(coreCtx, nil)
+	if err != nil {
+		t.Fatalf("core ListTools() error = %v", err)
+	}
+	if hasTool(core.Tools, toolcatalog.ComputeZoneEnergy) {
+		t.Fatalf("core tools/list exposed full-only %s", toolcatalog.ComputeZoneEnergy)
+	}
+
+	fullRegistry := tools.NewRegistryWithOptions(client, tools.RegistryOptions{Version: "test", TimezoneFallback: "UTC", Capability: safety.NewCapability(safety.ModeNone), Toolset: safety.ToolsetFull})
+	fullCtx, fullSession, fullCleanup := connectTestClientWithOptions(t, Options{Registry: fullRegistry, Capability: safety.NewCapability(safety.ModeNone), Toolset: safety.ToolsetFull})
+	defer fullCleanup()
+	full, err := fullSession.ListTools(fullCtx, nil)
+	if err != nil {
+		t.Fatalf("full ListTools() error = %v", err)
+	}
+	var zoneEnergy *sdkmcp.Tool
+	for _, tool := range full.Tools {
+		if tool.Name == toolcatalog.ComputeZoneEnergy {
+			zoneEnergy = tool
+			break
+		}
+	}
+	if zoneEnergy == nil {
+		t.Fatalf("full read-only tools/list missing %s", toolcatalog.ComputeZoneEnergy)
+	}
+	if zoneEnergy.Annotations == nil || !zoneEnergy.Annotations.ReadOnlyHint {
+		t.Fatalf("%s annotations = %#v, want readOnlyHint true", toolcatalog.ComputeZoneEnergy, zoneEnergy.Annotations)
 	}
 }
 
