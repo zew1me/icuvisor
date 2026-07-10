@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 3
-**Review Counter:** 15
+**Review Counter:** 16
 **Iteration:** 1
 **Size:** L
 
@@ -71,6 +71,7 @@
 - [ ] Run/swim/row round-trip scenarios covered
 - [ ] m/s regression assertions added
 - [ ] Percentage zones remain unchanged
+- [ ] R016: Lock fixture consumers, replace remaining duration-shaped fixtures, and test returned m/s echoes
 
 ---
 
@@ -115,6 +116,7 @@
 | R013 | Plan | 3 | REVISE | `.reviews/R013-plan-step3.md` |
 | R014 | Plan | 3 | APPROVE | — |
 | R015 | Code | 3 | APPROVE | — |
+| R016 | Plan | 4 | REVISE | `.reviews/R016-plan-step4.md` |
 
 ## Discoveries
 
@@ -155,3 +157,4 @@
 | 2026-07-10 20:31 | Review R013 | plan Step 3: REVISE |
 | 2026-07-10 20:33 | Review R014 | plan Step 3: APPROVE |
 | 2026-07-10 20:44 | Review R015 | code Step 3: APPROVE |
+| 2026-07-10 20:48 | Review R016 | plan Step 4: REVISE |
