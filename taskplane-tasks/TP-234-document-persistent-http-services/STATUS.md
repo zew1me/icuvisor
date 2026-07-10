@@ -1,10 +1,10 @@
 # TP-234: Add persistent loopback HTTP service recipes — Status
 
-**Current Step:** Step 3: Add documentation contract coverage
+**Current Step:** Step 4: Testing & Verification
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 1
-**Review Counter:** 6
+**Review Counter:** 7
 **Iteration:** 1
 **Size:** M
 
@@ -67,16 +67,16 @@ All foreground HTTP-start commands in `http-transport.md`, including macOS and W
 
 ### Step 3: Add documentation contract coverage
 
-**Status:** 🟨 In Progress
+**Status:** ✅ Complete
 
 **Expanded plan (R006):** Add `scripts/tests/test_http_service_docs.py` with repository-root-relative `Path` values, `require`/failure output matching `test_docs_guidance.py`, and a fenced-code extractor that inspects Bash, PowerShell, JSON, and service-definition snippets separately from prose in `persistent-http-service.md` and `http-transport.md`. It will require the three OS headings; literal `--transport http --http-bind 127.0.0.1:8765` server forms and client-only `http://127.0.0.1:8765/mcp`; same-account setup/credential-store guidance; macOS `launchctl`/log/recovery/removal, Linux `systemctl --user`/journal/recovery/removal, and Windows Task Scheduler/application-log/recovery/removal commands; the hosted HTTPS/OAuth URL, no-tunnel policy, and `icuvisor` connector key. It will normalize XML tags while validating HTTP bind directives so the plist's split argument form is covered.
 
 The executable-only negative assertions will reject `INTERVALS_ICU_API_KEY` assignment or environment source, dotenv/environment-file sources, plaintext `api_key`, systemd or launchd service environment directives, wildcard IPv4/IPv6, and every HTTP bind directive whose extracted value is not `127.0.0.1:8765`; explanatory warning prose remains permitted. `docs-guidance-test` in `Makefile` will run this script after the existing guidance test, so the established Ubuntu CI invocation needs no workflow edit. The step will execute the new script and `make docs-guidance-test`.
 
-- [ ] Three-platform content contract added
-- [ ] Loopback, lifecycle, and credential assertions added
-- [ ] Insecure executable examples rejected
-- [ ] Documentation contract wired into existing Make and CI path
+- [x] Three-platform content contract added
+- [x] Loopback, lifecycle, and credential assertions added
+- [x] Insecure executable examples rejected
+- [x] Documentation contract wired into existing Make and CI path
 - [x] R006: Root-relative fenced-snippet test structure and guide scope specified
 - [x] R006: Positive lifecycle, remote-boundary, and connector assertions specified
 - [x] R006: Executable-only security assertions and existing CI invocation specified
@@ -85,7 +85,7 @@ The executable-only negative assertions will reject `INTERVALS_ICU_API_KEY` assi
 
 ### Step 4: Testing & Verification
 
-**Status:** ⬜ Not Started
+**Status:** 🟨 In Progress
 
 - [ ] FULL test suite passing
 - [ ] Documentation contract test passing
@@ -115,6 +115,7 @@ The executable-only negative assertions will reject `INTERVALS_ICU_API_KEY` assi
 | R004 | Plan | 2 | REVISE | `.reviews/R004-plan-step2.md` |
 | R005 | Plan | 2 | APPROVE | inline |
 | R006 | Plan | 3 | REVISE | `.reviews/R006-plan-step3.md` |
+| R007 | Plan | 3 | APPROVE | inline |
 
 ## Discoveries
 
@@ -142,3 +143,4 @@ The executable-only negative assertions will reject `INTERVALS_ICU_API_KEY` assi
 | 2026-07-10 21:27 | Review R004 | plan Step 2: REVISE |
 | 2026-07-10 21:30 | Review R005 | plan Step 2: APPROVE |
 | 2026-07-10 21:34 | Review R006 | plan Step 3: REVISE |
+| 2026-07-10 21:36 | Review R007 | plan Step 3: APPROVE |
