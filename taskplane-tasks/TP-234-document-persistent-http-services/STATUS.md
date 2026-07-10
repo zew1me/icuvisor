@@ -1,10 +1,10 @@
 # TP-234: Add persistent loopback HTTP service recipes — Status
 
-**Current Step:** Step 2: Write and integrate the guide
+**Current Step:** Step 3: Add documentation contract coverage
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 1
-**Review Counter:** 4
+**Review Counter:** 5
 **Iteration:** 1
 **Size:** M
 
@@ -48,17 +48,17 @@ All foreground HTTP-start commands in `http-transport.md`, including macOS and W
 
 ### Step 2: Write and integrate the guide
 
-**Status:** 🟨 In Progress
+**Status:** ✅ Complete
 
 **Expanded plan (R004):** `persistent-http-service.md` will begin with the same-account `icuvisor setup` prerequisite, loopback-only client URL, credential/session boundary, and no-credentials-in-service rule. It will then provide named **macOS: LaunchAgent**, **Linux: systemd user service**, and **Windows: Task Scheduler** sections. Each section will have a fenced, copy-pasteable creation sample based on Step 1's approved definition, absolute binary-path validation or expansion, literal `--transport http --http-bind 127.0.0.1:8765`, safe working directory, non-secret log sink, start/status/log/restart/stop/disable-or-unload/removal commands, port/keychain/config recovery, and the same logged-in-user limitation. The Windows section will generate its quoted PowerShell wrapper with all-stream log redirection and child exit propagation; no section will include API-key values, credential environment directives, `.env`, `--env-file`, or plaintext `api_key` examples. A final remote-boundary section will require provider-hosted connector UIs to use hosted HTTPS/OAuth at `https://connect.icuvisor.app/mcp`, reject public tunnels, and recommend the simple connector key `icuvisor`.
 
 `http-transport.md` will link to the guide for persistence, replace the two implicit foreground HTTP starts with literal loopback flags, and replace the LAN code block with warning-only prose while retaining the unauthenticated-LAN warning and hosted URL/no-tunnel guidance. `_index.md` will add a persistence card. `troubleshooting.md` will add a stopped/failed persistent-process row linking to the guide. `CHANGELOG.md` will receive an `[Unreleased]` Added entry in this step. `make web-build` will verify every new `relref` and rendered navigation link after the edits.
 
-- [ ] Cross-platform recipes written
-- [ ] Guide navigation and HTTP links added
-- [ ] Connector key guidance included
-- [ ] LAN and hosted warnings preserved
-- [ ] Targeted website build passes
+- [x] Cross-platform recipes written
+- [x] Guide navigation and HTTP links added
+- [x] Connector key guidance included
+- [x] LAN and hosted warnings preserved
+- [x] Targeted website build passes
 - [x] R004: New-guide outline and fenced service samples mapped to the approved design
 - [x] R004: Foreground, navigation, troubleshooting, and changelog edits mapped file by file
 - [x] R004: Link rendering and website-build verification sequence specified
@@ -67,7 +67,7 @@ All foreground HTTP-start commands in `http-transport.md`, including macOS and W
 
 ### Step 3: Add documentation contract coverage
 
-**Status:** ⬜ Not Started
+**Status:** 🟨 In Progress
 
 - [ ] Three-platform content contract added
 - [ ] Loopback, lifecycle, and credential assertions added
@@ -105,6 +105,7 @@ All foreground HTTP-start commands in `http-transport.md`, including macOS and W
 | R002 | Plan | 1 | REVISE | `.reviews/R002-plan-step1.md` |
 | R003 | Plan | 1 | APPROVE | inline |
 | R004 | Plan | 2 | REVISE | `.reviews/R004-plan-step2.md` |
+| R005 | Plan | 2 | APPROVE | inline |
 
 ## Discoveries
 
@@ -130,3 +131,4 @@ All foreground HTTP-start commands in `http-transport.md`, including macOS and W
 | 2026-07-10 21:22 | Review R002 | plan Step 1: REVISE |
 | 2026-07-10 21:26 | Review R003 | plan Step 1: APPROVE |
 | 2026-07-10 21:27 | Review R004 | plan Step 2: REVISE |
+| 2026-07-10 21:30 | Review R005 | plan Step 2: APPROVE |
