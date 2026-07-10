@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Corrected `get_annual_training_plan` note shaping to use upstream `plan_applied` provenance instead of English recovery keywords, keep personal calendar notes as neutral context, and exclude them from ATP note counts and recovery conclusions.
 - Aligned `update_sport_settings` with the live intervals.icu contract: requests now send the required HR-zone recalculation option, reject the unsupported `effective_date` argument, and never implicitly apply settings to historical activities.
 
 ## [1.4.0] - 2026-07-05

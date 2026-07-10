@@ -1,11 +1,11 @@
 # TP-230: Distinguish ATP-generated notes from personal calendar notes — Status
 
 **Current Step:** Step 5: Documentation & Delivery
-**Status:** 🟡 In Progress
+**Status:** ✅ Complete
 **Last Updated:** 2026-07-10
 **Review Level:** 2
 **Review Counter:** 11
-**Iteration:** 1
+**Iteration:** 2
 **Size:** M
 
 ---
@@ -71,11 +71,11 @@
 
 ### Step 5: Documentation & Delivery
 
-**Status:** 🟨 In Progress
+**Status:** ✅ Complete
 
-- [ ] Must Update docs modified
-- [ ] Check If Affected docs reviewed
-- [ ] Discoveries logged
+- [x] Must Update docs modified
+- [x] Check If Affected docs reviewed
+- [x] Discoveries logged
 
 ---
 
@@ -100,6 +100,9 @@
 | Discovery | Disposition | Location |
 |-----------|-------------|----------|
 | `taskplane-tasks/CONTEXT.md` and the packet `.reviews/` directory were not staged; all implementation and documentation paths in task scope exist. | Continue from PROMPT and authoritative project docs; review tooling may create `.reviews/` when invoked. | Preflight |
+| `intervals.Event.PlanApplied` was already decoded from the upstream JSON — no new struct field was needed; classification required only a `strings.TrimSpace` guard. | Implementation used the existing field directly. Locale-independent provenance confirmed. | Step 2 |
+| `annualTrainingPlanRecoveryHint` was the sole English-keyword recovery path: it scanned name/type/description/tags for `recovery`, `rest`, `taper`, `deload`. Removing it eliminated all locale-dependence in the note-classification branch. | Removed entirely; `recovery_note_count` and the hint field were dropped from responses. | Step 2 |
+| `for_week` is `false` on both ATP-generated and personal NOTE events; it is not a provenance signal. `plan_applied` (non-empty after trimming) is the only reliable ATP provenance marker available on NOTE rows. | Decision confirms Step 1 design. No additional field needed. | Step 2 |
 
 ## Execution Log
 
@@ -108,6 +111,7 @@
 | 2026-07-10 | Task staged | PROMPT.md and STATUS.md created |
 | 2026-07-10 12:26 | Task started | Runtime V2 lane-runner execution |
 | 2026-07-10 12:26 | Step 0 started | Preflight |
+| 2026-07-10 13:19 | Worker iter 1 | done in 3161s, tools: 171 |
 
 ## Blockers
 
