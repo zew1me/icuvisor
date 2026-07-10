@@ -54,6 +54,7 @@ All foreground HTTP-start commands in `http-transport.md`, including macOS and W
 - [ ] Guide navigation and HTTP links added
 - [ ] Connector key guidance included
 - [ ] LAN and hosted warnings preserved
+- [ ] Targeted website build passes
 
 ---
 
