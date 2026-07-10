@@ -80,11 +80,11 @@
 
 ### Step 5: Documentation & Delivery
 
-**Status:** 🟨 In Progress
+**Status:** ✅ Complete
 
-- [ ] Must Update docs modified
-- [ ] Check If Affected docs reviewed
-- [ ] Discoveries logged
+- [x] Must Update docs modified
+- [x] Check If Affected docs reviewed
+- [x] Discoveries logged
 
 ---
 
@@ -105,6 +105,8 @@
 | Discovery | Disposition | Location |
 |-----------|-------------|----------|
 | Tier 2 `taskplane-tasks/CONTEXT.md` is absent in this worktree; all scoped source/doc paths exist | Use PROMPT.md plus authoritative project docs and established repository patterns | Preflight |
+| All Check If Affected surfaces enumerated handoff-adjacent content | Updated Claude Project fresh-chat guidance, cookbook card/catalog count, and README downloadable-pack list to match the canonical handoff workflow | Step 5 |
+| MCP transport protocol coverage hard-coded the prior ten-prompt catalog | Updated the cross-transport prompt count and sorted name expectation to include `coaching_handoff`; full and race suites pass | Step 4 |
 
 ## Execution Log
 
