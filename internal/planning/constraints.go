@@ -179,6 +179,11 @@ const (
 	// min(MaxSessionsPerDay, len(Slots)) per day; sport/mode filtering is not applied.
 	WarnInfeasibleSessionCount WarningCode = "infeasible_session_count"
 
+	// WarnArithmeticOverflow fires when candidate, completed, or fixed numeric totals
+	// overflow float64 range during reconciliation. JSON marshaling of non-finite
+	// values would fail; the reconciliation is set to zero and this warning is emitted instead.
+	WarnArithmeticOverflow WarningCode = "arithmetic_overflow"
+
 	// WarnRequestedSessionCountUnmet fires when the batch contains fewer valid sessions
 	// than *RequestedSessionCount. The warning includes both the requested count and the
 	// accepted count, so callers can detect underfilled schedules deterministically.
@@ -343,18 +348,57 @@ func ValidateWeekConstraints(wc WeekConstraints) error {
 }
 
 // Reconcile computes weekly time and load totals from WeekConstraints and candidates.
-// Invalid-input candidates (NaN/negative) are excluded from CandidateMinutes and
-// CandidateLoad to prevent non-finite values from propagating into the result.
-func Reconcile(wc WeekConstraints, candidates []CandidateSession) Reconciliation {
+// Invalid-input candidates (NaN/negative) are excluded. Returns an error if any
+// accumulated total overflows float64 (e.g. two math.MaxFloat64-valued candidates).
+// Overflow is reported explicitly rather than silently producing non-finite values
+// that would fail JSON marshaling.
+func Reconcile(wc WeekConstraints, candidates []CandidateSession) (Reconciliation, error) {
 	var candMin, candLoad float64
 	for _, c := range candidates {
 		if invalidCandidateInputViolation(c) != nil {
 			continue
 		}
-		candMin += c.DurationMinutes
 		candLoad += c.Load
+		if math.IsInf(candLoad, 0) {
+			return Reconciliation{}, fmt.Errorf("candidate load total overflows float64")
+		}
+		candMin += c.DurationMinutes
+		if math.IsInf(candMin, 0) {
+			return Reconciliation{}, fmt.Errorf("candidate duration total overflows float64")
+		}
 	}
-	return buildReconciliation(wc, candMin, candLoad)
+	recon := buildReconciliation(wc, candMin, candLoad)
+	if err := checkReconciliationOverflow(recon); err != nil {
+		return Reconciliation{}, err
+	}
+	return recon, nil
+}
+
+// checkReconciliationOverflow returns an error if any Reconciliation field is non-finite.
+func checkReconciliationOverflow(r Reconciliation) error {
+	fields := []struct {
+		name string
+		val  float64
+	}{
+		{"completed_minutes", r.CompletedMinutes},
+		{"completed_load", r.CompletedLoad},
+		{"fixed_minutes", r.FixedMinutes},
+		{"fixed_load", r.FixedLoad},
+		{"projected_minutes", r.ProjectedMinutes},
+		{"projected_load", r.ProjectedLoad},
+	}
+	for _, f := range fields {
+		if math.IsInf(f.val, 0) || math.IsNaN(f.val) {
+			return fmt.Errorf("reconciliation field %s overflows float64", f.name)
+		}
+	}
+	if r.RemainingMinutes != nil && (math.IsInf(*r.RemainingMinutes, 0) || math.IsNaN(*r.RemainingMinutes)) {
+		return fmt.Errorf("reconciliation field remaining_minutes overflows float64")
+	}
+	if r.RemainingLoad != nil && (math.IsInf(*r.RemainingLoad, 0) || math.IsNaN(*r.RemainingLoad)) {
+		return fmt.Errorf("reconciliation field remaining_load overflows float64")
+	}
+	return nil
 }
 
 // ValidateCandidate validates a single candidate session in isolation. All slots in the
@@ -557,9 +601,15 @@ func ValidateCandidates(wc WeekConstraints, candidates []CandidateSession) Batch
 		}
 	}
 
-	recon := Reconcile(wc, candidates)
-
-	if recon.RemainingLoad != nil && *recon.RemainingLoad > 0 && recon.CandidateLoad < *recon.RemainingLoad {
+	recon, reconcileErr := Reconcile(wc, candidates)
+	if reconcileErr != nil {
+		// Overflow in candidate/projected totals; return a zero reconciliation with a warning.
+		weekWarnings = append(weekWarnings, Warning{
+			Code:    WarnArithmeticOverflow,
+			Message: reconcileErr.Error(),
+			Field:   "candidate_totals",
+		})
+	} else if recon.RemainingLoad != nil && *recon.RemainingLoad > 0 && recon.CandidateLoad < *recon.RemainingLoad {
 		weekWarnings = append(weekWarnings, Warning{
 			Code:    WarnInfeasibleLoad,
 			Message: "candidate load total is less than remaining weekly load target",

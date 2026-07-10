@@ -172,6 +172,7 @@ Outcome for all candidates in a week.
 |---|---|
 | `infeasible_session_count` | `RequestedSessionCount` exceeds total structural slots across all days. Structural capacity only; does not filter by sport or mode. |
 | `requested_session_count_unmet` | Batch contains fewer valid sessions than `*RequestedSessionCount` (underfill). Includes `requested` and `accepted` counts in the value field. |
+| `arithmetic_overflow` | Candidate, completed, or fixed numeric totals overflow float64 range during reconciliation. `Reconciliation` is set to zero when this fires. `Reconcile` also returns a non-nil error directly. |
 | `infeasible_load` | Total load of valid-input candidates is less than the remaining weekly load target. Invalid-input candidates (NaN/negative) are excluded from this check. |
 | `zero_remaining_load` | Remaining load budget is zero or negative. Fires unconditionally when remaining ≤ 0. Accompanied by `weekly_load_overshoot` when `candidate.Load > 0`. |
 | `zero_remaining_time` | Remaining time budget is zero or negative. Parallel to `zero_remaining_load`. Accompanied by `weekly_time_overshoot` when `candidate.DurationMinutes > 0`. |

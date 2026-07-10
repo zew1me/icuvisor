@@ -25,7 +25,7 @@
 **Status:** 🟨 In Progress
 
 <!-- R013 revision items -->
-- [ ] R013-1: Detect float64 overflow in Reconcile; change to (Reconciliation, error); in ValidateCandidates use WarnArithmeticOverflow on overflow; test overflow JSON-marshal safety
+- [x] R013-1: Detect float64 overflow in Reconcile; change to (Reconciliation, error); in ValidateCandidates use WarnArithmeticOverflow on overflow; test overflow JSON-marshal safety
 
 <!-- R012 revision items -->
 - [x] R012-1: ValidateCandidate must also emit ViolationRequestedSessionCountExceeded when RequestedSessionCount is pointer-to-0

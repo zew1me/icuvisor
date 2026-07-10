@@ -474,7 +474,10 @@ func TestReconcile_ExcludesInvalidInputCandidates(t *testing.T) {
 		{Load: 50, DurationMinutes: 45},          // valid
 	}
 
-	recon := planning.Reconcile(wc, candidates)
+	recon, err := planning.Reconcile(wc, candidates)
+	if err != nil {
+		t.Fatalf("Reconcile unexpectedly failed: %v", err)
+	}
 	if math.IsNaN(recon.CandidateLoad) || math.IsInf(recon.CandidateLoad, 0) {
 		t.Errorf("CandidateLoad must be finite, got %v", recon.CandidateLoad)
 	}
@@ -499,7 +502,10 @@ func TestReconcile_NilTargets(t *testing.T) {
 		CompletedLoad:    50, // untracked; must not produce negative RemainingLoad
 		CompletedMinutes: 30,
 	}
-	recon := planning.Reconcile(wc, nil)
+	recon, err := planning.Reconcile(wc, nil)
+	if err != nil {
+		t.Fatalf("Reconcile unexpectedly failed: %v", err)
+	}
 	if recon.WeeklyTargetMinutes != nil {
 		t.Errorf("nil WeeklyTargetMinutes should produce nil in reconciliation, got %v", recon.WeeklyTargetMinutes)
 	}
@@ -533,12 +539,49 @@ func TestReconcile_ExplicitZeroTargetPreserved(t *testing.T) {
 		CompletedLoad:       10,
 		CompletedMinutes:    5,
 	}
-	recon := planning.Reconcile(wc, nil)
+	recon, err := planning.Reconcile(wc, nil)
+	if err != nil {
+		t.Fatalf("Reconcile unexpectedly failed: %v", err)
+	}
 	if recon.WeeklyTargetLoad == nil || *recon.WeeklyTargetLoad != 0 {
 		t.Errorf("explicit zero target should appear as 0 in reconciliation")
 	}
 	if recon.RemainingLoad == nil || *recon.RemainingLoad != -10 {
 		t.Errorf("explicit zero target with completed=10 should have RemainingLoad=-10, got %v", recon.RemainingLoad)
+	}
+}
+
+func TestReconcile_OverflowReturnsError(t *testing.T) {
+	// Two candidates each with MaxFloat64 load: sum overflows to +Inf.
+	wc := planning.WeekConstraints{WeekStartDate: "2026-07-06"}
+	candidates := []planning.CandidateSession{
+		{Load: math.MaxFloat64, DurationMinutes: 60},
+		{Load: math.MaxFloat64, DurationMinutes: 60},
+	}
+	_, err := planning.Reconcile(wc, candidates)
+	if err == nil {
+		t.Error("expected overflow error from Reconcile")
+	}
+}
+
+func TestValidateCandidates_OverflowWarnAndJSONSafe(t *testing.T) {
+	wc := planning.WeekConstraints{
+		WeekStartDate: "2026-07-06",
+		AvailableDays: []planning.DayConstraints{
+			{Date: "2026-07-06", MaxSessionsPerDay: 2},
+		},
+	}
+	candidates := []planning.CandidateSession{
+		{Date: "2026-07-06", Load: math.MaxFloat64, DurationMinutes: 60},
+		{Date: "2026-07-06", Load: math.MaxFloat64, DurationMinutes: 60},
+	}
+	batch := planning.ValidateCandidates(wc, candidates)
+	if !hasBatchWarning(batch, planning.WarnArithmeticOverflow) {
+		t.Errorf("expected arithmetic_overflow warning, got warnings: %v", batch.Warnings)
+	}
+	// JSON must not fail.
+	if _, jsonErr := json.Marshal(batch); jsonErr != nil {
+		t.Errorf("JSON marshal of overflow batch failed: %v", jsonErr)
 	}
 }
 
