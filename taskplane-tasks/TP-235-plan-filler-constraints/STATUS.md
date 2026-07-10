@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
-**Review Counter:** 6
+**Review Counter:** 7
 **Iteration:** 1
 **Size:** L
 
@@ -23,6 +23,10 @@
 ### Step 1: Define the constraint contract
 
 **Status:** 🟨 In Progress
+
+<!-- R007 revision items -->
+- [ ] R007-1: ValidateCandidates must treat MaxSessionsPerDay==0 as day_unavailable (same as ValidateCandidate), before calling validateAgainstDay
+- [ ] R007-2: Fix WarnInfeasibleLoad exported comment and design-doc table entry — say "valid-input candidates only", not "including invalid candidates"
 
 <!-- R006 revision items -->
 - [x] R006-1: ValidateCandidate single-candidate path must also sanitize embedded candidate for NaN-safe serialization
@@ -149,3 +153,4 @@
 | 2026-07-10 14:25 | Review R004 | code Step 1: REVISE |
 | 2026-07-10 14:32 | Review R005 | code Step 1: REVISE |
 | 2026-07-10 14:38 | Review R006 | code Step 1: REVISE |
+| 2026-07-10 14:45 | Review R007 | code Step 1: REVISE |
