@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 1
-**Review Counter:** 2
+**Review Counter:** 3
 **Iteration:** 1
 **Size:** M
 
@@ -28,7 +28,7 @@
 - [ ] Require all-session date-range activity reads to retain unnamed rows and report their availability separately
 - [ ] Add a `FuelingReview` portable-pack contract test before Step 2's function, registry, and golden-fixture work
 - [ ] Define closed nutrition vocabulary, source-labelled return layout, and missing/freshness/availability reporting
-- [ ] Define grams-per-hour denominator, valid-row eligibility, range aggregation, and coverage/exclusion rules
+- [ ] Define grams-per-hour denominator, non-negative logged-intake eligibility, range aggregation, and coverage/exclusion rules
 - [ ] Define read-only health, product, target, and custom-field boundaries
 - [ ] Resolve Step 1/2 ownership for contract verification, prompt function/registry, golden fixture, and portable-pack discoverability
 
@@ -85,6 +85,7 @@
 |---|------|------|---------|
 | R001 | Plan | 1 | REVISE | `.reviews/R001-plan-step1.md` |
 | R002 | Plan | 1 | REVISE | `.reviews/R002-plan-step1.md` |
+| R003 | Plan | 1 | REVISE | `.reviews/R003-plan-step1.md` |
 
 ## Discoveries
 
@@ -110,8 +111,9 @@
 
 - **Modes, arguments, and source route:** Arguments are optional `activity_id`, `start_date`, `end_date`, `race_date`, and `race_name`. `activity_id` is mutually exclusive with either range endpoint; supplied ranges require both ISO endpoints, must be in athlete-local order, inclusive, and 1–90 days. With neither mode argument, call `resolve_calendar_dates` for offsets `-14` and `-1` and use that resolved 14-completed-day range. Step 2's handler rejects conflicting, incomplete, invalid, reversed, or overlong arguments before rendering. Activity-ID mode uses `get_athlete_profile`, then `get_activity_details` for the selected activity. Date-range mode uses `get_athlete_profile`, then `get_activities` with `include_unnamed:true` and terse pages as the index/source for duration, load, and activity carbs; it uses `get_activity_details` only for a selected session needing more context, never for every row. Both modes call `get_wellness_data` only when daily nutrition evidence is requested or useful, `get_training_summary` only for aggregate load context, and `get_events` only for a supplied `race_date`; `race_name` alone asks for `race_date` rather than scanning an unbounded calendar. Race reads use athlete-local `oldest`/`newest` equal to `race_date`, `limit:100`, and label any `_meta.truncated` response partial rather than treating a missing match as unconfirmed. The prompt fetches all activity pages needed before saying a range is complete; otherwise it reports count/window as partial and omits the opaque token.
 - **Evidence and output:** `carbs_ingested_g` is a numeric athlete-logged during-activity intake; an absent key is a missing log and a numeric zero remains logged zero. `carbs_used_g` is an upstream used/burned estimate, never intake or an intake substitute. Wellness `carbs_g`, `calories_intake`, `protein_g`, and `fat_g` are daily dietary fields, separate from activity records and not summed/subtracted with them. `calories_burned` and training load are context only. Requested custom fields retain their exact code and unknown meaning. Return separate sections for sourced activity evidence, daily wellness evidence, race/calendar context, labelled calculations, coverage/data gaps, and separately labelled non-personalized general guidance.
-- **Calculation:** Use `moving_time_seconds` only. Per-session `logged carbs/hour = carbs_ingested_g / (moving_time_seconds / 3600)` with units `g/h`; calculate only for a returned numeric ingested value and positive moving time, never unavailable/Strava-blocked rows. A range rate, if shown, is the sum of valid logged ingested grams divided by the sum of the same valid moving durations and states eligible/total sessions and every exclusion. It never uses carbs used, calories, load, wellness totals, or targets as either operand.
+- **Calculation:** Use `moving_time_seconds` only. Per-session `logged carbs/hour = carbs_ingested_g / (moving_time_seconds / 3600)` with units `g/h`; calculate only for a returned non-negative numeric ingested value and positive moving time, never unavailable/Strava-blocked rows. A logged zero is valid and yields `0 g/h`; an absent value is a missing log; a negative upstream value is invalid intake evidence and is labelled and counted as an exclusion. A range rate, if shown, is the sum of valid logged ingested grams divided by the sum of the same valid moving durations and states eligible/total sessions and every exclusion. It never uses carbs used, calories, load, wellness totals, or targets as either operand.
 - **Dates and availability:** Anchor windows to athlete-local dates, preserve each activity timezone, label current-day `_meta.as_of` evidence partial, and surface stale wellness, provenance/field-semantics warnings, missing fields, unavailable/Strava-blocked rows, and missing/invalid durations. Missing is neither zero nor inadequate fueling. An absent requested race is reported as unconfirmed calendar context, never invented.
-- **Boundaries and ownership:** The prompt is read-only: no write/delete tools, `include_full`, streams, or raw payloads. It does not diagnose, assess eating disorders, prescribe individual nutrition, calculate/recommend carbohydrate/calorie/sodium/fluid/sweat targets, infer deficits, claim product/performance effects, or invent food/product libraries. General material is visibly educational/conditional and refers individual or medical requests to a qualified sports dietitian/clinician. Step 1 owns the contract, portable pack draft, `internal/prompts/fueling_review_test.go`, and `TestFuelingReviewPortablePackContract`, which reads the pack and asserts the exact tools/arguments, `include_unnamed`, pagination/event truncation, field distinctions, positive-moving-time formula/coverage exclusions, and read-only/health boundaries. Step 2 extends that file with the prompt function, registry, and deterministic golden-fixture tests; `docs/prompts/README.md` will list the new portable pack.
+- **Boundaries and ownership:** The prompt is read-only: no write/delete tools, `include_full`, streams, or raw payloads. It does not diagnose, assess eating disorders, prescribe individual nutrition, calculate/recommend carbohydrate/calorie/sodium/fluid/sweat targets, infer deficits, claim product/performance effects, or invent food/product libraries. General material is visibly educational/conditional and refers individual or medical requests to a qualified sports dietitian/clinician. Step 1 owns the contract, portable pack draft, `internal/prompts/fueling_review_test.go`, and `TestFuelingReviewPortablePackContract`, which reads the pack and asserts the exact tools/arguments, `include_unnamed`, pagination/event truncation, field distinctions, absent/zero/negative intake and positive-moving-time formula/coverage exclusions, and read-only/health boundaries. Step 2 extends that file with the prompt function, registry, and deterministic golden-fixture tests; `docs/prompts/README.md` will list the new portable pack.
 | 2026-07-10 18:29 | Review R001 | plan Step 1: REVISE |
 | 2026-07-10 18:32 | Review R002 | plan Step 1: REVISE |
+| 2026-07-10 18:34 | Review R003 | plan Step 1: REVISE |
