@@ -1,10 +1,10 @@
 # TP-228: Align sport-settings update and apply requests with live OpenAPI — Status
 
-**Current Step:** Step 3: Align the MCP schema and response
+**Current Step:** Step 4: Regression coverage
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 3
-**Review Counter:** 12
+**Review Counter:** 13
 **Iteration:** 1
 **Size:** L
 
@@ -63,11 +63,12 @@
 
 ### Step 4: Regression coverage
 
-**Status:** ⬜ Not Started
+**Status:** 🟨 In Progress
 
 - [ ] Exact update/apply wire tests added
 - [ ] No-implicit-apply regression added
 - [ ] Legacy invalid argument behavior covered
+- [ ] R013: Strengthen exact-query and single-update assertions without duplicating existing contract coverage
 
 ---
 
@@ -121,6 +122,7 @@
 - R004 plan review: client resolves no input defaults; it encodes a resolved `RecalcHRZones` bool and uses body-plus-query update and bodyless-PUT apply transports that preserve retries and 422 handling.
 - R007 plan review: schema stability needs a TP-228-only approved effective_date-removal exception; generic property-removal detection remains enforced.
 - Step 3 implementation plan: (1) replace `EffectiveDate` with `*bool RecalcHRZones` in the tool request; decoding resolves nil to true and passes the resulting bool to `WriteSportSettingsParams.RecalcHRZones`; remove `EffectiveDate` from internal params. (2) Delete `effective_date` from the strict type, validation, public strings, schema requirements/properties/examples, metadata, and tests, relying on `DecodeStrict` to reject it before profile/writer calls. (3) Replace date/recompute metadata with always-emitted `hr_zone_recalculation_requested` equal to the resolved option. (4) Make sport the sole required schema field, add `recalc_hr_zones` as optional boolean default true with an LLM-readable description, then regenerate snapshot and website catalogs with `make docs-tools`. (5) Add table-driven omitted/default-true and explicit-false forwarding/metadata tests plus legacy-date/unknown/null rejection with zero client calls. (6) Add production `approvedSchemaPropertyRemovals` keyed by tool/property in schema_stability.go; `compareStableSchema` consults it solely before a property-removed failure. Its sole durable TP-228 rationale approves `update_sport_settings.effective_date`; CheckSchemaStability tests prove a different property and another tool's effective_date still fail. Run `go test ./internal/tools ./internal/toolchecks`.
+- Step 4 implementation plan: retain the local-server true/false update and bodyless direct-apply tests, strengthen update to assert `RawQuery` is exactly `recalcHrZones=true|false`, and explicitly count exactly one update while rejecting `/apply`. Retain strict-decoding legacy-date, unknown, and null cases with exact terse errors and zero profile/writer calls. Change tests only, then run `go test ./internal/intervals ./internal/tools`.
 | 2026-07-10 11:40 | Review R001 | plan Step 1: REVISE |
 | 2026-07-10 11:42 | Review R002 | plan Step 1: APPROVE |
 | 2026-07-10 11:45 | Review R003 | code Step 1: APPROVE |
@@ -133,3 +135,4 @@
 | 2026-07-10 12:02 | Review R010 | plan Step 3: APPROVE |
 | 2026-07-10 12:11 | Review R011 | code Step 3: REVISE |
 | 2026-07-10 12:14 | Review R012 | code Step 3: APPROVE |
+| 2026-07-10 12:16 | Review R013 | plan Step 4: REVISE |
