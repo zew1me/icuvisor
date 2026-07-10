@@ -1,6 +1,6 @@
 # TP-235: Add plan-filler constraint model and validator — Status
 
-**Current Step:** Step 3: Add boundary-focused regression coverage
+**Current Step:** Step 6: Documentation & Delivery
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
@@ -152,11 +152,11 @@
 
 ### Step 6: Documentation & Delivery
 
-**Status:** ⬜ Not Started
+**Status:** ✅ Complete
 
-- [ ] Must Update docs modified
-- [ ] Check If Affected docs reviewed
-- [ ] Discoveries logged
+- [x] Must Update docs modified (`docs/design/plan-filler-constraints.md` and `ROADMAP.md`)
+- [x] Check If Affected docs reviewed (`docs/prd/PRD-icuvisor.md` and `CHANGELOG.md`; no public-contract change)
+- [x] Discoveries logged
 
 ---
 
@@ -169,6 +169,7 @@
 
 | Discovery | Disposition | Location |
 |-----------|-------------|----------|
+| Constraint validator is pure and unregistered, so it does not change the current public MCP contract. | Documented as a future v2.0 Plan Filler acceptance criterion; no PRD catalog or changelog entry. | `ROADMAP.md`, Step 4 notes |
 
 ## Execution Log
 
