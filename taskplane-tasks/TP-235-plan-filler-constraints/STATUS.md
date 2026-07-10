@@ -25,9 +25,9 @@
 **Status:** 🟨 In Progress
 
 <!-- R003 revision items -->
-- [ ] R003-1: Add ViolationRequestedSessionCountExceeded code; enforce RequestedSessionCount cap in ValidateCandidates (reject excess valid candidates)
-- [ ] R003-2: Implement slot consumption in ValidateCandidates (each slot holds one session; consumed slots unavailable to subsequent candidates)
-- [ ] R003-3: Fix slot violation semantics to use universal (all-slots) aggregation; add ViolationNoCompatibleSlot fallback for mixed-reason rejections
+- [x] R003-1: Add ViolationRequestedSessionCountExceeded code; enforce RequestedSessionCount cap in ValidateCandidates (reject excess valid candidates)
+- [x] R003-2: Implement slot consumption in ValidateCandidates (each slot holds one session; consumed slots unavailable to subsequent candidates)
+- [x] R003-3: Fix slot violation semantics to use universal (all-slots) aggregation; add ViolationNoCompatibleSlot fallback for mixed-reason rejections
 
 <!-- R002 revision items -->
 - [x] R002-1: Resolve WarnZeroRemainingLoad trigger inconsistency (code vs design doc boundary table — remove "with Load > 0" qualifier)

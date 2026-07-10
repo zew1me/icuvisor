@@ -155,12 +155,15 @@ Outcome for all candidates in a week.
 | `day_unavailable` | Candidate date absent from `AvailableDays` or `MaxSessionsPerDay` is zero. |
 | `daily_session_count_exceeded` | Adding the candidate would exceed `MaxSessionsPerDay`. |
 | `daily_time_exceeded` | Combined daily duration would exceed `MaxTotalDailyMinutes`. |
-| `slot_duration_exceeded` | Candidate duration exceeds every available slot's `MaxDurationMinutes`. |
-| `indoor_duration_exceeded` | Indoor candidate duration exceeds every slot's `MaxIndoorMinutes`. |
-| `sport_not_allowed` | Candidate sport is excluded by every slot's `AllowedSports` list. |
-| `mode_not_allowed` | Candidate mode is excluded by every slot's `AllowedModes` list. |
+| `slot_duration_exceeded` | Candidate duration exceeds EVERY available (unconsumed) slot's `MaxDurationMinutes`. Only emitted when the reason is universal across all slots. |
+| `indoor_duration_exceeded` | Indoor candidate duration exceeds EVERY available slot's `MaxIndoorMinutes`. Only emitted when universal. |
+| `sport_not_allowed` | Candidate sport is excluded by EVERY available slot's `AllowedSports`. Only emitted when universal. |
+| `mode_not_allowed` | Candidate mode is excluded by EVERY available slot's `AllowedModes`. Only emitted when universal. |
+| `no_compatible_slot` | No available slot fits the candidate and no single constraint is universal across all slots (mixed-reason rejection, e.g. slot A rejects for duration, slot B for sport). |
+| `no_available_slot` | All slots for the day have been consumed by prior candidates in a batch pass; `MaxSessionsPerDay` has not yet been reached but no slots remain. |
 | `weekly_load_overshoot` | Candidate load exceeds the remaining weekly load budget. |
 | `weekly_time_overshoot` | Candidate duration exceeds the remaining weekly time budget. |
+| `requested_session_count_exceeded` | This candidate would be the (N+1)th valid session; `RequestedSessionCount` is N. Position in the batch determines priority. |
 
 ### Warning Codes (soft — caller attention required)
 
@@ -180,13 +183,17 @@ Outcome for all candidates in a week.
 1. **Day check:** find the `DayConstraints` for the candidate date; return `day_unavailable` if absent or `MaxSessionsPerDay == 0`.
 2. **Daily session count:** if `sessionsAlreadyOnDay >= MaxSessionsPerDay`, emit `daily_session_count_exceeded`.
 3. **Combined daily duration:** if `MaxTotalDailyMinutes > 0` and the new total would exceed it, emit `daily_time_exceeded`.
-4. **Slot matching:** find one slot where all constraints pass. If none found, emit all applicable slot violation codes (`slot_duration_exceeded`, `indoor_duration_exceeded`, `sport_not_allowed`, `mode_not_allowed`).
+4. **Slot matching:** find the first available slot where all constraints pass (duration, indoor cap, sport, mode). If none found, emit violation codes for constraints that are universally violated (every slot rejects for the same reason). If no reason is universal (slot A rejects for duration, slot B for sport), emit `no_compatible_slot` as the deterministic fallback.
 5. **Weekly load:** compute `remainingLoad = WeeklyTargetLoad - CompletedLoad - FixedLoad - priorLoad`. If `remainingLoad ≤ 0`, emit `zero_remaining_load` warning (unconditional; fires regardless of `candidate.Load`). Otherwise if `candidate.Load > remainingLoad`, emit `weekly_load_overshoot`.
 6. **Weekly time:** compute `remainingMin = WeeklyTargetMinutes - CompletedMinutes - FixedMinutes - priorMinutes`. If `remainingMin ≤ 0`, emit `zero_remaining_time` warning (parallel to `zero_remaining_load`). Otherwise if `candidate.DurationMinutes > remainingMin`, emit `weekly_time_overshoot`.
 
 ### Batch validation (`ValidateCandidates`)
 
 Processes candidates in order, maintaining per-day session counts, per-day cumulative duration, and accumulated weekly load/time from prior candidates.
+
+**Slot consumption:** each slot holds at most one session. When a candidate passes all slot-level constraints (duration, indoor, sport, mode), it claims that slot and the slot is removed from the available set for subsequent candidates on the same day. This is independent of other violations — a candidate that finds a compatible slot claims it even if it also has a weekly overshoot violation, because the time window is "occupied" in the proposed schedule. When all slots for a day are consumed but `MaxSessionsPerDay` has not been reached, subsequent candidates receive `no_available_slot`.
+
+**RequestedSessionCount cap:** once `RequestedSessionCount` violation-free candidates have been accepted, subsequent valid candidates receive `requested_session_count_exceeded`. Position in the batch determines priority. A `RequestedSessionCount` of 0 means no cap is applied.
 
 **Accumulation is pessimistic (all candidates, including invalid ones).** All proposed candidates increment the day session counter and the per-day minute total, regardless of their validity. This ensures deterministic, position-based rejection: if sessions 1 and 2 are proposed for a day with `MaxSessionsPerDay: 1`, session 2 receives `daily_session_count_exceeded` regardless of whether session 1 is valid for other reasons. Weekly `priorLoad` and `priorMinutes` are likewise accumulated from all candidates, so that budget checks for candidate N account for the full load of candidates 1…N-1. Invalid candidates that would never be placed are included in this total.
 
@@ -275,7 +282,8 @@ BatchResult.Warnings: [infeasible_session_count (requested 5, have 2 slots)]
 | `FixedLoad + CompletedLoad > WeeklyTargetLoad` | RemainingLoad is negative; `zero_remaining_load` warning fires unconditionally (regardless of `candidate.Load`). |
 | `FixedMinutes + CompletedMinutes > WeeklyTargetMinutes` | RemainingMinutes is negative; `zero_remaining_time` warning fires unconditionally. |
 | `MaxSessionsPerDay == 0` | Day is treated as unavailable; `day_unavailable` fires. |
-| `len(Slots) == 0` | Slot constraints are skipped; only day-level and weekly checks apply. |
+| `len(Slots) == 0` | Slot constraints are skipped; only day-level and weekly checks apply. Sessions per day are capped only by `MaxSessionsPerDay`. |
+| All slots consumed by prior candidates | `no_available_slot` fires even if `MaxSessionsPerDay` not yet reached. |
 | `MaxDurationMinutes == 0` on a slot | Duration cap is uncapped for that slot. |
 | `MaxIndoorMinutes == 0` on a slot | No indoor cap applies for that slot. |
 | Empty `AllowedSports` on a slot | Any sport is allowed for that slot. |

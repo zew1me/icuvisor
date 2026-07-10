@@ -11,7 +11,8 @@ import "slices"
 
 // SlotConstraint defines limits for one available training window within a day.
 // Two slots are independent — a session must fit within exactly one slot and
-// cannot span multiple slots.
+// cannot span multiple slots. Each slot can hold at most one session; once a session
+// claims a slot in a batch validation pass, that slot is unavailable to later candidates.
 type SlotConstraint struct {
 	// MaxDurationMinutes caps session duration for this slot. Zero means uncapped.
 	MaxDurationMinutes float64
@@ -39,6 +40,7 @@ type DayConstraints struct {
 	MaxTotalDailyMinutes float64
 	// Slots lists the independent training windows available on this day.
 	// A candidate session must fit within exactly one slot; slots do not combine.
+	// Each slot can hold at most one session (consumed in batch validation).
 	Slots []SlotConstraint
 }
 
@@ -71,8 +73,9 @@ type WeekConstraints struct {
 	// FixedLoad is committed future training load from locked events.
 	FixedLoad float64
 	// RequestedSessionCount is the number of sessions the caller wants placed
-	// into available slots. It is a scheduling intent, not an availability cap —
-	// it may legally exceed the number of available slots, which produces a warning.
+	// into available slots. It is a scheduling intent and a hard cap —
+	// ValidateCandidates marks valid candidates beyond this count as excess.
+	// Zero means no session-count cap is applied.
 	RequestedSessionCount int
 	// AvailableDays lists the days within this week where sessions may be placed.
 	// Days absent from this list are unavailable for scheduling.
@@ -112,19 +115,32 @@ const (
 
 	// ViolationSlotDuration fires when the candidate duration exceeds every available
 	// slot's MaxDurationMinutes. Two 45-minute slots cannot accommodate a 95-minute session.
+	// This code is only emitted when ALL available (unconsumed) slots reject for this reason.
 	ViolationSlotDuration ViolationCode = "slot_duration_exceeded"
 
-	// ViolationIndoorDuration fires when an indoor candidate duration exceeds
-	// a slot's MaxIndoorMinutes. Outdoor sessions with the same duration are not affected.
+	// ViolationIndoorDuration fires when an indoor candidate's duration exceeds
+	// every available slot's MaxIndoorMinutes. Outdoor sessions with the same duration
+	// are not affected. Only emitted when ALL available slots reject for this reason.
 	ViolationIndoorDuration ViolationCode = "indoor_duration_exceeded"
 
 	// ViolationSportNotAllowed fires when the candidate sport is excluded by
-	// every available slot's AllowedSports list.
+	// every available slot's AllowedSports list. Only emitted when ALL slots reject.
 	ViolationSportNotAllowed ViolationCode = "sport_not_allowed"
 
 	// ViolationModeNotAllowed fires when the candidate mode is excluded by
-	// every available slot's AllowedModes list.
+	// every available slot's AllowedModes list. Only emitted when ALL slots reject.
 	ViolationModeNotAllowed ViolationCode = "mode_not_allowed"
+
+	// ViolationNoCompatibleSlot fires when no available slot can accommodate the
+	// candidate and no single constraint reason is universal across all slots.
+	// This is the deterministic fallback for mixed-reason slot rejections
+	// (e.g. slot A rejects for duration, slot B rejects for sport).
+	ViolationNoCompatibleSlot ViolationCode = "no_compatible_slot"
+
+	// ViolationNoAvailableSlot fires when all slots for the day have been consumed
+	// by prior candidates in a batch validation pass, even if MaxSessionsPerDay has
+	// not been reached.
+	ViolationNoAvailableSlot ViolationCode = "no_available_slot"
 
 	// ViolationWeeklyLoadOvershoot fires when the candidate load would push the
 	// projected weekly load over the remaining load budget
@@ -134,6 +150,11 @@ const (
 	// ViolationWeeklyTimeOvershoot fires when the candidate duration would push the
 	// projected weekly time over the remaining time budget.
 	ViolationWeeklyTimeOvershoot ViolationCode = "weekly_time_overshoot"
+
+	// ViolationRequestedSessionCountExceeded fires when the candidate would be the
+	// (N+1)th valid session and RequestedSessionCount is N. Position within the
+	// candidate batch determines which sessions are accepted.
+	ViolationRequestedSessionCountExceeded ViolationCode = "requested_session_count_exceeded"
 )
 
 // WarningCode identifies a soft constraint concern that does not block placement
@@ -142,23 +163,22 @@ type WarningCode string
 
 const (
 	// WarnInfeasibleSessionCount fires when RequestedSessionCount exceeds the
-	// total number of available slots across all available days. Sessions beyond
-	// the slot count cannot be placed.
+	// total structural slot capacity across all available days. Structural capacity
+	// is min(MaxSessionsPerDay, len(Slots)) per day; sport/mode filtering is not applied.
 	WarnInfeasibleSessionCount WarningCode = "infeasible_session_count"
 
-	// WarnInfeasibleLoad fires when the total candidate load is less than the
-	// remaining weekly load target, meaning the target cannot be met with the
-	// provided candidates.
+	// WarnInfeasibleLoad fires when the total candidate load (including invalid candidates)
+	// is less than the remaining weekly load target, meaning the target cannot be met
+	// with the provided candidates.
 	WarnInfeasibleLoad WarningCode = "infeasible_load"
 
-	// WarnZeroRemainingLoad fires when the remaining load budget is zero or
-	// negative, meaning completed and fixed events already meet or exceed the
-	// weekly target. No additional load is needed.
+	// WarnZeroRemainingLoad fires when the remaining load budget is zero or negative.
+	// Fires unconditionally when remaining ≤ 0, regardless of the candidate's Load value.
+	// Completed and fixed events already meet the weekly load target.
 	WarnZeroRemainingLoad WarningCode = "zero_remaining_load"
 
-	// WarnZeroRemainingTime fires when the remaining time budget is zero or
-	// negative, meaning completed and fixed events already meet or exceed the
-	// weekly time target. No additional time is needed.
+	// WarnZeroRemainingTime fires when the remaining time budget is zero or negative.
+	// Parallel to WarnZeroRemainingLoad for the time dimension.
 	WarnZeroRemainingTime WarningCode = "zero_remaining_time"
 )
 
@@ -234,53 +254,130 @@ func Reconcile(wc WeekConstraints, candidates []CandidateSession) Reconciliation
 
 // ValidateCandidate validates a single candidate session against the week constraints,
 // assuming it is the first (and only) session being considered for its date and no
-// prior candidates have been processed in the current batch.
+// prior candidates have been processed in the current batch. All slots in the day are
+// treated as available (no slot consumption).
 //
-// For batch validation with per-day state tracking, use ValidateCandidates.
+// For batch validation with slot-consumption and session-count cap tracking, use ValidateCandidates.
 func ValidateCandidate(wc WeekConstraints, candidate CandidateSession) CandidateResult {
-	return validateWithState(wc, 0, 0, 0, 0, candidate)
+	day, ok := findDay(wc.AvailableDays, candidate.Date)
+	if !ok || day.MaxSessionsPerDay == 0 {
+		return CandidateResult{
+			Candidate: candidate,
+			Valid:     false,
+			Violations: []Violation{{
+				Code:    ViolationDayUnavailable,
+				Message: "session date is not available for scheduling",
+				Field:   "date",
+				Value:   candidate.Date,
+			}},
+		}
+	}
+	return validateAgainstDay(wc, day, day.Slots, 0, 0, 0, 0, candidate)
 }
 
-// ValidateCandidates validates all candidates in order, tracking per-day session counts,
-// combined daily duration, and accumulated weekly load from prior candidates.
-// Candidates are processed in the order given; position within the slice determines
-// which session claims a slot when the daily cap would be exceeded.
+// ValidateCandidates validates all candidates in order with slot-consumption tracking,
+// daily session-count tracking, and RequestedSessionCount cap enforcement.
+//
+// Slot consumption: each slot holds at most one session. When a candidate passes all
+// slot-level constraints and claims a slot, that slot is removed from the available set
+// for subsequent candidates on the same day. This is independent of other violations —
+// a candidate that finds a compatible slot claims it even if it also has a weekly overshoot
+// violation (pessimistic accumulation).
+//
+// Session-count cap: once RequestedSessionCount valid (violation-free) candidates have been
+// accepted, subsequent valid candidates receive ViolationRequestedSessionCountExceeded.
+// Position within the slice determines which candidates are accepted.
+//
+// Accumulation: all candidates (valid or not) increment the per-day session counter and
+// per-day minute total, and contribute to the priorLoad/priorMinutes weekly budget for
+// subsequent candidates. Invalid candidates are included because they are proposed
+// positions in the schedule — a caller who provides an invalid candidate still intends
+// that time window to be occupied, which pessimistically affects budget checks for later candidates.
 func ValidateCandidates(wc WeekConstraints, candidates []CandidateSession) BatchResult {
 	type dayState struct {
-		sessions int
-		minutes  float64
+		day            DayConstraints
+		sessions       int
+		minutes        float64
+		availableSlots []SlotConstraint
 	}
+
 	dayStates := map[string]*dayState{}
+	for _, day := range wc.AvailableDays {
+		d := day
+		dayStates[day.Date] = &dayState{
+			day:            d,
+			availableSlots: slices.Clone(d.Slots),
+		}
+	}
 
 	var priorLoad, priorMinutes float64
+	var validCount int
 	results := make([]CandidateResult, len(candidates))
 
 	for i, candidate := range candidates {
 		ds := dayStates[candidate.Date]
+
+		var result CandidateResult
 		if ds == nil {
-			ds = &dayState{}
-			dayStates[candidate.Date] = ds
+			// Day not in AvailableDays.
+			result = CandidateResult{
+				Candidate: candidate,
+				Valid:     false,
+				Violations: []Violation{{
+					Code:    ViolationDayUnavailable,
+					Message: "session date is not available for scheduling",
+					Field:   "date",
+					Value:   candidate.Date,
+				}},
+			}
+		} else {
+			result = validateAgainstDay(wc, ds.day, ds.availableSlots, ds.sessions, ds.minutes, priorLoad, priorMinutes, candidate)
+
+			// Consume the first compatible slot regardless of other violations
+			// (pessimistic: the candidate occupies a time window in the proposed schedule).
+			slotIdx := findCompatibleSlotIndex(ds.availableSlots, candidate)
+			if slotIdx >= 0 {
+				ds.availableSlots = slices.Delete(ds.availableSlots, slotIdx, slotIdx+1)
+			}
+
+			// Enforce RequestedSessionCount cap: if this candidate is otherwise valid
+			// but the cap has already been reached, mark it as excess.
+			if result.Valid && wc.RequestedSessionCount > 0 && validCount >= wc.RequestedSessionCount {
+				result.Valid = false
+				result.Violations = append(result.Violations, Violation{
+					Code:    ViolationRequestedSessionCountExceeded,
+					Message: "requested session count already reached; this candidate is excess",
+					Field:   "requested_session_count",
+					Value:   wc.RequestedSessionCount,
+				})
+			}
+
+			// Update day state (all candidates, including invalid, consume the daily counter).
+			ds.sessions++
+			ds.minutes += candidate.DurationMinutes
 		}
 
-		result := validateWithState(wc, ds.sessions, ds.minutes, priorLoad, priorMinutes, candidate)
-		results[i] = result
+		if result.Valid {
+			validCount++
+		}
 
-		// All proposed sessions occupy space regardless of validity,
-		// so that position-based daily-count violations are deterministic.
-		ds.sessions++
-		ds.minutes += candidate.DurationMinutes
+		// All candidates consume the weekly accumulation budget (pessimistic).
 		priorLoad += candidate.Load
 		priorMinutes += candidate.DurationMinutes
+
+		results[i] = result
 	}
 
 	var weekWarnings []Warning
 
-	// Warn when requested sessions cannot fit in available slots.
+	// Warn when the requested count cannot be met structurally.
+	// Structural capacity is min(MaxSessionsPerDay, len(Slots)) per day;
+	// sport/mode filtering is not applied here.
 	totalSlots := availableSlotCount(wc)
-	if wc.RequestedSessionCount > totalSlots {
+	if wc.RequestedSessionCount > 0 && wc.RequestedSessionCount > totalSlots {
 		weekWarnings = append(weekWarnings, Warning{
 			Code:    WarnInfeasibleSessionCount,
-			Message: "requested session count exceeds total available slots across available days",
+			Message: "requested session count exceeds total structural slot capacity across available days",
 			Field:   "requested_session_count",
 			Value:   wc.RequestedSessionCount,
 		})
@@ -294,6 +391,7 @@ func ValidateCandidates(wc WeekConstraints, candidates []CandidateSession) Batch
 	recon := buildReconciliation(wc, candMin, candLoad)
 
 	// Warn when candidates cannot satisfy the remaining load target.
+	// Includes invalid candidates' load (pessimistic).
 	if recon.RemainingLoad > 0 && candLoad < recon.RemainingLoad {
 		weekWarnings = append(weekWarnings, Warning{
 			Code:    WarnInfeasibleLoad,
@@ -310,31 +408,14 @@ func ValidateCandidates(wc WeekConstraints, candidates []CandidateSession) Batch
 	}
 }
 
-// validateWithState is the internal implementation of single-candidate validation.
-// sessionsAlreadyOnDay counts sessions already proposed for candidate.Date.
-// dailyMinutesAlready is the total minutes already proposed for candidate.Date.
-// priorLoad and priorMinutes are accumulated totals from candidates already processed.
-func validateWithState(wc WeekConstraints, sessionsAlreadyOnDay int, dailyMinutesAlready float64, priorLoad float64, priorMinutes float64, candidate CandidateSession) CandidateResult {
+// validateAgainstDay is the core per-candidate validator.
+// availableSlots is the set of slots still available on this day. In single-candidate
+// validation this equals day.Slots; in batch validation it is the unconsumed subset.
+func validateAgainstDay(wc WeekConstraints, day DayConstraints, availableSlots []SlotConstraint, sessionsAlreadyOnDay int, dailyMinutesAlready float64, priorLoad float64, priorMinutes float64, candidate CandidateSession) CandidateResult {
 	var violations []Violation
 	var warnings []Warning
 
-	// 1. Day availability.
-	day, ok := findDay(wc.AvailableDays, candidate.Date)
-	if !ok || day.MaxSessionsPerDay == 0 {
-		violations = append(violations, Violation{
-			Code:    ViolationDayUnavailable,
-			Message: "session date is not available for scheduling",
-			Field:   "date",
-			Value:   candidate.Date,
-		})
-		return CandidateResult{
-			Candidate:  candidate,
-			Valid:      false,
-			Violations: violations,
-		}
-	}
-
-	// 2. Daily session count.
+	// 1. Daily session count.
 	if sessionsAlreadyOnDay >= day.MaxSessionsPerDay {
 		violations = append(violations, Violation{
 			Code:    ViolationDailySessionCount,
@@ -344,7 +425,7 @@ func validateWithState(wc WeekConstraints, sessionsAlreadyOnDay int, dailyMinute
 		})
 	}
 
-	// 3. Combined daily duration.
+	// 2. Combined daily duration.
 	if day.MaxTotalDailyMinutes > 0 {
 		newDailyTotal := dailyMinutesAlready + candidate.DurationMinutes
 		if newDailyTotal > day.MaxTotalDailyMinutes {
@@ -357,17 +438,25 @@ func validateWithState(wc WeekConstraints, sessionsAlreadyOnDay int, dailyMinute
 		}
 	}
 
-	// 4. Slot constraints (duration, indoor cap, sport, mode).
+	// 3. Slot constraints (against available/unconsumed slots).
 	if len(day.Slots) > 0 {
-		slotViolations := checkSlotConstraints(day.Slots, candidate)
-		violations = append(violations, slotViolations...)
+		if len(availableSlots) == 0 {
+			// All slots have been consumed by prior candidates.
+			violations = append(violations, Violation{
+				Code:    ViolationNoAvailableSlot,
+				Message: "all training slots for this day are already claimed",
+				Field:   "date",
+				Value:   candidate.Date,
+			})
+		} else {
+			slotViolations := universalSlotViolations(availableSlots, candidate)
+			violations = append(violations, slotViolations...)
+		}
 	}
 
-	// 5. Weekly remaining load/time.
+	// 4. Weekly remaining load.
 	// Remaining is target minus already-committed (completed + fixed) and prior candidates.
 	remainingLoad := wc.WeeklyTargetLoad - wc.CompletedLoad - wc.FixedLoad - priorLoad
-	remainingMin := wc.WeeklyTargetMinutes - wc.CompletedMinutes - wc.FixedMinutes - priorMinutes
-
 	if wc.WeeklyTargetLoad > 0 {
 		if remainingLoad <= 0 {
 			warnings = append(warnings, Warning{
@@ -386,6 +475,8 @@ func validateWithState(wc WeekConstraints, sessionsAlreadyOnDay int, dailyMinute
 		}
 	}
 
+	// 5. Weekly remaining time.
+	remainingMin := wc.WeeklyTargetMinutes - wc.CompletedMinutes - wc.FixedMinutes - priorMinutes
 	if wc.WeeklyTargetMinutes > 0 {
 		if remainingMin <= 0 {
 			warnings = append(warnings, Warning{
@@ -412,100 +503,126 @@ func validateWithState(wc WeekConstraints, sessionsAlreadyOnDay int, dailyMinute
 	}
 }
 
-// checkSlotConstraints checks whether the candidate fits in at least one slot.
-// Returns nil if any slot can accommodate the candidate.
-// Returns violations describing why no slot could accommodate the candidate.
-func checkSlotConstraints(slots []SlotConstraint, candidate CandidateSession) []Violation {
-	type slotReject struct {
-		duration bool
-		indoor   bool
-		sport    bool
-		mode     bool
+// slotFits returns true if the candidate satisfies all constraints of the given slot.
+func slotFits(slot SlotConstraint, candidate CandidateSession) bool {
+	if slot.MaxDurationMinutes > 0 && candidate.DurationMinutes > slot.MaxDurationMinutes {
+		return false
 	}
-
-	anyFit := false
-	var rejects []slotReject
-
-	for _, slot := range slots {
-		r := slotReject{}
-
-		if slot.MaxDurationMinutes > 0 && candidate.DurationMinutes > slot.MaxDurationMinutes {
-			r.duration = true
-		}
-		if candidate.Indoor && slot.MaxIndoorMinutes > 0 && candidate.DurationMinutes > slot.MaxIndoorMinutes {
-			r.indoor = true
-		}
-		if len(slot.AllowedSports) > 0 && !slices.Contains(slot.AllowedSports, candidate.Sport) {
-			r.sport = true
-		}
-		if len(slot.AllowedModes) > 0 && !slices.Contains(slot.AllowedModes, candidate.Mode) {
-			r.mode = true
-		}
-
-		if !r.duration && !r.indoor && !r.sport && !r.mode {
-			anyFit = true
-			break
-		}
-		rejects = append(rejects, r)
+	if candidate.Indoor && slot.MaxIndoorMinutes > 0 && candidate.DurationMinutes > slot.MaxIndoorMinutes {
+		return false
 	}
+	if len(slot.AllowedSports) > 0 && !slices.Contains(slot.AllowedSports, candidate.Sport) {
+		return false
+	}
+	if len(slot.AllowedModes) > 0 && !slices.Contains(slot.AllowedModes, candidate.Mode) {
+		return false
+	}
+	return true
+}
 
-	if anyFit {
+// findCompatibleSlotIndex returns the index of the first slot in slots that the
+// candidate fits, or -1 if none fits.
+func findCompatibleSlotIndex(slots []SlotConstraint, candidate CandidateSession) int {
+	for i, slot := range slots {
+		if slotFits(slot, candidate) {
+			return i
+		}
+	}
+	return -1
+}
+
+// universalSlotViolations returns violations when no slot can accommodate the candidate.
+// Violation codes are only emitted when they apply universally — every available slot
+// rejects the candidate for that reason. When reasons are mixed across slots (slot A
+// rejects for duration, slot B rejects for sport), the generic ViolationNoCompatibleSlot
+// code is emitted instead, since neither reason is universally true.
+func universalSlotViolations(slots []SlotConstraint, candidate CandidateSession) []Violation {
+	if len(slots) == 0 {
 		return nil
 	}
 
-	// Collect unique violation codes from rejection reasons.
-	// A code is included if any slot rejected the candidate for that reason —
-	// together the violations explain why no slot could fit the candidate.
-	seen := map[ViolationCode]struct{}{}
-	for _, r := range rejects {
-		if r.duration {
-			seen[ViolationSlotDuration] = struct{}{}
+	// First check if any slot fits at all.
+	if findCompatibleSlotIndex(slots, candidate) >= 0 {
+		return nil
+	}
+
+	// No slot fits. Determine which constraints are universally violated.
+	// A constraint is "universal" if every slot rejects the candidate for that reason.
+	allDuration := true
+	allIndoor := true
+	allSport := true
+	allMode := true
+
+	for _, slot := range slots {
+		// Duration: does this slot reject for duration?
+		rejectsDuration := slot.MaxDurationMinutes > 0 && candidate.DurationMinutes > slot.MaxDurationMinutes
+		if !rejectsDuration {
+			allDuration = false
 		}
-		if r.indoor {
-			seen[ViolationIndoorDuration] = struct{}{}
+
+		// Indoor: does this slot reject for indoor cap?
+		rejectsIndoor := candidate.Indoor && slot.MaxIndoorMinutes > 0 && candidate.DurationMinutes > slot.MaxIndoorMinutes
+		if !rejectsIndoor {
+			allIndoor = false
 		}
-		if r.sport {
-			seen[ViolationSportNotAllowed] = struct{}{}
+
+		// Sport: does this slot reject for sport?
+		rejectsSport := len(slot.AllowedSports) > 0 && !slices.Contains(slot.AllowedSports, candidate.Sport)
+		if !rejectsSport {
+			allSport = false
 		}
-		if r.mode {
-			seen[ViolationModeNotAllowed] = struct{}{}
+
+		// Mode: does this slot reject for mode?
+		rejectsMode := len(slot.AllowedModes) > 0 && !slices.Contains(slot.AllowedModes, candidate.Mode)
+		if !rejectsMode {
+			allMode = false
 		}
 	}
 
-	// Emit violations in a deterministic order.
 	var violations []Violation
-	if _, ok := seen[ViolationSlotDuration]; ok {
+	if allDuration {
 		violations = append(violations, Violation{
 			Code:    ViolationSlotDuration,
-			Message: "session duration exceeds the available slot duration cap",
+			Message: "session duration exceeds every available slot duration cap",
 			Field:   "duration_minutes",
 			Value:   candidate.DurationMinutes,
 		})
 	}
-	if _, ok := seen[ViolationIndoorDuration]; ok {
+	if allIndoor {
 		violations = append(violations, Violation{
 			Code:    ViolationIndoorDuration,
-			Message: "indoor session duration exceeds the slot indoor cap",
+			Message: "indoor session duration exceeds every available slot indoor cap",
 			Field:   "duration_minutes",
 			Value:   candidate.DurationMinutes,
 		})
 	}
-	if _, ok := seen[ViolationSportNotAllowed]; ok {
+	if allSport {
 		violations = append(violations, Violation{
 			Code:    ViolationSportNotAllowed,
-			Message: "session sport is not in the allowed sports list for this slot",
+			Message: "session sport is excluded by every available slot",
 			Field:   "sport",
 			Value:   candidate.Sport,
 		})
 	}
-	if _, ok := seen[ViolationModeNotAllowed]; ok {
+	if allMode {
 		violations = append(violations, Violation{
 			Code:    ViolationModeNotAllowed,
-			Message: "session mode is not in the allowed modes list for this slot",
+			Message: "session mode is excluded by every available slot",
 			Field:   "mode",
 			Value:   candidate.Mode,
 		})
 	}
+
+	// Fallback: no single reason is universally true across all slots.
+	if len(violations) == 0 {
+		violations = append(violations, Violation{
+			Code:    ViolationNoCompatibleSlot,
+			Message: "no available slot can accommodate this candidate; constraints differ across slots",
+			Field:   "date",
+			Value:   candidate.Date,
+		})
+	}
+
 	return violations
 }
 
@@ -529,18 +646,21 @@ func buildReconciliation(wc WeekConstraints, candMin, candLoad float64) Reconcil
 	}
 }
 
-// availableSlotCount returns the total number of schedulable slots across all available days.
+// availableSlotCount returns the total structural slot capacity across all available days.
+// Capacity per day is min(MaxSessionsPerDay, len(Slots)); if no slots are defined,
+// the capacity is MaxSessionsPerDay (slots are optional constraint templates).
+// Sport/mode filtering is not applied.
 func availableSlotCount(wc WeekConstraints) int {
 	total := 0
 	for _, day := range wc.AvailableDays {
 		if day.MaxSessionsPerDay <= 0 {
 			continue
 		}
-		slotCap := day.MaxSessionsPerDay
-		if len(day.Slots) > 0 && len(day.Slots) < slotCap {
-			slotCap = len(day.Slots)
+		cap := day.MaxSessionsPerDay
+		if len(day.Slots) > 0 && len(day.Slots) < cap {
+			cap = len(day.Slots)
 		}
-		total += slotCap
+		total += cap
 	}
 	return total
 }
