@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
-**Review Counter:** 1
+**Review Counter:** 2
 **Iteration:** 1
 **Size:** L
 
@@ -32,6 +32,10 @@
 - [ ] R001 configured-zone validation, selection, and mixed-configuration policy locked
 - [ ] R001 deterministic range cap and exact status state machine locked
 - [ ] R001 concrete JSON/meta contract and coherent formula/test checkpoints locked
+- [ ] R002 operational-versus-absence stream error classification locked
+- [ ] R002 tool-specific metadata emission path and exact metadata shapes locked
+- [ ] R002 deterministic mixed-zone identity, ordering, shares, counts, and audit enums locked
+- [ ] R002 pure validation, mismatch, and short-input result semantics locked
 
 ---
 
@@ -96,6 +100,7 @@
 | # | Type | Step | Verdict | File |
 |---|------|------|---------|------|
 | R001 | Plan | 1 | REVISE | `.reviews/R001-plan-step1.md` |
+| R002 | Plan | 1 | REVISE | `.reviews/R002-plan-step1.md` |
 
 ## Discoveries
 
@@ -126,3 +131,12 @@
 - **Concrete response:** terse `result` always has `status`, optional `insufficient_reason`, `start_date`, `end_date`, optional `sport`, `activity_count`, `usable_activity_count`, `skipped_activity_count`, `invalid_interval_count`, `truncated_activity_candidates`, `total_seconds`, `total_kj`, `zones`, and `interpretation`. Each zone row has `zone_key`, `sport_setting_id`, `sport`, `zone`, `name`, `lower_watts`, optional `upper_watts`, `seconds`, `kj`, `time_share`, and `energy_share`. `interpretation` is fixed text stating this is power-derived mechanical work, not metabolic energy, calorie expenditure, or food calories. With `include_full`, `series[]` adds activity audit rows with `activity_id`, local `date`, `sport`, `status`, optional `reason`, `sport_setting_id`, totals, usable/skipped interval counts, and diagnostics; IDs/reasons are omitted from terse output. Raw samples never appear.
 - **Pinned metadata:** `_meta.method = "left_endpoint_power_timestamp_integration"`; `_meta.source_tools = ["get_activities","get_activity_streams","get_athlete_profile"]`; `_meta.formula_ref = "icuvisor://analysis-formulas#power_zone_mechanical_work"`; `_meta.units = {"power":"W","time":"s","integration_work":"J","work":"kJ"}`; `_meta.assumptions` includes 60-second maximum interval, left-endpoint/final-sample rules, activity cap, and disclosed configured-zone sources; `_meta.boundaries` repeats the mechanical/metabolic distinction and no interpolation/raw-sample policy.
 - **Step coherence:** Step 1 adds contract constants/types plus a real `TestZoneEnergyContract` compile/definition test and runs the filtered checkpoint. The formula ref constant, rendered paragraph, BIPM SI citation, golden resource, and resource tests move together in Step 4, avoiding intentional golden drift. The PRD update will replace the stale claim that only `compute_activity_segment_stats` reads streams.
+
+### Step 1 second revision (R002)
+
+- **Stream errors:** context cancellation/deadline and every non-absence client error abort the analyzer with the short tool error. This includes `intervals.ErrUnauthorized`, `ErrRateLimited`, `ErrUpstream`, unknown transport errors, and malformed-response/decode errors; iteration stops immediately. Only `intervals.ErrNotFound` becomes `streams_not_found`, an advertised `StreamTypes` set lacking `watts` or `time` becomes `required_streams_not_advertised`, and a successful response lacking usable canonical arrays becomes a closed data-coverage skip. Step 3 tests will cover unauthorized, rate-limit, upstream, unknown/decode, cancellation, not-found, unadvertised, and empty/misaligned response classes.
+- **Metadata implementation:** `compute_zone_energy` will use a tool-specific payload/encoder, following `get_activity_histogram`, instead of `encodeAnalyzerResponse`. `zoneEnergyMeta` embeds normalized `analysis.AnalyzerMeta` and adds exact `units`, `zone_sources`, and `coverage` fields. `units` is `map[string]string`. `zone_sources[]` is `{zone_key:string,sport_setting_id:int,sport:string,boundaries_watts:[]float64,names:[]string}`. `coverage` is `{fetched_candidate_count:int,retained_candidate_count:int,sport_matched_activity_count:int,usable_activity_count:int,skipped_activity_count:int}`. Assumption keys/types are exactly `integration_rule:string("left_endpoint")`, `timestamp_unit:string("s")`, `final_sample_duration_seconds:int(0)`, `max_interval_seconds:int(60)`, `activity_cap:int(200)`, `candidate_fetch_limit:int(201)`, and `interpolation:bool(false)`.
+- **Zone identity/order/shares:** canonical setting sport is trimmed `SportSettings.Type`, else the first trimmed `Types` entry that matched the activity candidate. A configuration fingerprint is the first 12 lowercase hex characters of SHA-256 over canonical JSON `{sport,boundaries_watts,names}`. Positive IDs use `zone_key = "setting-<id>-<fingerprint>"`; zero IDs use `zone_key = "config-<fingerprint>"`. Identity is `(positive ID, fingerprint)` or fingerprint alone for ID zero, so duplicate IDs with different definitions remain separate and duplicate identical definitions coalesce. Groups sort by case-folded canonical sport, numeric setting ID, then `zone_key`; rows sort by zone ordinal. Row `sport` is canonical setting sport, never an arbitrary activity type. Time/energy-share denominators span the whole response; independent rounding remainders go to the last output-ordered row with positive displayed seconds/kJ respectively.
+- **Coverage/audit:** fetch at most 201 range candidates, sort all fetched candidates, retain the first 200 before sport filtering, and set truncation only for candidate 201. `activity_count` means sport-matched activities among the retained set and exactly equals usable plus skipped; metadata separately exposes all fetched/retained/matched counts. Per-activity status is closed to `usable`, `partial`, or `skipped`. `partial` has reason `invalid_intervals_skipped`. `skipped` reason is one of `no_matching_power_zone_config`, `invalid_power_zone_config`, `required_streams_not_advertised`, `streams_not_found`, `missing_power_stream`, `missing_time_stream`, `misaligned_streams`, `insufficient_stream_samples`, or `no_usable_intervals`.
+- **Pure rejection/result:** `ComputeZoneEnergy(input) (ZoneEnergyResult, error)` validates `PowerZoneConfig` internally and returns `ErrInvalidPowerZoneConfig` for invalid boundaries; callers do not pre-certify it. Mismatch and short streams are data results, not errors. `input_samples = max(len(power),len(timestamps))`, `aligned_samples = min(...)`. On mismatch, `misaligned_samples = abs(...)`, `usable_intervals = 0`, `skipped_intervals = max(input_samples-1,0)`, and all per-invalid-reason counters remain zero. Equal-length input shorter than two has zero usable/skipped intervals. For aligned length N>=2, `usable_intervals + skipped_intervals = N-1`. `TestZoneEnergyContract` will assert config validation, mismatch, short input, diagnostic names, and these counter equations rather than merely compiling.
+| 2026-07-10 16:20 | Review R002 | plan Step 1: REVISE |
