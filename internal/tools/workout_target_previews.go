@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 
 	"github.com/ricardocabral/icuvisor/internal/intervals"
 	"github.com/ricardocabral/icuvisor/internal/response"
+	"github.com/ricardocabral/icuvisor/internal/units"
 )
 
 type workoutTargetPreviewContext struct {
@@ -199,56 +201,55 @@ func integerTargetPreview(bounds workoutTargetBounds, basis float64, suffix stri
 	return formatIntegerValues(values) + " " + suffix
 }
 
-func paceTargetPreview(bounds workoutTargetBounds, threshold float64, sourceUnit string, unitSystem response.UnitSystem) (string, string, bool) {
-	secondsPerMeter, ok := paceSecondsPerMeter(threshold, sourceUnit)
-	if !ok {
+func paceTargetPreview(bounds workoutTargetBounds, thresholdMetersPerSecond float64, sourceUnit string, unitSystem response.UnitSystem) (string, string, bool) {
+	paceUnit, suffix := preferredPacePreviewUnit(sourceUnit, unitSystem)
+	basisSeconds, ok := response.PaceSecondsFromMetersPerSecond(thresholdMetersPerSecond, paceUnit)
+	if !ok || !paceSecondsAreFormattable(basisSeconds) {
 		return "", "", false
 	}
-	distance, suffix := preferredPacePreviewUnit(sourceUnit, unitSystem)
 	values := make([]float64, 0, len(bounds.Values))
 	for _, percent := range bounds.Values {
-		if percent <= 0 {
+		if percent <= 0 || math.IsNaN(percent) || math.IsInf(percent, 0) {
 			return "", "", false
 		}
-		values = append(values, math.Round(secondsPerMeter*distance*100/percent))
+		seconds := basisSeconds * 100 / percent
+		if !paceSecondsAreFormattable(seconds) {
+			return "", "", false
+		}
+		values = append(values, math.Round(seconds))
 	}
-	basisSeconds := math.Round(secondsPerMeter * distance)
-	return formatPaceValues(values, suffix), fmt.Sprintf("threshold pace %s", formatPaceSeconds(basisSeconds, suffix)), true
+	return formatPaceValues(values, suffix), fmt.Sprintf("threshold pace %s", formatPaceSeconds(math.Round(basisSeconds), suffix)), true
 }
 
-func paceSecondsPerMeter(value float64, sourceUnit string) (float64, bool) {
-	if value <= 0 || math.IsNaN(value) || math.IsInf(value, 0) {
-		return 0, false
+func paceSecondsAreFormattable(seconds float64) bool {
+	if seconds <= 0 || math.IsNaN(seconds) || math.IsInf(seconds, 0) {
+		return false
 	}
-	switch strings.ToUpper(strings.TrimSpace(sourceUnit)) {
-	case "", "MINS_KM":
-		return value / 1000, true
-	case "MINS_MILE":
-		return value / 1609.344, true
-	case "SECS_100M":
-		return value / 100, true
-	case "SECS_100Y":
-		return value / metersPer100Yards, true
-	case "SECS_500M":
-		return value / 500, true
-	default:
-		return 0, false
-	}
+	return math.Round(seconds) < math.Exp2(float64(strconv.IntSize-1))
 }
 
-func preferredPacePreviewUnit(sourceUnit string, unitSystem response.UnitSystem) (float64, string) {
-	switch strings.ToUpper(strings.TrimSpace(sourceUnit)) {
-	case "SECS_100M":
-		return 100, "/100m"
-	case "SECS_100Y":
-		return metersPer100Yards, "/100y"
-	case "SECS_500M":
-		return 500, "/500m"
+func preferredPacePreviewUnit(sourceUnit string, unitSystem response.UnitSystem) (units.Unit, string) {
+	paceUnit, _ := units.ParseUnit(sourceUnit)
+	switch paceUnit {
+	case units.UnitMinsKM:
+		return paceUnit, "/km"
+	case units.UnitMinsMile:
+		return paceUnit, "/mi"
+	case units.UnitSecs100M:
+		return paceUnit, "/100m"
+	case units.UnitSecs100Y:
+		return paceUnit, "/100y"
+	case units.UnitSecs500M:
+		return paceUnit, "/500m"
+	case units.UnitSecs400M:
+		return paceUnit, "/400m"
+	case units.UnitSecs250M:
+		return paceUnit, "/250m"
 	}
 	if unitSystem == response.UnitSystemImperial {
-		return 1609.344, "/mi"
+		return units.UnitMinsMile, "/mi"
 	}
-	return 1000, "/km"
+	return units.UnitMinsKM, "/km"
 }
 
 func formatTargetNumbers(bounds workoutTargetBounds) string {

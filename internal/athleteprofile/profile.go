@@ -34,35 +34,33 @@ type Units struct {
 
 // Sport contains thresholds and zones for one sport setting.
 type Sport struct {
-	Types                       []string       `json:"types,omitempty"`
-	FTPWatts                    int            `json:"ftp_watts,omitempty"`
-	IndoorFTPWatts              int            `json:"indoor_ftp_watts,omitempty"`
-	WPrimeJoules                int            `json:"w_prime_joules,omitempty"`
-	PMaxWatts                   int            `json:"p_max_watts,omitempty"`
-	LTHRBPM                     int            `json:"lthr_bpm,omitempty"`
-	MaxHRBPM                    int            `json:"max_hr_bpm,omitempty"`
-	PowerZonesWatts             []int          `json:"power_zones_watts,omitempty"`
-	PowerZoneNames              []string       `json:"power_zone_names,omitempty"`
-	HRZonesBPM                  []int          `json:"hr_zones_bpm,omitempty"`
-	HRZoneNames                 []string       `json:"hr_zone_names,omitempty"`
-	ThresholdPaceSecondsPerKM   *float64       `json:"threshold_pace_seconds_per_km,omitempty"`
-	PaceZonesSecondsPerKM       []float64      `json:"pace_zones_seconds_per_km,omitempty"`
-	ThresholdPaceSecondsPerMile *float64       `json:"threshold_pace_seconds_per_mile,omitempty"`
-	PaceZonesSecondsPerMile     []float64      `json:"pace_zones_seconds_per_mile,omitempty"`
-	ThresholdPaceSecondsPer100M *float64       `json:"threshold_pace_seconds_per_100m,omitempty"`
-	PaceZonesSecondsPer100M     []float64      `json:"pace_zones_seconds_per_100m,omitempty"`
-	ThresholdPaceSecondsPer100Y *float64       `json:"threshold_pace_seconds_per_100y,omitempty"`
-	PaceZonesSecondsPer100Y     []float64      `json:"pace_zones_seconds_per_100y,omitempty"`
-	ThresholdPaceSecondsPer500M *float64       `json:"threshold_pace_seconds_per_500m,omitempty"`
-	PaceZonesSecondsPer500M     []float64      `json:"pace_zones_seconds_per_500m,omitempty"`
-	ThresholdPaceValue          *float64       `json:"threshold_pace_value,omitempty"`
-	PaceZonesValues             []float64      `json:"pace_zones_values,omitempty"`
-	PaceUnitsSource             string         `json:"pace_units_source,omitempty"`
-	PaceDistanceUnit            string         `json:"pace_distance_unit,omitempty"`
-	PaceZoneNames               []string       `json:"pace_zone_names,omitempty"`
-	SportSettingID              int            `json:"sport_setting_id,omitempty"`
-	SportSettingAthleteID       string         `json:"sport_setting_athlete_id,omitempty"`
-	Meta                        map[string]any `json:"_meta,omitempty"`
+	Types                        []string       `json:"types,omitempty"`
+	FTPWatts                     int            `json:"ftp_watts,omitempty"`
+	IndoorFTPWatts               int            `json:"indoor_ftp_watts,omitempty"`
+	WPrimeJoules                 int            `json:"w_prime_joules,omitempty"`
+	PMaxWatts                    int            `json:"p_max_watts,omitempty"`
+	LTHRBPM                      int            `json:"lthr_bpm,omitempty"`
+	MaxHRBPM                     int            `json:"max_hr_bpm,omitempty"`
+	PowerZonesWatts              []int          `json:"power_zones_watts,omitempty"`
+	PowerZoneNames               []string       `json:"power_zone_names,omitempty"`
+	HRZonesBPM                   []int          `json:"hr_zones_bpm,omitempty"`
+	HRZoneNames                  []string       `json:"hr_zone_names,omitempty"`
+	ThresholdPaceSecondsPerKM    *float64       `json:"threshold_pace_seconds_per_km,omitempty"`
+	ThresholdPaceSecondsPerMile  *float64       `json:"threshold_pace_seconds_per_mile,omitempty"`
+	ThresholdPaceSecondsPer100M  *float64       `json:"threshold_pace_seconds_per_100m,omitempty"`
+	ThresholdPaceSecondsPer100Y  *float64       `json:"threshold_pace_seconds_per_100y,omitempty"`
+	ThresholdPaceSecondsPer500M  *float64       `json:"threshold_pace_seconds_per_500m,omitempty"`
+	ThresholdPaceSecondsPer400M  *float64       `json:"threshold_pace_seconds_per_400m,omitempty"`
+	ThresholdPaceSecondsPer250M  *float64       `json:"threshold_pace_seconds_per_250m,omitempty"`
+	ThresholdPaceMetersPerSecond *float64       `json:"threshold_pace_meters_per_second,omitempty"`
+	PaceZonesPercentOfThreshold  []float64      `json:"pace_zones_percent_of_threshold,omitempty"`
+	PaceUnitsSource              string         `json:"pace_units_source,omitempty"`
+	PaceLoadType                 string         `json:"pace_load_type,omitempty"`
+	PaceDistanceUnit             string         `json:"pace_distance_unit,omitempty"`
+	PaceZoneNames                []string       `json:"pace_zone_names,omitempty"`
+	SportSettingID               int            `json:"sport_setting_id,omitempty"`
+	SportSettingAthleteID        string         `json:"sport_setting_athlete_id,omitempty"`
+	Meta                         map[string]any `json:"_meta,omitempty"`
 }
 
 // ReadinessWarning flags missing sport settings that can affect analysis or planning.
@@ -121,9 +119,9 @@ func NewResponse(profile intervals.AthleteWithSportSettings, version string, tim
 			ServerVersion:            NormalizeVersion(version),
 			AthleteIDFormat:          "i-prefixed intervals.icu athlete ID",
 			TimezoneConvention:       "IANA timezone from athlete profile when available; config timezone fallback otherwise",
-			PaceConvention:           "paces are seconds per athlete pace distance unit; run pace uses threshold_pace_seconds_per_km or threshold_pace_seconds_per_mile, swim pace uses threshold_pace_seconds_per_100m or threshold_pace_seconds_per_100y when upstream reports SECS_100M/SECS_100Y, row pace uses threshold_pace_seconds_per_500m, and pace_units_source preserves the upstream enum",
+			PaceConvention:           "intervals.icu stores threshold_pace in meters per second; pace_units is presentation-only and selects the athlete-facing seconds-per-distance field, while pace_units_source preserves the upstream enum",
 			PowerThresholdConvention: "ftp_watts is the upstream sport FTP threshold; indoor_ftp_watts is the optional upstream indoor FTP override when intervals.icu provides indoor_ftp. Absence of indoor_ftp_watts means Icuvisor has no separate indoor FTP for that sport, not that it should be inferred from zones or planned-event indoor flags.",
-			ZoneBoundaryConvention:   "power_zones_watts, hr_zones_bpm, and pace_zones_* are upstream zone boundary arrays, not FTP, LTHR, or pace-threshold values; pair them with matching *_zone_names by index when present.",
+			ZoneBoundaryConvention:   "power_zones_watts and hr_zones_bpm are upstream zone boundary arrays; pace_zones_percent_of_threshold contains upstream percentage-of-threshold boundaries, never pace durations. Pair each zone array with its matching *_zone_names by index when present.",
 			IncludeFull:              includeFull,
 		},
 	}
@@ -193,6 +191,7 @@ func profileSport(setting intervals.SportSettings, includeFull bool, unitSystem 
 		HRZonesBPM:      setting.HRZones,
 		HRZoneNames:     setting.HRZoneNames,
 		PaceUnitsSource: strings.TrimSpace(setting.PaceUnits),
+		PaceLoadType:    strings.TrimSpace(setting.PaceLoadType),
 		PaceZoneNames:   setting.PaceZoneNames,
 	}
 	applyProfilePace(&sport, setting, unitSystem)
@@ -311,7 +310,7 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
-func applyProfilePace(sport *Sport, setting intervals.SportSettings, unitSystem response.UnitSystem) {
+func applyProfilePace(sport *Sport, setting intervals.SportSettings, _ response.UnitSystem) {
 	pace := setting.ThresholdPace
 	if strings.TrimSpace(setting.PaceUnits) == "" && pace <= 0 && len(setting.PaceZones) == 0 {
 		return
@@ -321,27 +320,23 @@ func applyProfilePace(sport *Sport, setting intervals.SportSettings, unitSystem 
 		sport.Meta = map[string]any{"unknown_unit": rawUnit}
 	}
 	if pace > 0 {
-		converted := response.ToPreferredWithRaw(pace, parsedUnit, rawUnit, unitSystem)
-		assignProfileThresholdPace(sport, converted)
+		if seconds, ok := response.PaceSecondsFromMetersPerSecond(pace, parsedUnit); ok {
+			assignProfileThresholdPace(sport, seconds, parsedUnit)
+		} else {
+			value := pace
+			sport.ThresholdPaceMetersPerSecond = &value
+		}
 	}
 	if len(setting.PaceZones) > 0 {
-		convertedZones := make([]float64, 0, len(setting.PaceZones))
-		var converted response.PreferredUnitValue
-		for _, zone := range setting.PaceZones {
-			converted = response.ToPreferredWithRaw(zone, parsedUnit, rawUnit, unitSystem)
-			convertedZones = append(convertedZones, converted.Value)
-		}
-		assignProfilePaceZones(sport, converted, convertedZones)
+		sport.PaceZonesPercentOfThreshold = append([]float64(nil), setting.PaceZones...)
 	}
 	if setting.PaceUnits != "" || pace > 0 || len(setting.PaceZones) > 0 {
-		converted := response.ToPreferredWithRaw(pace, parsedUnit, rawUnit, unitSystem)
-		sport.PaceDistanceUnit = profilePaceDistanceUnit(converted)
+		sport.PaceDistanceUnit = profilePaceDistanceUnit(parsedUnit, rawUnit)
 	}
 }
 
-func assignProfileThresholdPace(sport *Sport, converted response.PreferredUnitValue) {
-	value := converted.Value
-	switch converted.Unit {
+func assignProfileThresholdPace(sport *Sport, value float64, unit units.Unit) {
+	switch unit {
 	case units.UnitMinsKM:
 		sport.ThresholdPaceSecondsPerKM = &value
 	case units.UnitMinsMile:
@@ -352,30 +347,15 @@ func assignProfileThresholdPace(sport *Sport, converted response.PreferredUnitVa
 		sport.ThresholdPaceSecondsPer100Y = &value
 	case units.UnitSecs500M:
 		sport.ThresholdPaceSecondsPer500M = &value
-	default:
-		sport.ThresholdPaceValue = &value
+	case units.UnitSecs400M:
+		sport.ThresholdPaceSecondsPer400M = &value
+	case units.UnitSecs250M:
+		sport.ThresholdPaceSecondsPer250M = &value
 	}
 }
 
-func assignProfilePaceZones(sport *Sport, converted response.PreferredUnitValue, values []float64) {
-	switch converted.Unit {
-	case units.UnitMinsKM:
-		sport.PaceZonesSecondsPerKM = values
-	case units.UnitMinsMile:
-		sport.PaceZonesSecondsPerMile = values
-	case units.UnitSecs100M:
-		sport.PaceZonesSecondsPer100M = values
-	case units.UnitSecs100Y:
-		sport.PaceZonesSecondsPer100Y = values
-	case units.UnitSecs500M:
-		sport.PaceZonesSecondsPer500M = values
-	default:
-		sport.PaceZonesValues = values
-	}
-}
-
-func profilePaceDistanceUnit(converted response.PreferredUnitValue) string {
-	switch converted.Unit {
+func profilePaceDistanceUnit(unit units.Unit, rawUnit string) string {
+	switch unit {
 	case units.UnitMinsKM:
 		return "km"
 	case units.UnitMinsMile:
@@ -386,7 +366,11 @@ func profilePaceDistanceUnit(converted response.PreferredUnitValue) string {
 		return "100y"
 	case units.UnitSecs500M:
 		return "500m"
+	case units.UnitSecs400M:
+		return "400m"
+	case units.UnitSecs250M:
+		return "250m"
 	default:
-		return converted.UnitLabel
+		return rawUnit
 	}
 }

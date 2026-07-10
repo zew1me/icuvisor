@@ -3,10 +3,13 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"math"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/ricardocabral/icuvisor/internal/intervals"
+	"github.com/ricardocabral/icuvisor/internal/response"
 )
 
 type fakeWorkoutLibraryClient struct {
@@ -196,11 +199,47 @@ func TestGetWorkoutsInFolderFiltersAndPreservesWorkoutDocWithIncludeFull(t *test
 	}
 }
 
+func TestPaceTargetPreviewHonorsSportDisplayUnits(t *testing.T) {
+	tests := []struct {
+		name       string
+		paceUnits  string
+		unitSystem response.UnitSystem
+		preview    string
+		basis      string
+	}{
+		{name: "metric athlete kilometers", paceUnits: "MINS_KM", unitSystem: response.UnitSystemMetric, preview: "4:55/km", basis: "threshold pace 4:40/km"},
+		{name: "metric athlete miles", paceUnits: "MINS_MILE", unitSystem: response.UnitSystemMetric, preview: "7:54/mi", basis: "threshold pace 7:31/mi"},
+		{name: "400 meter track display", paceUnits: "SECS_400M", unitSystem: response.UnitSystemImperial, preview: "1:58/400m", basis: "threshold pace 1:52/400m"},
+		{name: "250 meter display", paceUnits: "SECS_250M", unitSystem: response.UnitSystemMetric, preview: "1:14/250m", basis: "threshold pace 1:10/250m"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			preview, basis, ok := paceTargetPreview(workoutTargetBounds{Values: []float64{95}}, 3.5714285, tt.paceUnits, tt.unitSystem)
+			if !ok || preview != tt.preview || basis != tt.basis {
+				t.Fatalf("paceTargetPreview() = %q, %q, %t; want %q, %q, true", preview, basis, ok, tt.preview, tt.basis)
+			}
+		})
+	}
+}
+
+func TestPaceTargetPreviewRejectsUnformattableMPS(t *testing.T) {
+	if _, _, ok := paceTargetPreview(workoutTargetBounds{Values: []float64{100}}, 1e-306, "MINS_KM", response.UnitSystemMetric); ok {
+		t.Fatal("paceTargetPreview accepted an overflowing m/s-to-duration conversion")
+	}
+}
+
+func TestPaceTargetPreviewRejectsSignedIntBoundary(t *testing.T) {
+	thresholdMetersPerSecond := 1000 / math.Exp2(float64(strconv.IntSize-1))
+	if _, _, ok := paceTargetPreview(workoutTargetBounds{Values: []float64{100}}, thresholdMetersPerSecond, "MINS_KM", response.UnitSystemMetric); ok {
+		t.Fatal("paceTargetPreview accepted a duration at the signed-int formatting boundary")
+	}
+}
+
 func TestGetWorkoutsInFolderResolvesHRAndPaceTargetPreviews(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeWorkoutLibraryClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC", SportSettings: []intervals.SportSettings{{Types: []string{"Run"}, LTHR: 170, MaxHR: 190, ThresholdPace: 300, PaceUnits: "MINS_KM"}}}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC", SportSettings: []intervals.SportSettings{{Types: []string{"Run"}, LTHR: 170, MaxHR: 190, ThresholdPace: 3.3333333333333335, PaceUnits: "MINS_KM"}}}},
 		workouts: decodeToolWorkouts(t,
 			`{"id":2,"name":"Run Targets","type":"Run","folder_id":20,"workout_doc":{"steps":[{"description":"Tempo HR","duration":600,"hr":{"min":95,"max":99,"units":"PERCENT_LTHR"}},{"description":"Cruise","duration":600,"pace":{"value":95,"units":"PERCENT_THRESHOLD"}}]}}`,
 		),
@@ -230,7 +269,7 @@ func TestGetWorkoutsInFolderResolvesYardSwimPaceTargetPreviews(t *testing.T) {
 	t.Parallel()
 
 	client := &fakeWorkoutLibraryClient{
-		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC", SportSettings: []intervals.SportSettings{{Types: []string{"Swim"}, ThresholdPace: 90, PaceUnits: "SECS_100Y"}}}},
+		fakeProfileClient: fakeProfileClient{profile: intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC", SportSettings: []intervals.SportSettings{{Types: []string{"Swim"}, ThresholdPace: 1.016, PaceUnits: "SECS_100Y"}}}},
 		workouts: decodeToolWorkouts(t,
 			`{"id":3,"name":"Pool Targets","type":"Swim","folder_id":20,"workout_doc":{"steps":[{"description":"Cruise","duration":600,"pace":{"value":95,"units":"PERCENT_THRESHOLD"}}]}}`,
 		),

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ricardocabral/icuvisor/internal/athleteprofile"
 	"github.com/ricardocabral/icuvisor/internal/intervals"
 )
 
@@ -15,8 +16,8 @@ func TestGetPerformancePotentialCyclingAndRunningContracts(t *testing.T) {
 
 	client := newFakeFitnessMetricsClient(t)
 	client.profile = intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "metric", Timezone: "UTC", SportSettings: []intervals.SportSettings{
-		{Types: []string{"Ride"}, FTP: 260, IndoorFTP: 250, WPrime: 21000, PMax: 1050, LTHR: 172, MaxHR: 190, ThresholdPace: 240, PaceUnits: "MINS_KM"},
-		{Types: []string{"Run"}, FTP: 999, LTHR: 181, MaxHR: 195, ThresholdPace: 250, PaceUnits: "MINS_KM"},
+		{Types: []string{"Ride"}, FTP: 260, IndoorFTP: 250, WPrime: 21000, PMax: 1050, LTHR: 172, MaxHR: 190},
+		{Types: []string{"Run"}, FTP: 999, LTHR: 181, MaxHR: 195, ThresholdPace: 3.5714285, PaceUnits: "MINS_KM"},
 	}}
 	tool := newGetPerformancePotentialTool(client, client, "test", false)
 	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"start_date":"2026-05-01","end_date":"2026-05-07","sports":["Ride","Run"],"power_duration_seconds":[60],"hr_duration_seconds":[60],"pace_distance_meters":[1000]}`)})
@@ -50,7 +51,10 @@ func TestGetPerformancePotentialCyclingAndRunningContracts(t *testing.T) {
 
 	run := sports[1].(map[string]any)
 	runThresholds := run["thresholds"].(map[string]any)
-	if run["sport_family"] != "running" || runThresholds["threshold_pace_seconds_per_km"] != float64(250) || runThresholds["lthr_bpm"] != float64(181) {
+	if run["sport_family"] != "running" || runThresholds["threshold_pace_seconds_per_km"] == nil || runThresholds["lthr_bpm"] != float64(181) {
+		t.Fatalf("run thresholds = %#v", runThresholds)
+	}
+	if pace := runThresholds["threshold_pace_seconds_per_km"].(float64); pace < 279.9999 || pace > 280.0001 {
 		t.Fatalf("run thresholds = %#v", runThresholds)
 	}
 	if _, ok := runThresholds["ftp_watts"]; ok {
@@ -111,7 +115,7 @@ func TestGetPerformancePotentialSwimUsesSportSpecificPaceUnit(t *testing.T) {
 	t.Parallel()
 
 	client := newFakeFitnessMetricsClient(t)
-	client.profile = intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "imperial", SportSettings: []intervals.SportSettings{{Types: []string{"Swim"}, LTHR: 150, ThresholdPace: 92, PaceUnits: "SECS_100M"}}}
+	client.profile = intervals.AthleteWithSportSettings{ID: "i12345", PreferredUnits: "imperial", SportSettings: []intervals.SportSettings{{Types: []string{"Swim"}, LTHR: 150, ThresholdPace: 2, PaceUnits: "SECS_100M"}}}
 	client.curves["Swim:pace"] = distanceCurveSet(t, []float64{100}, []float64{90})
 	client.curves["Swim:hr"] = curveSet(t, []float64{60}, []float64{150})
 	tool := newGetPerformancePotentialTool(client, client, "test", false)
@@ -121,13 +125,65 @@ func TestGetPerformancePotentialSwimUsesSportSpecificPaceUnit(t *testing.T) {
 	}
 	row := resultMap(t, result)["sports"].([]any)[0].(map[string]any)
 	thresholds := row["thresholds"].(map[string]any)
-	if thresholds["pace_distance_unit"] != "100m" || thresholds["threshold_pace_seconds_per_100m"] != float64(92) {
+	if thresholds["pace_distance_unit"] != "100m" || thresholds["threshold_pace_seconds_per_100m"] != float64(50) {
 		t.Fatalf("swim thresholds = %#v", thresholds)
 	}
 	pace := row["curve_anchors"].(map[string]any)["pace"].(map[string]any)
 	point := pace["points"].([]any)[0].(map[string]any)
 	if pace["preferred_unit"] != "seconds_per_100m" || point["pace_seconds_per_100m"] != float64(90) {
 		t.Fatalf("swim pace anchors = %#v", pace)
+	}
+}
+
+func TestAssignPerformancePotentialPaceThresholdsKeepsEveryRecognizedDisplay(t *testing.T) {
+	km := 280.0
+	mile := 450.0
+	meters := 50.0
+	yards := 45.72
+	fiveHundred := 125.0
+	fourHundred := 100.0
+	twoHundredFifty := 62.5
+	metersPerSecond := 3.5714285
+
+	profileSport := &athleteprofile.Sport{
+		ThresholdPaceSecondsPerKM:    &km,
+		ThresholdPaceSecondsPerMile:  &mile,
+		ThresholdPaceSecondsPer100M:  &meters,
+		ThresholdPaceSecondsPer100Y:  &yards,
+		ThresholdPaceSecondsPer500M:  &fiveHundred,
+		ThresholdPaceSecondsPer400M:  &fourHundred,
+		ThresholdPaceSecondsPer250M:  &twoHundredFifty,
+		ThresholdPaceMetersPerSecond: &metersPerSecond,
+	}
+	var thresholds performancePotentialThresholds
+	var thresholdContext performancePotentialThresholdContext
+	assignPerformancePotentialPaceThresholds(&thresholds, &thresholdContext, profileSport)
+
+	if thresholds.ThresholdPaceSecondsPer100Y != &yards || thresholds.ThresholdPaceSecondsPer400M != &fourHundred || thresholds.ThresholdPaceSecondsPer250M != &twoHundredFifty || thresholds.ThresholdPaceMetersPerSecond != &metersPerSecond {
+		t.Fatalf("pace thresholds = %+v, want every recognized pace display and m/s fallback", thresholds)
+	}
+	if !hasPerformancePotentialPaceThreshold(thresholds) {
+		t.Fatal("hasPerformancePotentialPaceThreshold() = false, want true")
+	}
+	wantFields := map[string]bool{
+		"threshold_pace_seconds_per_km":    false,
+		"threshold_pace_seconds_per_mile":  false,
+		"threshold_pace_seconds_per_100m":  false,
+		"threshold_pace_seconds_per_100y":  false,
+		"threshold_pace_seconds_per_500m":  false,
+		"threshold_pace_seconds_per_400m":  false,
+		"threshold_pace_seconds_per_250m":  false,
+		"threshold_pace_meters_per_second": false,
+	}
+	for _, threshold := range thresholdContext.AnaerobicThreshold {
+		if _, ok := wantFields[threshold.Field]; ok {
+			wantFields[threshold.Field] = true
+		}
+	}
+	for field, found := range wantFields {
+		if !found {
+			t.Fatalf("anaerobic threshold fields = %#v, missing %q", thresholdContext.AnaerobicThreshold, field)
+		}
 	}
 }
 

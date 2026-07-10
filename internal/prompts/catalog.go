@@ -20,6 +20,7 @@ const (
 	CoachingHandoffName         = "coaching_handoff"
 	ShareableTrainingReportName = "shareable_training_report"
 	PlanHealthReviewName        = "plan_health_review"
+	MastersPlanReviewName       = "masters_plan_review"
 	RaceWeekTaperName           = "race_week_taper"
 	CoachRosterTriageName       = "coach_roster_triage"
 	CoachAthleteOnboardingName  = "coach_athlete_onboarding"
@@ -310,6 +311,109 @@ func PlanHealthReviewPrompt() Prompt {
 			Return: "data coverage, adherence, load/form trajectory, transparent risk table, deload/recovery caveats, race-date risk when anchored, and reviewed proposal/questions before any write",
 		}),
 	}
+}
+
+// MastersPlanReviewPrompt guides a read-only, evidence-limited masters plan review.
+func MastersPlanReviewPrompt() Prompt {
+	return Prompt{
+		Name:        MastersPlanReviewName,
+		Title:       "Masters plan review",
+		Description: "Guide a read-only review of an existing endurance plan using athlete-local evidence and stated preferences; masters is an audience label, not an age-derived policy.",
+		Arguments: []Argument{
+			{Name: "planned_start", Title: "Planned start", Description: "Optional athlete-local date string (YYYY-MM-DD) for the review's planned window."},
+			{Name: "planned_end", Title: "Planned end", Description: "Optional athlete-local date string (YYYY-MM-DD) for the review's planned window."},
+			{Name: "history_lookback_days", Title: "History lookback days", Description: "Optional positive integer string for completed-history context."},
+			{Name: "baseline_lookback_days", Title: "Baseline lookback days", Description: "Optional positive integer string for a separate personal-baseline context."},
+			{Name: "race_date", Title: "Race date", Description: "Optional athlete-local race date string (YYYY-MM-DD) for race-context review."},
+			{Name: "race_name", Title: "Race name", Description: "Optional race name string to disambiguate matching calendar events."},
+		},
+		Handler: mastersPlanReviewHandler,
+	}
+}
+
+func mastersPlanReviewPromptSpec() promptSpec {
+	return promptSpec{
+		Title:        "Masters plan review",
+		DefaultScope: "resolve a 14-day athlete-local planned review from today through day 13; use the preceding 28 completed-history days and preceding 56 personal-baseline days without overlap",
+		ArgOrder:     []string{"planned_start", "planned_end", "history_lookback_days", "baseline_lookback_days", "race_date", "race_name"},
+		Resources:    []string{"icuvisor://athlete-profile", "icuvisor://event-categories", "icuvisor://analysis-formulas"},
+		Tools:        []string{"get_athlete_profile", "resolve_calendar_dates", "get_events", "get_training_plan", "get_activities", "get_fitness", "get_training_summary", "compute_baseline", "compute_load_balance", "get_fitness_projection", "get_wellness_data", "icuvisor_list_advanced_capabilities"},
+		Do: []string{
+			"Establish the athlete-local timezone from the profile and resolve every relative date, weekday, countdown, or stale conversation anchor with resolve_calendar_dates before comparing dates.",
+			"Partition non-overlapping personal-baseline/history, completed, planned, and race windows; resolve completed history immediately before planned_start and personal baseline immediately before that history, do not mix a completed window with later planned rows, and retain current-day wellness only as partial context.",
+			"Read sourced events, training-plan rows, and activities for their assigned windows. Fetch every needed page before claiming coverage; when pagination, truncation, an unavailable tool, or missing rows prevent that, label the coverage partial and do not treat it as complete.",
+			"Use get_fitness, get_training_summary, and compute_load_balance only for sourced load context; compute_load_balance is a window aggregate and cannot classify an individual session as hard. Read get_wellness_data for freshness and provider-native caveats, not a universal readiness score.",
+			"Confirm a calendar race by matching event evidence. If no matching event is found, label a supplied race_date a scenario anchor rather than observed race evidence.",
+			"For a personal baseline, use compute_baseline for one eligible metric at a time. Retain its status, n_baseline, n_current, min_samples, missing-day counts, freshness_status, caveats, `_meta.method`, and `_meta.formula_ref`; never combine metric results into a readiness or risk score.",
+			"Assess hard-session spacing only when the athlete identifies sessions as hard or sourced activity/plan rows provide sufficiently detailed intensity evidence. Titles, aggregate load, calendar proximity, zones that are absent or invalid, and age cannot classify a session as hard; otherwise report insufficient evidence rather than calculating a gap in chat.",
+			"Use get_fitness_projection only with copyable plan targets or athlete-supplied values. Surface every returned `_meta.assumptions`, never present default weekly_ramp_pct or recovery_week_cadence values as plan evidence or a masters recommendation, and report insufficient explicit load targets instead of inventing them.",
+			"Treat availability and requested duration as athlete-stated context, not inferred hard constraints or an implied session count. If compute_baseline, get_fitness_projection, or another needed analyzer is unavailable, call icuvisor_list_advanced_capabilities, name the gap, and do not calculate a substitute in chat.",
+			"For ambiguous or unavailable hard-session or plan detail; absent or invalid zones; short, partial, truncated, or missing historical coverage; missing, stale, or partial wellness; missing or provider-native readiness; missing race context; or insufficient explicit projection targets: name the missing evidence, make no comparison or conclusion for that affected dimension, and ask one focused question.",
+			"Return visibly separate sections in this order: Observed tool evidence (tool, athlete-local window, freshness/coverage); Athlete-stated preferences (availability and requested duration only); Cautious interpretation; Insufficient evidence and focused questions; Reviewable proposals.",
+		},
+		Guardrails: []string{
+			"This workflow is absolutely read-only: never call write or delete tools, including after approval. A calendar change remains a conditional, unapplied proposal.",
+			"Do not request, infer, derive, or use age or date of birth. Masters is an audience label only, never an age-derived policy or universal cutoff.",
+			"Do not make medical, diagnostic, treatment, or injury-risk claims, and do not invent a black-box readiness or risk score.",
+			"Do not request or accept intervals.icu API keys in chat.",
+			"Prefer terse default tool responses; use include_full only when evidence is missing.",
+		},
+		Return: "five visibly separate sections: sourced evidence, athlete-stated preferences, cautious interpretation, insufficient-evidence questions, and conditional unapplied proposals",
+	}
+}
+
+func mastersPlanReviewHandler(ctx context.Context, req Request) (Result, error) {
+	if err := ctx.Err(); err != nil {
+		return Result{}, err
+	}
+
+	args := cloneArgs(req.Arguments)
+	for _, key := range []string{"planned_start", "planned_end", "history_lookback_days", "baseline_lookback_days", "race_date", "race_name"} {
+		args[key] = strings.TrimSpace(args[key])
+	}
+	if (args["planned_start"] == "") != (args["planned_end"] == "") {
+		return Result{}, NewUserError("invalid planned window; provide both planned_start and planned_end as YYYY-MM-DD", nil)
+	}
+	if args["planned_start"] != "" {
+		start, err := parsePromptDate(args["planned_start"])
+		if err != nil {
+			return Result{}, NewUserError("invalid planned_start; provide YYYY-MM-DD", err)
+		}
+		end, err := parsePromptDate(args["planned_end"])
+		if err != nil {
+			return Result{}, NewUserError("invalid planned_end; provide YYYY-MM-DD", err)
+		}
+		if end.Before(start) {
+			return Result{}, NewUserError("invalid planned window; planned_end must be on or after planned_start", nil)
+		}
+		if int(end.Sub(start).Hours()/24)+1 > 90 {
+			return Result{}, NewUserError("invalid planned window; provide 90 athlete-local days or fewer", nil)
+		}
+	}
+	if args["race_date"] != "" {
+		if _, err := parsePromptDate(args["race_date"]); err != nil {
+			return Result{}, NewUserError("invalid race_date; provide YYYY-MM-DD", err)
+		}
+	}
+	if args["race_name"] != "" && args["race_date"] == "" {
+		return Result{}, NewUserError("missing race_date; provide YYYY-MM-DD", nil)
+	}
+	if args["history_lookback_days"] != "" {
+		days, err := boundedPromptDays(args["history_lookback_days"], 28, 90)
+		if err != nil {
+			return Result{}, NewUserError("invalid history_lookback_days; provide an integer from 1 to 90", err)
+		}
+		args["history_lookback_days"] = strconv.Itoa(days)
+	}
+	if args["baseline_lookback_days"] != "" {
+		days, err := boundedPromptDays(args["baseline_lookback_days"], 56, 180)
+		if err != nil {
+			return Result{}, NewUserError("invalid baseline_lookback_days; provide an integer from 1 to 180", err)
+		}
+		args["baseline_lookback_days"] = strconv.Itoa(days)
+	}
+
+	return renderSpec(mastersPlanReviewPromptSpec(), args), nil
 }
 
 // RaceWeekTaperPrompt guides race-week taper framing.

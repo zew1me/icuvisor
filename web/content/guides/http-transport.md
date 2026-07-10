@@ -7,28 +7,7 @@ description: "Enable icuvisor's Streamable HTTP MCP transport and understand the
 
 ## Start HTTP on loopback
 
-Run icuvisor with `ICUVISOR_TRANSPORT=http`:
-
-macOS:
-
-```bash
-ICUVISOR_TRANSPORT=http /Applications/icuvisor.app/Contents/MacOS/icuvisor
-```
-
-Windows PowerShell:
-
-```powershell
-$env:ICUVISOR_TRANSPORT = "http"
-& "$env:LOCALAPPDATA\Programs\icuvisor\icuvisor.exe"
-```
-
-By default, icuvisor listens on loopback only:
-
-```text
-http://127.0.0.1:8765/mcp
-```
-
-Equivalent flags:
+Pass the explicit loopback bind when starting HTTP:
 
 macOS:
 
@@ -42,6 +21,12 @@ Windows PowerShell:
 & "$env:LOCALAPPDATA\Programs\icuvisor\icuvisor.exe" --transport http --http-bind 127.0.0.1:8765
 ```
 
+By default, icuvisor listens on loopback only:
+
+```text
+http://127.0.0.1:8765/mcp
+```
+
 Config files can also set:
 
 ```json
@@ -51,7 +36,7 @@ Config files can also set:
 }
 ```
 
-See the [CLI reference]({{< relref "../reference/cli" >}}) and [config file reference]({{< relref "../reference/config-file" >}}) for exact field names and defaults.
+See the [CLI reference]({{< relref "../reference/cli" >}}) and [config file reference]({{< relref "../reference/config-file" >}}) for exact field names and defaults. To keep this loopback service running without an open terminal, follow [Keep local HTTP running]({{< relref "persistent-http-service" >}}).
 
 ## Configure the client URL
 
@@ -65,19 +50,9 @@ If the client runs on the same computer, do not change the bind address.
 
 ## LAN binding warning
 
-Only set `ICUVISOR_HTTP_BIND` or `--http-bind` to a LAN address when you deliberately want another machine to reach the server.
+Do not change `ICUVISOR_HTTP_BIND` or `--http-bind` to make a remote client work. A LAN bind exposes an unauthenticated MCP server: anyone who can connect to that address can call registered tools using the intervals.icu credentials configured for this icuvisor process. Keep `127.0.0.1:8765` unless you understand and explicitly accept that risk.
 
-A LAN bind exposes an unauthenticated MCP server: anyone who can connect to that address can call registered tools using the intervals.icu credentials configured for this icuvisor process. Keep `127.0.0.1:8765` unless you understand that risk.
-
-If you do opt in, use an explicit IP address and port:
-
-```bash
-ICUVISOR_TRANSPORT=http \
-ICUVISOR_HTTP_BIND=192.168.1.10:8765 \
-/Applications/icuvisor.app/Contents/MacOS/icuvisor
-```
-
-icuvisor logs a warning when HTTP starts on a non-loopback bind. For how the loopback default fits into icuvisor's local privacy posture, see [Privacy posture]({{< relref "../explain/privacy" >}}).
+This guide deliberately provides no LAN-start command. icuvisor logs a warning when HTTP starts on a non-loopback bind. For how the loopback default fits into icuvisor's local privacy posture, see [Privacy posture]({{< relref "../explain/privacy" >}}).
 
 ## Troubleshooting
 
