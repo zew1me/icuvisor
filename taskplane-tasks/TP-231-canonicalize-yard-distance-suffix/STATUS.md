@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
-**Review Counter:** 2
+**Review Counter:** 3
 **Iteration:** 1
 **Size:** M
 
@@ -22,7 +22,7 @@
 
 ### Step 1: Update parser and canonical serializer
 
-**Status:** 🟨 In Progress
+**Status:** ✅ Complete
 
 - [x] Add yrd, yard, yards to distanceTokenRE (before yd in alternation)
 - [x] Update workoutDistanceUnits: Canonical → yrd, add yrd to Aliases, update Description
@@ -96,3 +96,4 @@
 *Reserved for execution notes*
 | 2026-07-10 13:29 | Review R001 | plan Step 1: REVISE |
 | 2026-07-10 13:36 | Review R002 | code Step 1: REVISE |
+| 2026-07-10 13:38 | Review R003 | code Step 1: APPROVE |
