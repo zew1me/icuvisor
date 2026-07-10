@@ -22,12 +22,13 @@
 
 ### Step 1: Extend the typed client
 
-**Status:** ⬜ Not Started
+**Status:** 🟨 In Progress
 
 - [ ] Indoor FTP update support added
 - [ ] Typed CreateSportSettings operation added
 - [ ] Corrected threshold pace conversion reused
 - [ ] Threshold validation defined without invented constraints
+- [ ] Targeted client tests pass
 
 ---
 
