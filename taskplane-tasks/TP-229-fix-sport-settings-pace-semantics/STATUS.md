@@ -33,7 +33,7 @@
 - [x] R004: Reject finite pace inputs whose reciprocal conversion overflows
 - [x] R005: Correct workout previews and configured histogram zones for m/s thresholds and percentage boundaries
 - [x] R005: Omit ambiguous source-unit fallback values
-- [ ] R006: Honor every recognized `pace_units` display distance in workout target previews
+- [x] R006: Honor every recognized `pace_units` display distance in workout target previews
 
 ---
 

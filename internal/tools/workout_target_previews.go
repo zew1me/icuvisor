@@ -8,6 +8,7 @@ import (
 
 	"github.com/ricardocabral/icuvisor/internal/intervals"
 	"github.com/ricardocabral/icuvisor/internal/response"
+	"github.com/ricardocabral/icuvisor/internal/units"
 )
 
 type workoutTargetPreviewContext struct {
@@ -228,13 +229,24 @@ func paceSecondsPerMeter(metersPerSecond float64) (float64, bool) {
 }
 
 func preferredPacePreviewUnit(sourceUnit string, unitSystem response.UnitSystem) (float64, string) {
-	switch strings.ToUpper(strings.TrimSpace(sourceUnit)) {
-	case "SECS_100M":
-		return 100, "/100m"
-	case "SECS_100Y":
-		return metersPer100Yards, "/100y"
-	case "SECS_500M":
-		return 500, "/500m"
+	paceUnit, _ := units.ParseUnit(sourceUnit)
+	if distance, ok := response.PaceDistanceMeters(paceUnit); ok {
+		switch paceUnit {
+		case units.UnitMinsKM:
+			return distance, "/km"
+		case units.UnitMinsMile:
+			return distance, "/mi"
+		case units.UnitSecs100M:
+			return distance, "/100m"
+		case units.UnitSecs100Y:
+			return distance, "/100y"
+		case units.UnitSecs500M:
+			return distance, "/500m"
+		case units.UnitSecs400M:
+			return distance, "/400m"
+		case units.UnitSecs250M:
+			return distance, "/250m"
+		}
 	}
 	if unitSystem == response.UnitSystemImperial {
 		return 1609.344, "/mi"

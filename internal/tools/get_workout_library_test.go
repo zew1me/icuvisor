@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ricardocabral/icuvisor/internal/intervals"
+	"github.com/ricardocabral/icuvisor/internal/response"
 )
 
 type fakeWorkoutLibraryClient struct {
@@ -193,6 +194,29 @@ func TestGetWorkoutsInFolderFiltersAndPreservesWorkoutDocWithIncludeFull(t *test
 	meta := out["_meta"].(map[string]any)
 	if meta["folder_id"] != "20" || meta["include_full"] != true || meta["count"] != float64(1) {
 		t.Fatalf("meta = %#v, want folder/include_full/count", meta)
+	}
+}
+
+func TestPaceTargetPreviewHonorsSportDisplayUnits(t *testing.T) {
+	tests := []struct {
+		name       string
+		paceUnits  string
+		unitSystem response.UnitSystem
+		preview    string
+		basis      string
+	}{
+		{name: "metric athlete kilometers", paceUnits: "MINS_KM", unitSystem: response.UnitSystemMetric, preview: "4:55/km", basis: "threshold pace 4:40/km"},
+		{name: "metric athlete miles", paceUnits: "MINS_MILE", unitSystem: response.UnitSystemMetric, preview: "7:54/mi", basis: "threshold pace 7:31/mi"},
+		{name: "400 meter track display", paceUnits: "SECS_400M", unitSystem: response.UnitSystemImperial, preview: "1:58/400m", basis: "threshold pace 1:52/400m"},
+		{name: "250 meter display", paceUnits: "SECS_250M", unitSystem: response.UnitSystemMetric, preview: "1:14/250m", basis: "threshold pace 1:10/250m"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			preview, basis, ok := paceTargetPreview(workoutTargetBounds{Values: []float64{95}}, 3.5714285, tt.paceUnits, tt.unitSystem)
+			if !ok || preview != tt.preview || basis != tt.basis {
+				t.Fatalf("paceTargetPreview() = %q, %q, %t; want %q, %q, true", preview, basis, ok, tt.preview, tt.basis)
+			}
+		})
 	}
 }
 
