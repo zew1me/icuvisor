@@ -77,9 +77,9 @@ The executable-only negative assertions will reject `INTERVALS_ICU_API_KEY` assi
 - [ ] Loopback, lifecycle, and credential assertions added
 - [ ] Insecure executable examples rejected
 - [ ] Documentation contract wired into existing Make and CI path
-- [ ] R006: Root-relative fenced-snippet test structure and guide scope specified
-- [ ] R006: Positive lifecycle, remote-boundary, and connector assertions specified
-- [ ] R006: Executable-only security assertions and existing CI invocation specified
+- [x] R006: Root-relative fenced-snippet test structure and guide scope specified
+- [x] R006: Positive lifecycle, remote-boundary, and connector assertions specified
+- [x] R006: Executable-only security assertions and existing CI invocation specified
 
 ---
 
