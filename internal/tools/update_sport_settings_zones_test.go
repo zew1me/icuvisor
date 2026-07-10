@@ -18,7 +18,7 @@ func TestUpdateSportSettingsOmittedZonesDoesNotWriteZones(t *testing.T) {
 	client.setting = intervals.SportSettings{ID: 7, Type: "Ride", FTP: ftp}
 	tool := newUpdateSportSettingsTool(client, client, "test", "UTC", false, safety.NewCapability(safety.ModeSafe))
 
-	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"sport":"Ride","effective_date":"2026-05-01","ftp":275}`)})
+	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"sport":"Ride","ftp":275}`)})
 	if err != nil {
 		t.Fatalf("Handler() error = %v", err)
 	}
@@ -29,7 +29,7 @@ func TestUpdateSportSettingsOmittedZonesDoesNotWriteZones(t *testing.T) {
 	if call.ZonesProvided || len(call.Zones) != 0 {
 		t.Fatalf("zones write = provided %v zones %#v, want omitted", call.ZonesProvided, call.Zones)
 	}
-	if call.FTP == nil || *call.FTP != ftp || call.SportSettingID != 7 || call.EffectiveDate != "2026-05-01" {
+	if call.FTP == nil || *call.FTP != ftp || call.SportSettingID != 7 || !call.RecalcHRZones {
 		t.Fatalf("write call = %+v, want FTP-only sport setting update", call)
 	}
 	meta := resultMap(t, result)["_meta"].(map[string]any)
@@ -44,7 +44,7 @@ func TestUpdateSportSettingsSafeModeRejectsZonesBeforeWrite(t *testing.T) {
 	client := newFakeSportSettingsClient(intervals.SportSettings{ID: 7, Types: []string{"Ride"}})
 	tool := newUpdateSportSettingsTool(client, client, "test", "UTC", false, safety.NewCapability(safety.ModeSafe))
 
-	_, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"sport":"Ride","effective_date":"2026-05-01","zones":[{"kind":"power","boundaries":[100,200],"names":["Z1","Z2"]}]}`)})
+	_, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"sport":"Ride","zones":[{"kind":"power","boundaries":[100,200],"names":["Z1","Z2"]}]}`)})
 	if err == nil || !strings.Contains(err.Error(), "zones overwrite prior") {
 		t.Fatalf("Handler() error = %v, want zone gate user error", err)
 	}
@@ -61,7 +61,7 @@ func TestUpdateSportSettingsFullModeAppliesZonesAndResponseMeta(t *testing.T) {
 	client.setting = intervals.SportSettings{ID: 7, Type: "Ride", FTP: 280, PowerZones: []int{100, 200}, PowerZoneNames: []string{"Z1", "Z2"}}
 	tool := newUpdateSportSettingsTool(client, client, "v1.2.3", "UTC", false, safety.NewCapability(safety.ModeFull), responseShaping{deleteMode: safety.ModeFull, toolset: safety.ToolsetCore})
 
-	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"sport":"Ride","effective_date":"2026-05-01","ftp":280,"zones":[{"kind":"power","boundaries":[100,200],"names":["Z1","Z2"]}]}`)})
+	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"sport":"Ride","ftp":280,"zones":[{"kind":"power","boundaries":[100,200],"names":["Z1","Z2"]}]}`)})
 	if err != nil {
 		t.Fatalf("Handler() error = %v", err)
 	}
@@ -74,7 +74,7 @@ func TestUpdateSportSettingsFullModeAppliesZonesAndResponseMeta(t *testing.T) {
 		t.Fatalf("settings = %#v, want zone echo", settings)
 	}
 	meta := payload["_meta"].(map[string]any)
-	if meta["delete_mode"] != "full" || meta["server_version"] != "v1.2.3" || meta["recompute_pending"] != true {
+	if meta["delete_mode"] != "full" || meta["server_version"] != "v1.2.3" || meta["hr_zone_recalculation_requested"] != true {
 		t.Fatalf("meta = %#v, want delete_mode/full server version and recompute", meta)
 	}
 	units := meta["units"].(map[string]any)
@@ -88,7 +88,7 @@ func TestUpdateSportSettingsFullModeRoundTripsRunPaceZones(t *testing.T) {
 	client.setting = intervals.SportSettings{ID: 8, Type: "Run", PaceUnits: "MINS_MILE", PaceZones: []float64{480, 420}, PaceZoneNames: []string{"Aerobic", "Threshold"}}
 	tool := newUpdateSportSettingsTool(client, client, "test", "UTC", false, safety.NewCapability(safety.ModeFull), responseShaping{deleteMode: safety.ModeFull, toolset: safety.ToolsetCore})
 
-	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"sport":"Run","effective_date":"2026-05-01","zones":[{"kind":"pace","boundaries":[480,420],"names":["Aerobic","Threshold"]}]}`)})
+	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"sport":"Run","zones":[{"kind":"pace","boundaries":[480,420],"names":["Aerobic","Threshold"]}]}`)})
 	if err != nil {
 		t.Fatalf("Handler() error = %v", err)
 	}

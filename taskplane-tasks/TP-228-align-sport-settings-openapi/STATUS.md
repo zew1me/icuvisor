@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 3
-**Review Counter:** 9
+**Review Counter:** 10
 **Iteration:** 1
 **Size:** L
 
@@ -50,13 +50,13 @@
 
 **Status:** 🟨 In Progress
 
-- [ ] recalc_hr_zones schema and forwarding implemented
-- [ ] Unsupported effective-date behavior removed
-- [ ] Response metadata corrected
-- [ ] Schema snapshots and generated data updated
-- [ ] R007: Preserve explicit-false/default-true decoding and always emit truthful recalculation-requested metadata
-- [ ] R007: Narrowly approve only update_sport_settings effective_date removal without weakening generic schema-removal protection
-- [ ] R009: Add production schema-stability policy keyed by tool/property and test approved versus unrelated removals through CheckSchemaStability
+- [x] recalc_hr_zones schema and forwarding implemented
+- [x] Unsupported effective-date behavior removed
+- [x] Response metadata corrected
+- [x] Schema snapshots and generated data updated
+- [x] R007: Preserve explicit-false/default-true decoding and always emit truthful recalculation-requested metadata
+- [x] R007: Narrowly approve only update_sport_settings effective_date removal without weakening generic schema-removal protection
+- [x] R009: Add production schema-stability policy keyed by tool/property and test approved versus unrelated removals through CheckSchemaStability
 
 ---
 
@@ -129,3 +129,4 @@
 | 2026-07-10 11:57 | Review R007 | plan Step 3: REVISE |
 | 2026-07-10 11:58 | Review R008 | plan Step 3: REVISE |
 | 2026-07-10 12:00 | Review R009 | plan Step 3: REVISE |
+| 2026-07-10 12:02 | Review R010 | plan Step 3: APPROVE |

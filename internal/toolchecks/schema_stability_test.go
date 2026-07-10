@@ -188,6 +188,73 @@ func TestCheckSchemaStability(t *testing.T) {
 	}
 }
 
+func TestCheckSchemaStabilityAllowsOnlyApprovedPropertyRemoval(t *testing.T) {
+	t.Parallel()
+
+	schema := func(properties map[string]any) map[string]any {
+		return map[string]any{"type": "object", "additionalProperties": false, "properties": properties}
+	}
+	tests := []struct {
+		name      string
+		baseline  map[string]map[string]any
+		generated map[string]map[string]any
+		wantOK    bool
+	}{
+		{
+			name: "permits only TP-228 effective date removal",
+			baseline: map[string]map[string]any{"update_sport_settings": schema(map[string]any{
+				"effective_date": map[string]any{"type": "string"},
+				"ftp":            map[string]any{"type": "integer"},
+			})},
+			generated: map[string]map[string]any{"update_sport_settings": schema(map[string]any{
+				"ftp": map[string]any{"type": "integer"},
+			})},
+			wantOK: true,
+		},
+		{
+			name: "rejects another update sport settings property removal",
+			baseline: map[string]map[string]any{"update_sport_settings": schema(map[string]any{
+				"effective_date": map[string]any{"type": "string"},
+				"ftp":            map[string]any{"type": "integer"},
+			})},
+			generated: map[string]map[string]any{"update_sport_settings": schema(map[string]any{
+				"effective_date": map[string]any{"type": "string"},
+			})},
+			wantOK: false,
+		},
+		{
+			name: "rejects effective date removal from another tool",
+			baseline: map[string]map[string]any{"another_tool": schema(map[string]any{
+				"effective_date": map[string]any{"type": "string"},
+			})},
+			generated: map[string]map[string]any{"another_tool": schema(map[string]any{})},
+			wantOK:    false,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			baselineDir := t.TempDir()
+			currentDir := t.TempDir()
+			for name, value := range tc.baseline {
+				writeTestSnapshot(t, baselineDir, testSnapshot(t, name, value))
+			}
+			generated := map[string]Snapshot{}
+			for name, value := range tc.generated {
+				snapshot := testSnapshot(t, name, value)
+				generated[name] = snapshot
+				writeTestSnapshot(t, currentDir, snapshot)
+			}
+			report, err := CheckSchemaStability(baselineDir, currentDir, generated)
+			if err != nil {
+				t.Fatalf("CheckSchemaStability() error = %v", err)
+			}
+			if report.OK() != tc.wantOK {
+				t.Fatalf("CheckSchemaStability().OK() = %v, want %v; failures = %#v", report.OK(), tc.wantOK, report.Failures)
+			}
+		})
+	}
+}
+
 func TestCheckSchemaStabilityMissingBaselineFails(t *testing.T) {
 	_, err := CheckSchemaStability(filepath.Join(t.TempDir(), "missing"), t.TempDir(), map[string]Snapshot{})
 	if err == nil || !strings.Contains(err.Error(), "baseline snapshot directory") {

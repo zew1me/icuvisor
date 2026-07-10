@@ -12,7 +12,6 @@ import (
 // WriteSportSettingsParams contains sparse sport-setting fields for one sport.
 type WriteSportSettingsParams struct {
 	SportSettingID int
-	EffectiveDate  string
 	RecalcHRZones  bool
 	FTP            *int
 	ThresholdHR    *int

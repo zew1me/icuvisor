@@ -32,14 +32,18 @@ func TestUpdateSportSettingsSchemaDocumentsInputsAndZoneGate(t *testing.T) {
 	}
 	schema := tool.InputSchema.(map[string]any)
 	required := schema["required"].([]string)
-	if !containsString(required, "sport") || !containsString(required, "effective_date") {
-		t.Fatalf("required = %#v, want sport and effective_date", required)
+	if len(required) != 1 || !containsString(required, "sport") {
+		t.Fatalf("required = %#v, want only sport", required)
 	}
 	props := schema["properties"].(map[string]any)
-	for _, field := range []string{"sport", "effective_date", "ftp", "threshold_hr", "threshold_pace", "zones"} {
+	for _, field := range []string{"sport", "recalc_hr_zones", "ftp", "threshold_hr", "threshold_pace", "zones"} {
 		if _, ok := props[field]; !ok {
 			t.Fatalf("schema missing field %s", field)
 		}
+	}
+	recalcHRZones := props["recalc_hr_zones"].(map[string]any)
+	if recalcHRZones["default"] != true || !strings.Contains(recalcHRZones["description"].(string), "defaults to true") {
+		t.Fatalf("recalc_hr_zones = %#v, want documented true default", recalcHRZones)
 	}
 	sport := props["sport"].(map[string]any)
 	if len(sport["enum"].([]string)) == 0 || !containsString(sport["enum"].([]string), "Ride") || !containsString(sport["enum"].([]string), "Run") {
@@ -77,11 +81,12 @@ func TestUpdateSportSettingsThresholdFieldsAndPaceConversion(t *testing.T) {
 		wantPaceValue float64
 		wantInputUnit string
 		wantFields    []string
+		wantRecalc    bool
 	}{
-		{name: "ftp only", args: `{"sport":"Run","effective_date":"2026-05-01","ftp":290}`, wantFTP: intPtr(290), wantFields: []string{"ftp"}},
-		{name: "threshold hr only", args: `{"sport":"Run","effective_date":"2026-05-01","threshold_hr":171}`, wantHR: intPtr(171), wantFields: []string{"threshold_hr"}},
-		{name: "threshold pace seconds per km converts to upstream mile pace", args: `{"sport":"Run","effective_date":"2026-05-01","threshold_pace":{"value":300,"unit":"seconds_per_km"}}`, wantPace: true, wantPaceValue: 482.8032, wantInputUnit: "seconds_per_km", wantFields: []string{"threshold_pace"}},
-		{name: "threshold pace seconds per mile stays in upstream mile pace", args: `{"sport":"Run","effective_date":"2026-05-01","threshold_pace":{"value":480,"unit":"seconds_per_mile"}}`, wantPace: true, wantPaceValue: 480, wantInputUnit: "seconds_per_mile", wantFields: []string{"threshold_pace"}},
+		{name: "ftp defaults HR zone recalculation to true", args: `{"sport":"Run","ftp":290}`, wantFTP: intPtr(290), wantFields: []string{"ftp"}, wantRecalc: true},
+		{name: "threshold hr does not recalculate HR zones when false", args: `{"sport":"Run","recalc_hr_zones":false,"threshold_hr":171}`, wantHR: intPtr(171), wantFields: []string{"threshold_hr"}, wantRecalc: false},
+		{name: "threshold pace seconds per km converts to upstream mile pace", args: `{"sport":"Run","threshold_pace":{"value":300,"unit":"seconds_per_km"}}`, wantPace: true, wantPaceValue: 482.8032, wantInputUnit: "seconds_per_km", wantFields: []string{"threshold_pace"}, wantRecalc: true},
+		{name: "threshold pace seconds per mile stays in upstream mile pace", args: `{"sport":"Run","threshold_pace":{"value":480,"unit":"seconds_per_mile"}}`, wantPace: true, wantPaceValue: 480, wantInputUnit: "seconds_per_mile", wantFields: []string{"threshold_pace"}, wantRecalc: true},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -97,8 +102,8 @@ func TestUpdateSportSettingsThresholdFieldsAndPaceConversion(t *testing.T) {
 				t.Fatalf("write calls = %d, want 1", len(client.calls))
 			}
 			call := client.calls[0]
-			if !sameIntPtr(call.FTP, tc.wantFTP) || !sameIntPtr(call.ThresholdHR, tc.wantHR) {
-				t.Fatalf("write call = %+v, want ftp=%v threshold_hr=%v", call, tc.wantFTP, tc.wantHR)
+			if !sameIntPtr(call.FTP, tc.wantFTP) || !sameIntPtr(call.ThresholdHR, tc.wantHR) || call.RecalcHRZones != tc.wantRecalc {
+				t.Fatalf("write call = %+v, want ftp=%v threshold_hr=%v recalc_hr_zones=%t", call, tc.wantFTP, tc.wantHR, tc.wantRecalc)
 			}
 			if tc.wantPace {
 				if call.ThresholdPace == nil || call.ThresholdPace.Unit != "MINS_MILE" || math.Abs(call.ThresholdPace.Value-tc.wantPaceValue) > 0.0001 {
@@ -111,8 +116,8 @@ func TestUpdateSportSettingsThresholdFieldsAndPaceConversion(t *testing.T) {
 			settings := out["sport_settings"].(map[string]any)
 			meta := out["_meta"].(map[string]any)
 			fields := meta["fields_updated"].([]any)
-			if len(fields) != len(tc.wantFields) || fields[0] != tc.wantFields[0] || meta["recompute_pending"] != true || meta["zones_provided"] != false {
-				t.Fatalf("meta = %#v, want fields %v, recompute_pending, and zones_provided=false", meta, tc.wantFields)
+			if len(fields) != len(tc.wantFields) || fields[0] != tc.wantFields[0] || meta["hr_zone_recalculation_requested"] != tc.wantRecalc || meta["zones_provided"] != false {
+				t.Fatalf("meta = %#v, want fields %v, hr_zone_recalculation_requested=%t, and zones_provided=false", meta, tc.wantFields, tc.wantRecalc)
 			}
 			assertKeyAbsent(t, settings, "zone_definitions_overwritten")
 			if tc.wantPace && (meta["pace_input_unit"] != tc.wantInputUnit || meta["pace_upstream_unit"] != "MINS_MILE") {
@@ -129,7 +134,7 @@ func TestUpdateSportSettingsWritesYardSwimPace(t *testing.T) {
 	client.setting = intervals.SportSettings{ID: 9, Type: "Swim", PaceUnits: "SECS_100M"}
 	tool := newUpdateSportSettingsTool(client, client, "test", "UTC", false, safety.NewCapability(safety.ModeSafe))
 
-	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"sport":"Swim","effective_date":"2026-05-01","threshold_pace":{"value":90,"unit":"seconds_per_100y"}}`)})
+	result, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(`{"sport":"Swim","threshold_pace":{"value":90,"unit":"seconds_per_100y"}}`)})
 	if err != nil {
 		t.Fatalf("Handler() error = %v", err)
 	}
@@ -149,6 +154,28 @@ func TestUpdateSportSettingsWritesYardSwimPace(t *testing.T) {
 	meta := out["_meta"].(map[string]any)
 	if meta["pace_input_unit"] != "seconds_per_100y" || meta["pace_upstream_unit"] != "SECS_100Y" {
 		t.Fatalf("meta = %#v, want yard pace metadata", meta)
+	}
+}
+
+func TestUpdateSportSettingsRejectsLegacyAndUnknownArgumentsBeforeClients(t *testing.T) {
+	t.Parallel()
+
+	for _, args := range []string{
+		`{"sport":"Ride","effective_date":"2026-05-01","ftp":290}`,
+		`{"sport":"Ride","ftp":290,"unknown":true}`,
+	} {
+		t.Run(args, func(t *testing.T) {
+			client := newFakeSportSettingsClient(intervals.SportSettings{ID: 7, Types: []string{"Ride"}})
+			tool := newUpdateSportSettingsTool(client, client, "test", "UTC", false, safety.NewCapability(safety.ModeSafe))
+
+			_, err := tool.Handler(context.Background(), Request{Name: tool.Name, Arguments: json.RawMessage(args)})
+			if err == nil || err.Error() != invalidUpdateSportSettingsArgumentsMessage {
+				t.Fatalf("Handler() error = %v, want terse validation error", err)
+			}
+			if client.fakeProfileClient.calls != 0 || len(client.calls) != 0 {
+				t.Fatalf("profile calls = %d, writer calls = %d, want neither", client.fakeProfileClient.calls, len(client.calls))
+			}
+		})
 	}
 }
 
