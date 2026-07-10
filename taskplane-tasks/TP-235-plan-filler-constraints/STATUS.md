@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
-**Review Counter:** 1
+**Review Counter:** 2
 **Iteration:** 1
 **Size:** L
 
@@ -23,6 +23,15 @@
 ### Step 1: Define the constraint contract
 
 **Status:** 🟨 In Progress
+
+<!-- R002 revision items -->
+- [ ] R002-1: Resolve WarnZeroRemainingLoad trigger inconsistency (code vs design doc boundary table — remove "with Load > 0" qualifier)
+- [ ] R002-2: Add WarnZeroRemainingTime parallel handling when remainingMin <= 0 (symmetric with load case)
+- [ ] R002-3: Add "Field semantics / Units" section to design doc documenting float64-minutes rationale
+- [ ] R002-A: Document batch accumulation behavior (all candidates, not just valid, consume weekly budget)
+- [ ] R002-B: Note in design doc that WarnInfeasibleLoad uses all candidates including invalid ones
+- [ ] R002-C: Note in design doc that availableSlotCount is structural capacity, not candidate-filtered
+- [ ] R002-D: Update STATUS.md Step 2 to reflect implementation already present
 
 - [x] Weekly constraint struct defined: WeekTarget (full-week target, remaining target, completed load, fixed load), RequestedSessionCount, AvailableDays (per-day slot list)
 - [x] Daily slot struct defined: date, max sessions per day, slots with per-slot duration cap, indoor/outdoor cap, sport allow-list, mode allow-list
@@ -115,3 +124,4 @@
 
 *Reserved for execution notes*
 | 2026-07-10 13:57 | Review R001 | plan Step 1: APPROVE |
+| 2026-07-10 14:10 | Review R002 | code Step 1: REVISE |
