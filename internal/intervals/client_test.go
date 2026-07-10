@@ -350,7 +350,7 @@ func TestGetAthleteProfileDecodesFixture(t *testing.T) {
 		t.Fatalf("sport settings = %+v, want one Run setting", got.SportSettings)
 	}
 	setting := got.SportSettings[0]
-	if setting.IndoorFTP != 240 || len(setting.Types) != 1 || setting.Types[0] != "Run" || math.Abs(setting.ThresholdPace-3.5714285) > 0.0000001 || setting.PaceUnits != "MINS_KM" || setting.PaceLoadType != "RUN" || len(setting.PaceZones) != 3 || setting.PaceZones[0] != 77.5 || setting.PaceZones[2] != 100 || len(setting.PaceZoneNames) != 3 || setting.PaceZoneNames[2] != "Threshold" {
+	if setting.IndoorFTP != 240 || len(setting.Types) != 1 || setting.Types[0] != "Run" || math.Abs(setting.ThresholdPace-3.5714285) > 0.0000001 || setting.PaceUnits != "MINS_KM" || setting.PaceLoadType != "RUN" || len(setting.PaceZones) != 3 || setting.PaceZones[0] != 77.5 || setting.PaceZones[1] != 90 || setting.PaceZones[2] != 100 || len(setting.PaceZoneNames) != 3 || setting.PaceZoneNames[0] != "Easy" || setting.PaceZoneNames[1] != "Moderate" || setting.PaceZoneNames[2] != "Threshold" {
 		t.Fatalf("sport setting = %+v, want decoded m/s pace and percentage zones", setting)
 	}
 }

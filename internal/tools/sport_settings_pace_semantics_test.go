@@ -23,11 +23,11 @@ func TestSportSettingsPaceRoundTripsMPSAndSelectedDisplay(t *testing.T) {
 		responseField   string
 		wantDisplaySecs float64
 	}{
-		{name: "run metric", sport: "Run", paceUnits: "MINS_KM", paceLoadType: "RUN", inputSeconds: 280, inputUnit: "seconds_per_km", wantMPS: 3.5714285, returnedMPS: 3.5714285, responseField: "threshold_pace_seconds_per_km", wantDisplaySecs: 280},
-		{name: "run imperial", sport: "Run", paceUnits: "MINS_MILE", paceLoadType: "RUN", inputSeconds: 450.616329012327, inputUnit: "seconds_per_mile", wantMPS: 3.5714285, returnedMPS: 3.5714285, responseField: "threshold_pace_seconds_per_mile", wantDisplaySecs: 450.616329012327},
-		{name: "swim 100 meters", sport: "Swim", paceUnits: "SECS_100M", paceLoadType: "SWIM", inputSeconds: 50, inputUnit: "seconds_per_100m", wantMPS: 2, returnedMPS: 2, responseField: "threshold_pace_seconds_per_100m", wantDisplaySecs: 50},
-		{name: "swim 100 yards", sport: "Swim", paceUnits: "SECS_100Y", paceLoadType: "SWIM", inputSeconds: 45.72, inputUnit: "seconds_per_100y", wantMPS: 2, returnedMPS: 2, responseField: "threshold_pace_seconds_per_100y", wantDisplaySecs: 45.72},
-		{name: "row 500 meters", sport: "Rowing", paceUnits: "SECS_500M", inputSeconds: 125, inputUnit: "seconds_per_500m", wantMPS: 4, returnedMPS: 4, responseField: "threshold_pace_seconds_per_500m", wantDisplaySecs: 125},
+		{name: "run metric", sport: "Run", paceUnits: "MINS_KM", paceLoadType: "RUN", inputSeconds: 280, inputUnit: "seconds_per_km", wantMPS: 3.5714285, returnedMPS: 3.5, responseField: "threshold_pace_seconds_per_km", wantDisplaySecs: 1000.0 / 3.5},
+		{name: "run imperial", sport: "Run", paceUnits: "MINS_MILE", paceLoadType: "RUN", inputSeconds: 450.616329012327, inputUnit: "seconds_per_mile", wantMPS: 3.5714285, returnedMPS: 3.6, responseField: "threshold_pace_seconds_per_mile", wantDisplaySecs: 1609.344 / 3.6},
+		{name: "swim 100 meters", sport: "Swim", paceUnits: "SECS_100M", paceLoadType: "SWIM", inputSeconds: 50, inputUnit: "seconds_per_100m", wantMPS: 2, returnedMPS: 2.1, responseField: "threshold_pace_seconds_per_100m", wantDisplaySecs: 100.0 / 2.1},
+		{name: "swim 100 yards", sport: "Swim", paceUnits: "SECS_100Y", paceLoadType: "SWIM", inputSeconds: 45.72, inputUnit: "seconds_per_100y", wantMPS: 2, returnedMPS: 1.9, responseField: "threshold_pace_seconds_per_100y", wantDisplaySecs: 91.44 / 1.9},
+		{name: "row 500 meters", sport: "Rowing", paceUnits: "SECS_500M", inputSeconds: 125, inputUnit: "seconds_per_500m", wantMPS: 4, returnedMPS: 4.2, responseField: "threshold_pace_seconds_per_500m", wantDisplaySecs: 500.0 / 4.2},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

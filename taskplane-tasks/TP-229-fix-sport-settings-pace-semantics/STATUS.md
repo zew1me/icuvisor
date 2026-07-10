@@ -73,7 +73,7 @@
 - [x] Percentage zones remain unchanged
 - [x] R016: Lock fixture consumers, replace remaining duration-shaped fixtures, and test returned m/s echoes
 - [x] R017: Complete the repository-wide duration-shaped fixture audit
-- [ ] R019: Lock every fixture zone/name and distinguish returned m/s echoes from requests
+- [x] R019: Lock every fixture zone/name and distinguish returned m/s echoes from requests
 
 ---
 
