@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
-**Review Counter:** 11
+**Review Counter:** 12
 **Iteration:** 4
 **Size:** L
 
@@ -75,6 +75,7 @@
 - [x] PRD and roadmap aligned
 - [x] Generated website data and cookbook updated
 - [x] Changelog updated
+- [ ] R012 below-first-boundary and open-final-zone formula semantics documented
 
 ---
 
@@ -174,3 +175,4 @@
 | 2026-07-10 17:01 | Review R008 | plan Step 3: REVISE |
 | 2026-07-10 17:04 | Review R009 | plan Step 3: APPROVE |
 | 2026-07-10 17:21 | Review R010 | code Step 3: APPROVE |
+| 2026-07-10 17:28 | Review R012 | code Step 4: REVISE |
