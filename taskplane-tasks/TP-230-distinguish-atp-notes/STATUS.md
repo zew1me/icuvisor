@@ -30,7 +30,7 @@
 - [x] Ordering and terse/full behavior defined
 - [x] Exact collection, status, count, and week-association migration documented
 - [x] Classification boundary, recovery policy, and Step 2 regression matrix documented
-- [ ] Personal-context-only unavailable behavior and wording defined
+- [x] Personal-context-only unavailable behavior and wording defined
 
 ---
 
@@ -111,5 +111,6 @@
 - Step 1 count/association migration: summary `note_count` becomes `atp_note_count` and adds `context_note_count`; week `note_count`/`note_ids` become `atp_note_count`/`atp_note_ids`, with separate `context_note_count`/`context_note_ids`. `_meta.note_event_count` becomes `_meta.atp_note_event_count` plus `_meta.context_note_event_count`; `_meta.periodization_event_count` counts PLAN, TARGET, and ATP NOTE rows only. Personal context never contributes to an ATP count or ATP ID list. Remove `recovery_note_count` because no locale-neutral upstream recovery semantic exists.
 - Step 1 ordering/full contract: independently order `notes` and `context_notes` by athlete-local start date, then upstream `updated`, then source event ID, preserving the current stable comparator; sort every ATP/context week ID list lexically. Default terse rows always expose `status`, and ATP notes expose `plan_applied`; `include_full: true` additionally exposes the unchanged raw event under `full` for either class, while false omits all `full` payloads.
 - Step 1 recovery policy and regression matrix: remove `recovery_hint`, `annualTrainingPlanRecoveryHint`, and all recovery-note counts; `plan_applied` proves ATP provenance only and never recovery meaning. Step 2 tests will cover null/empty/whitespace `plan_applied` personal `Travel — Rest`, localized ATP notes sharing a non-empty timestamp, multi-day note/week associations, independent stable ordering, terse versus `include_full`, real one-day TARGET Monday-through-Sunday boundaries, and unchanged TARGET-only projection bridge rows. Existing English-recovery assertions will migrate to provenance/count assertions.
+- Step 1 context-only availability contract: when a scan returns personal context NOTE rows but no PLAN, TARGET, or ATP-generated NOTE rows, retain populated `context_notes` and return `unavailable.reason: "no_periodization_events"`. Its detail will say `no PLAN, TARGET, or ATP-generated NOTE calendar events were returned for the requested range; personal NOTE rows, when present, are retained separately in context_notes` so the response does not falsely claim there were no notes.
 | 2026-07-10 12:31 | Review R001 | plan Step 1: REVISE |
 | 2026-07-10 12:34 | Review R002 | plan Step 1: REVISE |
