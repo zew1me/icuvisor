@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
-**Review Counter:** 3
+**Review Counter:** 4
 **Iteration:** 2
 **Size:** L
 
@@ -41,6 +41,7 @@
 - [ ] create_sport_settings tool implemented
 - [ ] Full-toolset registration and annotations added
 - [ ] Schemas, examples, catalog, and snapshots updated
+- [ ] R004 plan: create validation ordering, exact catalog/snapshot integration, and public echo contract recorded
 
 ---
 
@@ -94,6 +95,7 @@
 | R001 | Plan | 1 | REVISE | `.reviews/R001-plan-step1.md` |
 | R002 | Plan | 1 | APPROVE | `.reviews/R002-plan-step1.md` |
 | R003 | Code | 1 | APPROVE | `.reviews/R003-code-step1.md` |
+| R004 | Plan | 2 | REVISE | `.reviews/R004-plan-step2.md` |
 
 ## Discoveries
 
@@ -126,3 +128,4 @@
 | 2026-07-10 | Step 2 registration | Register the creator as `fullTool` plus `RequirementWrite`, add it to the canonical athlete-scoped catalog, expected tier map, schemas/examples/snapshots, and use no credential, confirmation, or zone inputs. |
 | 2026-07-10 22:43 | Review R002 | plan Step 1: APPROVE |
 | 2026-07-10 22:49 | Review R003 | code Step 1: APPROVE |
+| 2026-07-10 22:53 | Review R004 | plan Step 2: REVISE |
