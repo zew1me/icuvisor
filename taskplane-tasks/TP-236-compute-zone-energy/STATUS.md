@@ -1,6 +1,6 @@
 # TP-236: Add deterministic power-zone energy analysis — Status
 
-**Current Step:** Step 5: Testing & Verification
+**Current Step:** Step 6: Documentation & Delivery
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
@@ -95,11 +95,11 @@
 
 ### Step 6: Documentation & Delivery
 
-**Status:** ⬜ Not Started
+**Status:** ✅ Complete
 
-- [ ] Must Update docs modified
-- [ ] Check If Affected docs reviewed
-- [ ] Discoveries logged
+- [x] Must Update docs modified
+- [x] Check If Affected docs reviewed
+- [x] Discoveries logged
 
 ---
 
@@ -118,6 +118,8 @@
 | Discovery | Disposition | Location |
 |-----------|-------------|----------|
 | Tier-2 `taskplane-tasks/CONTEXT.md` is absent; required implementation paths and authoritative PRD/roadmap context are available. | Proceed using task packet and repository guidance. | Preflight |
+| Generated website catalog changes also require synchronized `cmd/gendocs/testdata/*.golden.json` fixtures; `make docs-tools` alone does not refresh them. | Refreshed both goldens and verified `make test` plus reproducible generation. | Step 5 |
+| MCP SDK read-only annotations were not previously derived from internal safety requirements. | Map effective read requirements, including the default-read value, to `annotations.readOnlyHint: true` for all registered read tools. | Step 3 |
 
 ## Execution Log
 
@@ -138,6 +140,8 @@
 | 2026-07-10 17:40 | Verification | `make build` exit 0 |
 | 2026-07-10 17:40 | Verification | `make docs-tools`, before/after generated-file hash comparison, and `git diff --check` exit 0 |
 | 2026-07-10 17:40 | Verification | `make docs-tools && git diff --exit-code -- web/data/tools.json web/data/tool_schemas.json && git diff --check` exit 0 |
+| 2026-07-10 17:42 | Delivery | Verified required PRD, changelog, and pinned formula golden changes in the task diff |
+| 2026-07-10 17:42 | Delivery | Verified roadmap disposition, grounded cookbook example, and both 69-entry generated catalogs include compute_zone_energy |
 
 ## Blockers
 
