@@ -1,33 +1,38 @@
 # TP-231: Validate and canonicalize the yard distance suffix — Status
 
-**Current Step:** Not Started
-**Status:** 🔵 Ready for Execution
+**Current Step:** Step 0: Preflight
+**Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
-**Review Counter:** 0
-**Iteration:** 0
+**Review Counter:** 1
+**Iteration:** 1
 **Size:** M
 
 ---
 
 ### Step 0: Preflight
 
-**Status:** ⬜ Not Started
+**Status:** ✅ Complete
 
-- [ ] Required files and paths exist
-- [ ] Dependencies satisfied
-- [ ] Public upstream yard syntax confirmed
+- [x] Required files and paths exist
+- [x] Dependencies satisfied
+- [x] Public upstream yard syntax confirmed
 
 ---
 
 ### Step 1: Update parser and canonical serializer
 
-**Status:** ⬜ Not Started
+**Status:** 🟨 In Progress
 
-- [ ] yrd and backward-compatible aliases accepted
-- [ ] Yard distances serialize as yrd
-- [ ] Other distance units remain unchanged
-- [ ] Description validation remains unambiguous
+- [ ] Add yrd, yard, yards to distanceTokenRE (before yd in alternation)
+- [ ] Update workoutDistanceUnits: Canonical → yrd, add yrd to Aliases, update Description
+- [ ] Update CheatSheet.Examples yard DSL string → 100yrd
+- [ ] Update SyntaxExample distance_yd description → canonicalizes to yrd
+- [ ] Update distance_steps feature description to mention yrd
+- [ ] Update TestWorkoutDocYardDistanceSerializeParseValidate expectation → 100yrd
+- [ ] Update TestWorkoutDocDistanceAliasesRemainCanonical yards row → 100yrd
+- [ ] Add yard_suffix_test.go with alias round-trips and description-token checks
+- [ ] go test ./internal/workoutdoc passes cleanly
 
 ---
 
@@ -79,6 +84,8 @@
 | Timestamp | Action | Outcome |
 |-----------|--------|---------|
 | 2026-07-10 | Task staged | PROMPT.md and STATUS.md created |
+| 2026-07-10 13:21 | Task started | Runtime V2 lane-runner execution |
+| 2026-07-10 13:21 | Step 0 started | Preflight |
 
 ## Blockers
 
@@ -87,3 +94,4 @@
 ## Notes
 
 *Reserved for execution notes*
+| 2026-07-10 13:29 | Review R001 | plan Step 1: REVISE |
