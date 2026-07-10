@@ -120,6 +120,8 @@
 | 2026-07-10 21:41 | Task started | Runtime V2 lane-runner execution |
 | 2026-07-10 21:41 | Step 0 started | Preflight |
 | 2026-07-10 21:42 | Exit intercept reprompt | Supervisor provided instructions (217 chars) — reprompting worker |
+| 2026-07-10 22:35 | Worker iter 1 | done in 3189s, tools: 246 |
+| 2026-07-10 22:35 | Task complete | .DONE created |
 
 ## Blockers
 
