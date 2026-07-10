@@ -28,14 +28,14 @@
 
 Each recipe will require interactive `icuvisor setup` under the same OS account first, use the default per-user non-secret config and credential store, and forbid API-key variables, `.env`, `--env-file`, service-manager environment directives, `api_key` config, or Task Scheduler credential arguments. These recipes neither use Linux lingering nor a service account, so the credential store remains in the logged-in user's session boundary. It will specify status/log/restart/stop/disable-or-unload/remove recovery commands and remove the wrapper/log where applicable. The HTTP transport LAN code block will be replaced with warning-only prose. A path-specific contract plus Make/CI target will validate both HTTP guides for OS lifecycle content, loopback-only executable samples, no credential material, `/mcp`, TP-232's hosted URL/no-tunnel policy, remote provider connector boundary/hosted OAuth, and the connector key `icuvisor`.
 
-- [ ] Built-in lifecycle mechanism selected per OS
-- [ ] Credential-store-only design confirmed
-- [ ] Loopback endpoint fixed in examples
-- [ ] Lifecycle and hosted fallback coverage planned
-- [ ] R001: User-scoped service definitions, identities, logs, and lifecycle commands specified
-- [ ] R001: Session-safe credential boundary and `.env`-safe working directories specified
-- [ ] R001: Failure recovery and removal behavior specified for each manager
-- [ ] R001: LAN executable example removal and Make/CI contract scope specified
+- [x] Built-in lifecycle mechanism selected per OS
+- [x] Credential-store-only design confirmed
+- [x] Loopback endpoint fixed in examples
+- [x] Lifecycle and hosted fallback coverage planned
+- [x] R001: User-scoped service definitions, identities, logs, and lifecycle commands specified
+- [x] R001: Session-safe credential boundary and `.env`-safe working directories specified
+- [x] R001: Failure recovery and removal behavior specified for each manager
+- [x] R001: LAN executable example removal and Make/CI contract scope specified
 
 ---
 
