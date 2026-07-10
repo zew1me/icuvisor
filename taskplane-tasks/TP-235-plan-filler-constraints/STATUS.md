@@ -25,8 +25,8 @@
 **Status:** 🟨 In Progress
 
 <!-- R007 revision items -->
-- [ ] R007-1: ValidateCandidates must treat MaxSessionsPerDay==0 as day_unavailable (same as ValidateCandidate), before calling validateAgainstDay
-- [ ] R007-2: Fix WarnInfeasibleLoad exported comment and design-doc table entry — say "valid-input candidates only", not "including invalid candidates"
+- [x] R007-1: ValidateCandidates must treat MaxSessionsPerDay==0 as day_unavailable (same as ValidateCandidate), before calling validateAgainstDay
+- [x] R007-2: Fix WarnInfeasibleLoad exported comment and design-doc table entry — say "valid-input candidates only", not "including invalid candidates"
 
 <!-- R006 revision items -->
 - [x] R006-1: ValidateCandidate single-candidate path must also sanitize embedded candidate for NaN-safe serialization

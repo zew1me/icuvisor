@@ -183,9 +183,10 @@ const (
 	// is min(MaxSessionsPerDay, len(Slots)) per day; sport/mode filtering is not applied.
 	WarnInfeasibleSessionCount WarningCode = "infeasible_session_count"
 
-	// WarnInfeasibleLoad fires when the total candidate load (including invalid candidates)
+	// WarnInfeasibleLoad fires when the total load of valid-input candidates
 	// is less than the remaining weekly load target, meaning the target cannot be met
-	// with the provided candidates.
+	// with the provided candidates. Invalid-input candidates (NaN/negative) are excluded
+	// from this total; they are isolated from numeric accumulations.
 	WarnInfeasibleLoad WarningCode = "infeasible_load"
 
 	// WarnZeroRemainingLoad fires when the remaining load budget is zero or negative.
@@ -450,8 +451,8 @@ func ValidateCandidates(wc WeekConstraints, candidates []CandidateSession) Batch
 		} else {
 			ds := dayStates[candidate.Date]
 
-			if ds == nil {
-				// Day not in AvailableDays.
+			if ds == nil || ds.day.MaxSessionsPerDay == 0 {
+				// Day not in AvailableDays, or MaxSessionsPerDay is zero (effectively unavailable).
 				result = CandidateResult{
 					Candidate: candidate,
 					Valid:     false,
@@ -461,6 +462,11 @@ func ValidateCandidates(wc WeekConstraints, candidates []CandidateSession) Batch
 						Field:   "date",
 						Value:   candidate.Date,
 					}},
+				}
+				// Still increment sessions counter for zero-capacity days (pessimistic).
+				if ds != nil {
+					ds.sessions++
+					ds.minutes += candidate.DurationMinutes
 				}
 			} else {
 				result = validateAgainstDay(wc, ds.day, ds.availableSlots, ds.sessions, ds.minutes, priorLoad, priorMinutes, candidate)
