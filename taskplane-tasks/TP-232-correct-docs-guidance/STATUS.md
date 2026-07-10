@@ -49,11 +49,11 @@
 
 ### Step 3: Documentation & Delivery
 
-**Status:** 🟨 In Progress
+**Status:** ✅ Complete
 
-- [ ] Must Update docs modified
-- [ ] Check If Affected docs reviewed
-- [ ] Discoveries logged
+- [x] Must Update docs modified
+- [x] Check If Affected docs reviewed
+- [x] Discoveries logged
 
 ---
 
@@ -70,6 +70,9 @@
 
 | Discovery | Disposition | Location |
 |-----------|-------------|----------|
+| Coach-mode and contributor guidance also claimed bare IDs normalize to `i12345`. | Corrected and included in the contract test. | `web/content/guides/coach-mode.md`, `CONTRIBUTING.md` |
+| The documentation contract was not part of the CI test path. | Added `make docs-guidance-test` and a CI invocation. | `Makefile`, `.github/workflows/ci.yml` |
+| Task context file named in the prompt was not present. | Preflight proceeded from the authoritative source and hosted guidance files. | `taskplane-tasks/CONTEXT.md` |
 
 ## Execution Log
 
