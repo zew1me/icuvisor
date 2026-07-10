@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 )
 
@@ -29,8 +30,8 @@ func TestUpdateSportSettingsOpenAPIContract(t *testing.T) {
 				if r.URL.Path != "/athlete/i12345/sport-settings/7" {
 					t.Fatalf("path = %q", r.URL.Path)
 				}
-				if got, want := r.URL.Query().Get("recalcHrZones"), map[bool]string{true: "true", false: "false"}[tc.recalcHRZones]; got != want {
-					t.Fatalf("recalcHrZones = %q, want %q", got, want)
+				if got, want := r.URL.RawQuery, "recalcHrZones="+strconv.FormatBool(tc.recalcHRZones); got != want {
+					t.Fatalf("query = %q, want %q", got, want)
 				}
 				var body map[string]any
 				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {

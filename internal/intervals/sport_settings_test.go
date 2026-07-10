@@ -12,9 +12,11 @@ func TestUpdateSportSettingsSendsSparseBodyWithoutApply(t *testing.T) {
 	t.Parallel()
 
 	var updateBody map[string]any
+	updateRequests := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/athlete/i12345/sport-settings/7":
+			updateRequests++
 			if r.Method != http.MethodPut {
 				t.Fatalf("method = %s, want PUT", r.Method)
 			}
@@ -36,6 +38,9 @@ func TestUpdateSportSettingsSendsSparseBodyWithoutApply(t *testing.T) {
 	got, err := client.UpdateSportSettings(context.Background(), WriteSportSettingsParams{SportSettingID: 7, RecalcHRZones: true, FTP: &ftp, ThresholdHR: &lthr, ThresholdPace: &pace})
 	if err != nil {
 		t.Fatalf("UpdateSportSettings() error = %v", err)
+	}
+	if updateRequests != 1 {
+		t.Fatalf("update requests = %d, want exactly one with no implicit apply", updateRequests)
 	}
 	if got.ID != 7 || got.Type != "Ride" || got.FTP != 275 || got.LTHR != 171 || got.ThresholdPace != 255 {
 		t.Fatalf("updated setting = %+v", got)

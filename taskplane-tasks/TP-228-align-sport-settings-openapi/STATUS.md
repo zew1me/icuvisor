@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 3
-**Review Counter:** 13
+**Review Counter:** 14
 **Iteration:** 1
 **Size:** L
 
@@ -65,10 +65,10 @@
 
 **Status:** 🟨 In Progress
 
-- [ ] Exact update/apply wire tests added
-- [ ] No-implicit-apply regression added
-- [ ] Legacy invalid argument behavior covered
-- [ ] R013: Strengthen exact-query and single-update assertions without duplicating existing contract coverage
+- [x] Exact update/apply wire tests added
+- [x] No-implicit-apply regression added
+- [x] Legacy invalid argument behavior covered
+- [x] R013: Strengthen exact-query and single-update assertions without duplicating existing contract coverage
 
 ---
 
@@ -136,3 +136,4 @@
 | 2026-07-10 12:11 | Review R011 | code Step 3: REVISE |
 | 2026-07-10 12:14 | Review R012 | code Step 3: APPROVE |
 | 2026-07-10 12:16 | Review R013 | plan Step 4: REVISE |
+| 2026-07-10 12:17 | Review R014 | plan Step 4: APPROVE |
