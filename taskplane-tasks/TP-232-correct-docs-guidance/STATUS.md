@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 1
-**Review Counter:** 1
+**Review Counter:** 2
 **Iteration:** 1
 **Size:** S
 
@@ -24,10 +24,13 @@
 
 **Status:** 🟨 In Progress
 
+**Expanded artifacts:** `web/content/guides/coach-mode.md`, `CONTRIBUTING.md`, `Makefile`, and `.github/workflows/ci.yml`, in addition to the prompt's original Step 1 artifacts. The content contract will cover the corrected athlete-ID statements in both affected public guides and run through CI.
+
 - [ ] Athlete-ID normalization wording corrected
 - [ ] Coach and contributor athlete-ID guidance corrected
 - [ ] Hosted HTTP troubleshooting wording corrected
 - [ ] Documentation content contract added
+- [ ] Documentation contract wired into CI
 - [ ] Targeted documentation test passing
 
 ---
@@ -59,6 +62,7 @@
 | # | Type | Step | Verdict | File |
 |---|------|------|---------|------|
 | R001 | Plan | 1 | REVISE | `.reviews/R001-plan-step1.md` |
+| R002 | Plan | 1 | REVISE | `.reviews/R002-plan-step1.md` |
 
 ## Discoveries
 
@@ -73,6 +77,7 @@
 | 2026-07-10 11:36 | Task started | Runtime V2 lane-runner execution |
 | 2026-07-10 11:36 | Step 0 started | Preflight |
 | 2026-07-10 11:40 | Step 1 plan review | R001 requested correction of coach-mode and contributor athlete-ID guidance |
+| 2026-07-10 11:42 | Step 1 plan review | R002 required explicit expanded artifacts and CI execution for the content contract |
 
 ## Blockers
 
@@ -82,3 +87,4 @@
 
 *Reserved for execution notes*
 | 2026-07-10 11:40 | Review R001 | plan Step 1: REVISE |
+| 2026-07-10 11:42 | Review R002 | plan Step 1: REVISE |
