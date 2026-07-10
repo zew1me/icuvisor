@@ -2,8 +2,8 @@
 
 **Verdict:** APPROVE
 
-**Reviewed:** 2026-07-10  
-**Step:** Step 1: Define the constraint contract  
+**Reviewed:** 2026-07-10
+**Step:** Step 1: Define the constraint contract
 **Artifacts planned:** `internal/planning/constraints.go` (new), `docs/design/plan-filler-constraints.md` (new)
 
 ---
@@ -55,4 +55,3 @@ The `docs/design/plan-filler-constraints.md` artifact in this step is load-beari
 4. The invariant: `RemainingTarget = FullWeekTarget − CompletedLoad − FixedLoad`, and that the validator uses `RemainingTarget`, never `FullWeekTarget`, for infeasibility checks during an in-progress week
 5. The indoor/outdoor cap independence rule
 6. A worked example showing a two-slot day where combining the slots would violate per-slot caps
-

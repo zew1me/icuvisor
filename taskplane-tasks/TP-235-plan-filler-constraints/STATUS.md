@@ -25,9 +25,9 @@
 **Status:** 🟨 In Progress
 
 <!-- R006 revision items -->
-- [ ] R006-1: ValidateCandidate single-candidate path must also sanitize embedded candidate for NaN-safe serialization
-- [ ] R006-2: ValidateWeekConstraints must parse and validate WeekStartDate (Monday), day dates (YYYY-MM-DD), and each day within the declared week
-- [ ] R006-3: Update design doc to match R005 isolation: invalid candidates excluded from numeric accumulations (not pessimistic); add invalid_input to codes table; fix "echoed verbatim" note; clean R001 artifact whitespace
+- [x] R006-1: ValidateCandidate single-candidate path must also sanitize embedded candidate for NaN-safe serialization
+- [x] R006-2: ValidateWeekConstraints must parse and validate WeekStartDate (Monday), day dates (YYYY-MM-DD), and each day within the declared week
+- [x] R006-3: Update design doc to match R005 isolation: invalid candidates excluded from numeric accumulations (not pessimistic); add invalid_input to codes table; fix "echoed verbatim" note; clean R001 artifact whitespace
 
 <!-- R005 revision items -->
 - [x] R005-1: Invalid candidates (NaN/negative) must not pollute priorLoad/priorMinutes or reconciliation; sanitize embedded Candidate to avoid JSON NaN failure

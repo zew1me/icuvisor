@@ -129,7 +129,7 @@ Outcome for one candidate.
 
 | Field | Description |
 |---|---|
-| `Candidate` | The input candidate, echoed verbatim. |
+| `Candidate` | The input candidate, echoed as-provided. For invalid-input results (`invalid_input` violation), non-finite or negative `DurationMinutes`/`Load` values are replaced by 0 to ensure the result is JSON-serializable. |
 | `Valid` | True if and only if `Violations` is empty. |
 | `Violations` | Hard constraint breaches (see codes below). |
 | `Warnings` | Soft concerns (see codes below). |
@@ -152,6 +152,7 @@ Outcome for all candidates in a week.
 
 | Code | Trigger |
 |---|---|
+| `invalid_input` | Candidate `DurationMinutes` or `Load` is non-finite (NaN, Inf) or negative. Checked before all other constraints. The invalid value is excluded from budget accumulation and reconciliation totals. The embedded `Candidate` has the invalid field replaced by 0 to ensure JSON-safe output. |
 | `day_unavailable` | Candidate date absent from `AvailableDays` or `MaxSessionsPerDay` is zero. |
 | `daily_session_count_exceeded` | Adding the candidate would exceed `MaxSessionsPerDay`. |
 | `daily_time_exceeded` | Combined daily duration would exceed `MaxTotalDailyMinutes`. |
@@ -195,9 +196,11 @@ Processes candidates in order, maintaining per-day session counts, per-day cumul
 
 **RequestedSessionCount cap:** once `RequestedSessionCount` violation-free candidates have been accepted, subsequent valid candidates receive `requested_session_count_exceeded`. Position in the batch determines priority. A `RequestedSessionCount` of 0 means no cap is applied.
 
-**Accumulation is pessimistic (all candidates, including invalid ones).** All proposed candidates increment the day session counter and the per-day minute total, regardless of their validity. This ensures deterministic, position-based rejection: if sessions 1 and 2 are proposed for a day with `MaxSessionsPerDay: 1`, session 2 receives `daily_session_count_exceeded` regardless of whether session 1 is valid for other reasons. Weekly `priorLoad` and `priorMinutes` are likewise accumulated from all candidates, so that budget checks for candidate N account for the full load of candidates 1…N-1. Invalid candidates that would never be placed are included in this total.
+**Invalid-input candidates are isolated.** A candidate with `invalid_input` (NaN/negative numeric inputs) increments the day session counter (for deterministic positional tracking) but is excluded from all numeric accumulations: its `DurationMinutes` and `Load` are not added to the per-day minute total, `priorLoad`/`priorMinutes`, or reconciliation sums. This prevents non-finite values from poisoning comparisons or serialized output for subsequent candidates. Valid-input candidates (even those with other violations) follow the pessimistic accumulation rules below.
 
-The `WarnInfeasibleLoad` check uses the sum of all candidates' load (including invalid ones). A batch containing invalid sessions with non-zero load may suppress this warning even though those sessions will not be placed.
+**Accumulation is pessimistic for valid-input candidates.** All valid-input candidates (valid or not) increment the day session counter and the per-day minute total, and consume the weekly `priorLoad`/`priorMinutes` budget. This ensures deterministic, position-based rejection: if sessions 1 and 2 are proposed for a day with `MaxSessionsPerDay: 1`, session 2 receives `daily_session_count_exceeded` regardless of whether session 1 is valid for other reasons. Weekly `priorLoad` and `priorMinutes` are accumulated from all valid-input candidates, so budget checks for candidate N account for the full proposed load of candidates 1…N-1.
+
+The `WarnInfeasibleLoad` check and `Reconciliation` sums use only valid-input candidates. A batch containing only invalid-input sessions will have zero `CandidateLoad` and `CandidateMinutes` in the reconciliation.
 
 **Slot-count feasibility** (`WarnInfeasibleSessionCount`) compares `RequestedSessionCount` against structural slot capacity (sum of `min(MaxSessionsPerDay, len(Slots))` across available days). This count does not filter by sport or mode; a "Swim" candidate against a Ride-only slot would still count as a structural slot.
 
@@ -282,9 +285,13 @@ BatchResult.Warnings: [infeasible_session_count (requested 5, have 2 slots)]
 ### `ValidateWeekConstraints(wc WeekConstraints) error`
 
 Call before `ValidateCandidate` or `ValidateCandidates` to ensure the constraint struct is sound. Returns a non-nil error for:
+- `WeekStartDate` absent, non-YYYY-MM-DD, or not a Monday.
+- Any `AvailableDays.Date` that is non-YYYY-MM-DD or falls outside the Monday–Sunday week declared by `WeekStartDate`.
 - Any `float64` field that is NaN, infinite, or negative (targets, completed, fixed, slot caps, daily caps).
 - `RequestedSessionCount < 0`.
 - Duplicate `Date` values in `AvailableDays`.
+
+Errors are reported in a fixed deterministic order (date fields first, then numeric fields, then day entries in list order).
 
 Constraint struct errors are returned as `error` rather than `Violation` because they represent a programming error in how the caller built the struct, not a property of the candidate session.
 

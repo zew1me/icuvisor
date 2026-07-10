@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"math"
 	"slices"
+	"time"
 )
 
 // SlotConstraint defines limits for one available training window within a day.
@@ -266,7 +267,20 @@ type BatchResult struct {
 // Field checks are performed in a fixed deterministic order; the first invalid field
 // encountered is reported. Call before ValidateCandidate or ValidateCandidates.
 func ValidateWeekConstraints(wc WeekConstraints) error {
-	// Top-level fields in a fixed order for deterministic error reporting.
+	// 1. Parse and validate WeekStartDate.
+	if wc.WeekStartDate == "" {
+		return fmt.Errorf("week_start_date is required")
+	}
+	weekStart, err := time.Parse(time.DateOnly, wc.WeekStartDate)
+	if err != nil {
+		return fmt.Errorf("week_start_date must be YYYY-MM-DD, got %q", wc.WeekStartDate)
+	}
+	if weekStart.Weekday() != time.Monday {
+		return fmt.Errorf("week_start_date must be a Monday, got %s (%s)", wc.WeekStartDate, weekStart.Weekday())
+	}
+	weekEnd := weekStart.AddDate(0, 0, 6) // Sunday
+
+	// 2. Top-level numeric fields in a fixed order for deterministic error reporting.
 	type fieldCheck struct {
 		name string
 		val  float64
@@ -287,8 +301,18 @@ func ValidateWeekConstraints(wc WeekConstraints) error {
 	if wc.RequestedSessionCount < 0 {
 		return fmt.Errorf("requested_session_count must be non-negative, got %d", wc.RequestedSessionCount)
 	}
+
+	// 3. Available days: parse dates, verify within week, check for duplicates.
 	seen := map[string]struct{}{}
 	for i, day := range wc.AvailableDays {
+		dayDate, dayErr := time.Parse(time.DateOnly, day.Date)
+		if dayErr != nil {
+			return fmt.Errorf("available_days[%d].date must be YYYY-MM-DD, got %q", i, day.Date)
+		}
+		if dayDate.Before(weekStart) || dayDate.After(weekEnd) {
+			return fmt.Errorf("available_days[%d].date %q is outside the week %s to %s",
+				i, day.Date, wc.WeekStartDate, weekEnd.Format(time.DateOnly))
+		}
 		if day.MaxSessionsPerDay < 0 {
 			return fmt.Errorf("available_days[%d] (%s): max_sessions_per_day must be non-negative, got %d", i, day.Date, day.MaxSessionsPerDay)
 		}
@@ -343,7 +367,8 @@ func Reconcile(wc WeekConstraints, candidates []CandidateSession) Reconciliation
 // For batch validation with slot-consumption and session-count cap tracking, use ValidateCandidates.
 func ValidateCandidate(wc WeekConstraints, candidate CandidateSession) CandidateResult {
 	if v := invalidCandidateInputViolation(candidate); v != nil {
-		return CandidateResult{Candidate: candidate, Valid: false, Violations: []Violation{*v}}
+		// Sanitize before embedding so the result is safe to JSON-marshal.
+		return CandidateResult{Candidate: sanitizeCandidateForResult(candidate), Valid: false, Violations: []Violation{*v}}
 	}
 	day, ok := findDay(wc.AvailableDays, candidate.Date)
 	if !ok || day.MaxSessionsPerDay == 0 {
