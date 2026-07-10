@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
-**Review Counter:** 10
+**Review Counter:** 11
 **Iteration:** 1
 **Size:** L
 
@@ -23,6 +23,10 @@
 ### Step 1: Define the constraint contract
 
 **Status:** 🟨 In Progress
+
+<!-- R011 revision items -->
+- [ ] R011-1: Add WarnRequestedSessionCountUnmet batch warning when validCount < *RequestedSessionCount (underfill detection)
+- [ ] R011-2: Fix QF1001 lint issues at constraints.go:802,805 (De Morgan's law)
 
 <!-- R010 revision items -->
 - [x] R010-1: Reconciliation target fields use *float64 to preserve nil vs 0 distinction; RemainingLoad/RemainingMin are nil when untracked; fix nil+nonzero completed calculation
@@ -170,3 +174,4 @@
 | 2026-07-10 14:48 | Review R008 | code Step 1: REVISE |
 | 2026-07-10 14:58 | Review R009 | code Step 1: REVISE |
 | 2026-07-10 15:08 | Review R010 | code Step 1: REVISE |
+| 2026-07-10 15:14 | Review R011 | code Step 1: REVISE |
