@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 1
-**Review Counter:** 0
+**Review Counter:** 1
 **Iteration:** 1
 **Size:** M
 
@@ -22,8 +22,12 @@
 
 ### Step 1: Define evidence and non-claim boundaries
 
-**Status:** ⬜ Not Started
+**Status:** 🟨 In Progress
 
+<!-- R001 plan revision items -->
+- [ ] R001-1: Define mandatory, visibly separate sourced evidence, athlete-stated preference, cautious interpretation, insufficient-evidence/question, and conditional reviewable-proposal output sections; masters is an audience label only
+- [ ] R001-2: Bind hard-session, personal-baseline, and load-ramp conclusions to supported deterministic evidence and surface projection assumptions without a combined score or invented policy
+- [ ] R001-3: Map every unavailable/ambiguous evidence trigger to no conclusion plus a focused question, retain TP-235 availability/duration terminology, and add Step 1 boundary regression coverage
 - [ ] Review evidence sequence defined
 - [ ] Evidence, preferences, interpretation, and proposals separated
 - [ ] Unsupported age and medical claims prohibited
@@ -80,6 +84,7 @@
 
 | # | Type | Step | Verdict | File |
 |---|------|------|---------|------|
+| R001 | Plan | 1 | REVISE | `.reviews/R001-plan-step1.md` |
 
 ## Discoveries
 
@@ -102,3 +107,4 @@
 ## Notes
 
 *Reserved for execution notes*
+| 2026-07-10 21:46 | Review R001 | plan Step 1: REVISE |
