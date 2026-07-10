@@ -4,7 +4,7 @@
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 3
-**Review Counter:** 2
+**Review Counter:** 3
 **Iteration:** 1
 **Size:** L
 
@@ -22,7 +22,7 @@
 
 ### Step 1: Define the corrected write boundary
 
-**Status:** 🟨 In Progress
+**Status:** ✅ Complete
 
 - [x] Exact update/apply request contract documented
 - [x] Public schema migration for effective_date decided
@@ -114,3 +114,4 @@
 - R001 plan review: legacy `effective_date` must be rejected by strict decoding before an upstream request; response metadata may only report the requested HR-zone recalculation boolean.
 | 2026-07-10 11:40 | Review R001 | plan Step 1: REVISE |
 | 2026-07-10 11:42 | Review R002 | plan Step 1: APPROVE |
+| 2026-07-10 11:45 | Review R003 | code Step 1: APPROVE |
