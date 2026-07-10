@@ -1,7 +1,7 @@
 # TP-231: Validate and canonicalize the yard distance suffix — Status
 
-**Current Step:** Step 0: Preflight
-**Status:** 🟡 In Progress
+**Current Step:** Step 4: Documentation & Delivery
+**Status:** ✅ Complete
 **Last Updated:** 2026-07-10
 **Review Level:** 2
 **Review Counter:** 4
@@ -51,7 +51,7 @@
 
 ### Step 3: Testing & Verification
 
-**Status:** 🟨 In Progress
+**Status:** ✅ Complete
 
 - [x] FULL test suite passing
 - [x] Race suite passing
@@ -63,11 +63,11 @@
 
 ### Step 4: Documentation & Delivery
 
-**Status:** ⬜ Not Started
+**Status:** ✅ Complete
 
-- [ ] Must Update docs modified
-- [ ] Check If Affected docs reviewed
-- [ ] Discoveries logged
+- [x] Must Update docs modified
+- [x] Check If Affected docs reviewed
+- [x] Discoveries logged
 
 ---
 
@@ -80,6 +80,8 @@
 
 | Discovery | Disposition | Location |
 |-----------|-------------|----------|
+| `SECS_100Y` pace unit description uses "sec/100yd" (yards the unit, not the DSL token) — correctly left unchanged | In-scope; not a DSL token | `docs/prd/PRD-icuvisor.md:426` |
+| `internal/response/units.go` has a separate `"yd"` for API response swim pool distance display — this is activity data shaping, not workout DSL | Out of scope for TP-231 | `internal/response/units.go` |
 
 ## Execution Log
 
