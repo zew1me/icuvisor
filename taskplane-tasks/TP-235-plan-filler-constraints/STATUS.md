@@ -1,10 +1,10 @@
 # TP-235: Add plan-filler constraint model and validator — Status
 
-**Current Step:** Step 1: Define the constraint contract
+**Current Step:** Step 3: Add boundary-focused regression coverage
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
-**Review Counter:** 14
+**Review Counter:** 15
 **Iteration:** 2
 **Size:** L
 
@@ -22,7 +22,7 @@
 
 ### Step 1: Define the constraint contract
 
-**Status:** 🟨 In Progress
+**Status:** ✅ Complete
 
 <!-- R014 revision items -->
 - [x] R014-1: Protect intermediate arithmetic in validateCore (remaining budget subtraction can produce -Inf when completed+fixed overflow; guard before embedding in Violation.Value/Warning.Value)
@@ -190,3 +190,4 @@
 | 2026-07-10 15:18 | Review R012 | code Step 1: REVISE |
 | 2026-07-10 15:22 | Review R013 | code Step 1: REVISE |
 | 2026-07-10 15:29 | Review R014 | code Step 1: REVISE |
+| 2026-07-10 16:00 | Review R015 | code Step 1: UNAVAILABLE |
