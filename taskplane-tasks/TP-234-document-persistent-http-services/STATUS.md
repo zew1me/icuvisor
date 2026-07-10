@@ -87,11 +87,14 @@ The executable-only negative assertions will reject `INTERVALS_ICU_API_KEY` assi
 
 **Status:** 🟨 In Progress
 
+**Verification plan:** Run `make test`, the standalone service-doc contract, `make docs-guidance-test`, `make web-build`, `make lint`, and `make build` from the repository root. Fix and rerun any failed command before continuing, then finish with `git diff --check` and a clean status review.
+
 - [ ] FULL test suite passing
 - [ ] Documentation contract test passing
 - [ ] Website build passes
 - [ ] Lint passing
 - [ ] Binary build passes
+- [ ] Markdown and diff checks clean
 
 ---
 
