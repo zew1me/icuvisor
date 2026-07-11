@@ -1,11 +1,11 @@
 # TP-233: Support indoor FTP and missing sport-setting creation — Status
 
-**Current Step:** Step 5: Testing & Verification
+**Current Step:** Step 6: Documentation & Delivery
 **Status:** 🟡 In Progress
 **Last Updated:** 2026-07-10
 **Review Level:** 2
 **Review Counter:** 17
-**Iteration:** 5
+**Iteration:** 6
 **Size:** L
 
 ---
@@ -90,11 +90,11 @@
 
 ### Step 6: Documentation & Delivery
 
-**Status:** ⬜ Not Started
+**Status:** 🟨 In Progress
 
-- [ ] Must Update docs modified
-- [ ] Check If Affected docs reviewed
-- [ ] Discoveries logged
+- [x] Must Update docs modified
+- [x] Check If Affected docs reviewed
+- [x] Discoveries logged
 
 ---
 
@@ -111,6 +111,8 @@
 
 | Discovery | Disposition | Location |
 |-----------|-------------|----------|
+| Generated website data already exposes `create_sport_settings` and both create/update `indoor_ftp` arguments; README does not enumerate tool counts or sport-setting writes. | Kept generated data unchanged; no README change needed after review. | `web/data/tools.json`, `web/data/tool_schemas.json`, `README.md` |
+| The FTP cookbook only covered outdoor FTP/zone updates, so a safe indoor-FTP variation makes the new sparse update discoverable without implying zone replacement. | Added an explicit-approval indoor-only example that preserves outdoor FTP and zones. | `web/content/cookbook/ftp-and-zones.md` |
 
 ## Execution Log
 
@@ -127,6 +129,8 @@
 | 2026-07-11 01:09 | Worker iter 4 | done in 5592s, tools: 146 |
 | 2026-07-11 01:09 | Step 5 started | Testing & Verification |
 | 2026-07-11 01:25 | Exit intercept reprompt | Supervisor provided instructions (261 chars) — reprompting worker |
+| 2026-07-11 02:01 | Worker iter 5 | done in 3120s, tools: 20 |
+| 2026-07-11 02:01 | Step 6 started | Documentation & Delivery |
 
 ## Blockers
 
