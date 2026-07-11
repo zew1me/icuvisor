@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-07-11
+
+### Fixed
+
+- Updated the release build toolchain to Go 1.25.12 to address GO-2026-5856 in `crypto/tls`.
+
 ## [1.5.0] - 2026-07-11
 
 ### Added
@@ -325,7 +331,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial public release.
 
-[Unreleased]: https://github.com/ricardocabral/icuvisor/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/ricardocabral/icuvisor/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/ricardocabral/icuvisor/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/ricardocabral/icuvisor/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/ricardocabral/icuvisor/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/ricardocabral/icuvisor/compare/v1.2.1...v1.3.0
