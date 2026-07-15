@@ -10,7 +10,7 @@ lastmod = [":git", "lastmod", "date", "publishDate"]
 
 [params]
 homeTitle = "icuvisor — Talk to your intervals.icu data"
-description = "Open-source MCP server that connects intervals.icu training data to Claude, ChatGPT, and other AI assistants. Run it locally by default, or use the hosted HTTPS connector when a client requires it."
+description = "Open-source MCP for intervals.icu data. Run locally by default or use the hosted HTTPS connector; returned workout-step warnings and deterministic fitness scenarios, not forecasts."
 github = "https://github.com/ricardocabral/icuvisor"
 intervals = "https://intervals.icu"
 images = ["og-image.png"]
