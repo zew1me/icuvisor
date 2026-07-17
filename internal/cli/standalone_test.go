@@ -91,13 +91,19 @@ func TestParseCallArgsRejectsMultipleArgumentSources(t *testing.T) {
 func TestRunCallRejectsNonObjectArgumentsWithoutWritingStdout(t *testing.T) {
 	t.Parallel()
 
-	var stdout bytes.Buffer
-	err := Run(context.Background(), Options{Args: []string{"call", "get_athlete_profile", "--args", `[]`}, Stdout: &stdout, LoadConfig: testLoadConfig})
-	if err == nil || !strings.Contains(err.Error(), "JSON object") {
-		t.Fatalf("Run() error = %v, want JSON-object error", err)
-	}
-	if stdout.Len() != 0 {
-		t.Fatalf("stdout = %q, want empty", stdout.String())
+	for _, arguments := range []string{`[]`, `null`} {
+		t.Run(arguments, func(t *testing.T) {
+			t.Parallel()
+
+			var stdout bytes.Buffer
+			err := Run(context.Background(), Options{Args: []string{"call", "get_athlete_profile", "--args", arguments}, Stdout: &stdout, LoadConfig: testLoadConfig})
+			if err == nil || !strings.Contains(err.Error(), "JSON object") {
+				t.Fatalf("Run() error = %v, want JSON-object error", err)
+			}
+			if stdout.Len() != 0 {
+				t.Fatalf("stdout = %q, want empty", stdout.String())
+			}
+		})
 	}
 }
 

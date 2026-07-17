@@ -205,7 +205,8 @@ type Server struct {
 
 // Invoker invokes registered core tools without an MCP transport.
 type Invoker struct {
-	tools map[string]tools.Tool
+	tools     map[string]tools.Tool
+	athleteID string
 }
 
 // InvokerOptions configures direct core-tool invocation for local CLI and agent views.
@@ -227,6 +228,9 @@ func NewInvoker(ctx context.Context, opts InvokerOptions) (*Invoker, error) {
 		return nil, err
 	}
 	registry := registryForConfig(opts.Registry, opts.Config)
+	if registry == nil {
+		return nil, errors.New("creating invoker: missing tool registry")
+	}
 	if opts.Registry.core != nil {
 		catalogHash, err := internalmcp.ComputeToolCatalogHash(ctx, internalmcp.CatalogHashOptions{
 			Config:     cfg,
@@ -247,7 +251,7 @@ func NewInvoker(ctx context.Context, opts InvokerOptions) (*Invoker, error) {
 	if err := registry.Register(ctx, &registrar); err != nil {
 		return nil, err
 	}
-	return &Invoker{tools: registrar.tools}, nil
+	return &Invoker{tools: registrar.tools, athleteID: cfg.AthleteID}, nil
 }
 
 // Tools returns the tools available to this direct invocation view.
@@ -272,6 +276,12 @@ func (i *Invoker) Invoke(ctx context.Context, name string, arguments json.RawMes
 	if !ok {
 		return ToolResult{}, fmt.Errorf("unknown or unavailable tool %q", name)
 	}
+	if toolcatalog.IsAthleteScopedTool(name) {
+		if hasArgument(arguments, "athlete_id") {
+			return ToolResult{}, errors.New("athlete_id is only supported when coach mode is enabled")
+		}
+		ctx = intervals.WithTargetAthleteID(ctx, i.athleteID)
+	}
 	result, err := tool.Handler(ctx, tools.Request{Name: name, Arguments: arguments})
 	if err != nil {
 		return ToolResult{}, err
@@ -295,6 +305,15 @@ func (r *directRegistrar) AddTool(tool tools.Tool) error {
 	}
 	r.tools[tool.Name] = tool
 	return nil
+}
+
+func hasArgument(arguments json.RawMessage, name string) bool {
+	var object map[string]json.RawMessage
+	if err := json.Unmarshal(arguments, &object); err != nil {
+		return false
+	}
+	_, ok := object[name]
+	return ok
 }
 
 func directCapabilityAllows(capability safety.Capability, tool tools.Tool) bool {

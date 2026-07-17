@@ -113,6 +113,8 @@ if [[ "$release_mode" == "1" ]]; then
         exit 1
     fi
 
+    codesign --force --options runtime --timestamp --sign "$identity" "$app_path/Contents/MacOS/icuvisor"
+    codesign --force --options runtime --timestamp --sign "$identity" "$app_path/Contents/MacOS/icuvisor-cli"
     codesign --force --options runtime --timestamp --sign "$identity" "$app_path"
     codesign --verify --deep --strict --verbose=2 "$app_path"
 else

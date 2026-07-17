@@ -247,7 +247,7 @@ func parseCallArgs(args []string) (json.RawMessage, config.Options, error) {
 		return nil, config.Options{}, fmt.Errorf("tool arguments must be valid JSON")
 	}
 	var object map[string]json.RawMessage
-	if err := json.Unmarshal(request, &object); err != nil {
+	if err := json.Unmarshal(request, &object); err != nil || object == nil {
 		return nil, config.Options{}, fmt.Errorf("tool arguments must be a JSON object")
 	}
 	configOpts, err := parseRuntimeArgs(filtered)
