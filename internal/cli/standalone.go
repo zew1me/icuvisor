@@ -390,8 +390,11 @@ func defaultConfigPath(path string) string {
 }
 
 func isHelp(args []string) bool {
+	if len(args) > 0 && args[0] == "help" {
+		return true
+	}
 	for _, arg := range args {
-		if arg == "--help" || arg == "-h" || arg == "help" {
+		if arg == "--help" || arg == "-h" {
 			return true
 		}
 	}

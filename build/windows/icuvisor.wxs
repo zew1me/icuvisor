@@ -25,7 +25,7 @@
       Scope="perUser"
       Compressed="yes">
 
-    <SummaryInformation Description="icuvisor MCP server installer" />
+    <SummaryInformation Description="icuvisor MCP server and CLI installer" />
 
     <MajorUpgrade DowngradeErrorMessage="A newer version of icuvisor is already installed." />
 

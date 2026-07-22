@@ -87,5 +87,5 @@ The facade owns several safety behaviors required by stateless hosted MCP server
 Targeted verification for changes to this boundary:
 
 ```sh
-go test ./internal/athleteprofile ./internal/resources ./internal/intervals ./internal/tools ./internal/mcp ./pkg/icuvisor
+go test ./internal/athleteprofile ./internal/resources ./internal/intervals ./internal/tools ./internal/toolexec ./internal/cli ./internal/mcp ./pkg/icuvisor
 ```

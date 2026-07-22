@@ -139,6 +139,31 @@ func TestRunCLIUsageFailureWritesOnlyMachineError(t *testing.T) {
 	}
 }
 
+func TestRunCLIDoesNotTreatArgumentValueHelpAsHelp(t *testing.T) {
+	t.Parallel()
+
+	var stdout, stderr bytes.Buffer
+	code := RunCLI(context.Background(), Options{
+		Args:       []string{"tools", "call", "icuvisor_check_server_version", "--args", "help"},
+		Stdout:     &stdout,
+		Stderr:     &stderr,
+		LoadConfig: testLoadConfig,
+	})
+	if code != 2 {
+		t.Fatalf("exit code = %d, want 2", code)
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("stdout = %q, want empty", stdout.String())
+	}
+	var failure struct {
+		Error    string `json:"error"`
+		ExitCode int    `json:"exit_code"`
+	}
+	if err := json.Unmarshal(stderr.Bytes(), &failure); err != nil || failure.ExitCode != 2 || failure.Error == "" {
+		t.Fatalf("failure = %#v, unmarshal error = %v", failure, err)
+	}
+}
+
 func TestRunCapabilitiesReportsToolsOnlyContract(t *testing.T) {
 	t.Parallel()
 

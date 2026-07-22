@@ -45,7 +45,7 @@ func Execute(ctx context.Context, tool tools.Tool, request tools.Request, localA
 
 	if localAthleteID != "" && toolcatalog.IsAthleteScopedTool(tool.Name) {
 		if hasArgument(request.Arguments, "athlete_id") {
-			err := tools.NewUserError(LocalModeAthleteTargetMessage, nil)
+			err := tools.NewUserError(LocalModeAthleteTargetMessage, tools.ErrInvalidInput)
 			return Outcome{Err: err, PublicMessage: PublicErrorMessage(err)}
 		}
 		ctx = intervals.WithTargetAthleteID(ctx, localAthleteID)
