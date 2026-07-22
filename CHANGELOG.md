@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added the tools-only `icuvisor-cli` contract with namespaced `tools list`, `tools describe`, and `tools call` commands, stdin argument support, compact progressive catalog discovery, canonical MCP descriptors, redacted `doctor` readiness, and machine-readable `capabilities`. MCP and direct calls now share local-athlete routing, registration gates, public-error sanitization, and per-call panic recovery; Resources and Prompts remain required follow-ups.
+
 ## [1.5.2] - 2026-07-15
 
 ### Added
